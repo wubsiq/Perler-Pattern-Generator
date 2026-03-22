@@ -43,8 +43,12 @@ class PixelArtGenerator {
         this.chartStyle = document.getElementById('chartStyle');
         this.legendPosition = document.getElementById('legendPosition');
         this.beadShape = document.getElementById('beadShape');
+        this.beadSizeSlider = document.getElementById('beadSizeSlider');
+        this.beadSizeValue = document.getElementById('beadSizeValue');
         this.showGridLines = document.getElementById('showGridLines');
+        this.showCoordNumbers = document.getElementById('showCoordNumbers');
         this.coordLineColor = document.getElementById('coordLineColor');
+        this.coordNumberColor = document.getElementById('coordNumberColor');
         
         this.clearBtn = document.getElementById('clearBtn');
         this.resetBtn = document.getElementById('resetBtn');
@@ -67,6 +71,7 @@ class PixelArtGenerator {
         this.enableColorQuantize = document.getElementById('enableColorQuantize');
         this.colorCountSlider = document.getElementById('colorCountSlider');
         this.colorCountValue = document.getElementById('colorCountValue');
+        this.colorCountInput = document.getElementById('colorCountInput');
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
@@ -139,6 +144,12 @@ class PixelArtGenerator {
                 this.updatePerlerChart();
             }
         });
+        this.showCoordNumbers.addEventListener('change', () => {
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.updatePerlerChart();
+            }
+        });
+        // 注意：颜色选择器（coordLineColor 和 coordNumberColor）不实时渲染，只有点击"渲染拼豆图纸"按钮才会生效
         this.chartStyle.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
                 this.updatePerlerChart();
@@ -147,6 +158,12 @@ class PixelArtGenerator {
             }
         });
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
+        this.beadSizeSlider.addEventListener('input', () => {
+            this.beadSizeValue.textContent = this.beadSizeSlider.value + 'px';
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.updatePerlerChart();
+            }
+        });
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
         
@@ -164,7 +181,19 @@ class PixelArtGenerator {
         
         this.enableColorQuantize.addEventListener('change', () => this.updatePixelatedImage());
         this.colorCountSlider.addEventListener('input', () => {
-            this.colorCountValue.textContent = this.colorCountSlider.value;
+            const value = this.colorCountSlider.value;
+            this.colorCountValue.textContent = value;
+            this.colorCountInput.value = value;
+            this.updatePixelatedImage();
+        });
+        this.colorCountInput.addEventListener('input', () => {
+            let value = parseInt(this.colorCountInput.value);
+            if (isNaN(value)) value = 2;
+            if (value < 2) value = 2;
+            if (value > 291) value = 291;
+            this.colorCountValue.textContent = value;
+            this.colorCountSlider.value = value;
+            this.colorCountInput.value = value;
             this.updatePixelatedImage();
         });
         
@@ -229,7 +258,14 @@ class PixelArtGenerator {
         this.heightInput.value = Math.round(Math.min(this.originalWidth, 512) * (this.originalHeight / this.originalWidth));
         this.keepRatioCheckbox.checked = true;
         this.showGridLines.checked = true;
+        this.showCoordNumbers.checked = true;
         this.coordLineColor.value = '#888888';
+        this.coordNumberColor.value = '#666666';
+        this.colorCountSlider.value = 8;
+        this.colorCountValue.textContent = '8';
+        this.colorCountInput.value = 8;
+        this.beadSizeSlider.value = 24;
+        this.beadSizeValue.textContent = '24px';
     }
 
     updatePixelatedImage() {
@@ -296,25 +332,9 @@ class PixelArtGenerator {
         const smallCtx = smallCanvas.getContext('2d');
         smallCanvas.width = perlerWidth;
         smallCanvas.height = perlerHeight;
-        smallCtx.drawImage(this.originalImage, 0, 0, perlerWidth, perlerHeight);
+        smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
         
-        let imageData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
-        let processedData = imageData;
-        
-        if (this.enableContrast.checked) {
-            const contrastFactor = parseFloat(this.contrastSlider.value);
-            processedData = adjustContrast(processedData, contrastFactor);
-        }
-        
-        if (this.enableSharpen.checked) {
-            const sharpenStrength = parseFloat(this.sharpenSlider.value);
-            processedData = sharpenImage(processedData, sharpenStrength);
-        }
-        
-        if (this.enableColorQuantize.checked) {
-            const colorCount = parseInt(this.colorCountSlider.value);
-            processedData = quantizeColors(processedData, colorCount);
-        }
+        const processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
         
         this.colorCounts = {};
         const perlerColors = [];
@@ -343,36 +363,47 @@ class PixelArtGenerator {
     }
 
     drawPerlerChart(perlerColors, perlerWidth, perlerHeight, colorSetName) {
-        const cellSize = 24;
-        const coordSize = 35;
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const footerSize = 25;
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
         const showGrid = this.showGridLines.checked;
+        const showCoords = this.showCoordNumbers.checked;
         const coordColor = this.coordLineColor.value;
+        const coordNumColor = this.coordNumberColor.value;
         
         this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
-        this.perlerCanvas.height = coordSize + perlerHeight * cellSize;
+        this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, this.perlerCanvas.width, this.perlerCanvas.height);
         
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillStyle = '#667eea';
-        ctx.textAlign = 'left';
-        ctx.fillText('豆师傅', 5, 15);
+        const drawFooter = () => {
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            ctx.fillText('豆师傅-perler-pattern-generator.pages.dev', this.perlerCanvas.width / 2, footerY);
+        };
         
-        ctx.font = '11px sans-serif';
+        const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
+        ctx.font = `${fontSizeCoord}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = coordColor;
         
-        for (let x = 0; x < perlerWidth; x++) {
-            ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
-        }
-        
-        for (let y = 0; y < perlerHeight; y++) {
-            ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+        if (showCoords) {
+            ctx.fillStyle = coordNumColor;
+            
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
+            }
+            
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
         }
         
         if (showGrid) {
@@ -393,83 +424,193 @@ class PixelArtGenerator {
             ctx.stroke();
         }
         
-        for (let y = 0; y < perlerHeight; y++) {
-            for (let x = 0; x < perlerWidth; x++) {
-                const color = perlerColors[y][x];
-                const px = coordSize + x * cellSize;
-                const py = coordSize + y * cellSize;
-                
-                const nameLen = color.name.length;
-                let fontSize = 11;
-                if (nameLen === 1) {
-                    fontSize = 12;
-                } else if (nameLen === 2) {
-                    fontSize = 11;
-                } else if (nameLen === 3) {
-                    fontSize = 9;
-                } else {
-                    fontSize = 8;
-                }
-                
-                if (beadShape === 'circle') {
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                    ctx.clip();
+        const blockSize = 10;
+        const totalBlocksX = Math.ceil(perlerWidth / blockSize);
+        const totalBlocksY = Math.ceil(perlerHeight / blockSize);
+        let currentBlockX = 0;
+        let currentBlockY = 0;
+        
+        this.drawColorLegend();
+        
+        const drawBlock = () => {
+            const startX = currentBlockX * blockSize;
+            const startY = currentBlockY * blockSize;
+            const endX = Math.min(startX + blockSize, perlerWidth);
+            const endY = Math.min(startY + blockSize, perlerHeight);
+            
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    const color = perlerColors[y][x];
+                    const px = coordSize + x * cellSize;
+                    const py = coordSize + y * cellSize;
                     
-                    if (chartStyle === 'color') {
-                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                        ctx.fillRect(px, py, cellSize, cellSize);
-                    } else if (chartStyle === 'color-with-code') {
-                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                        ctx.fillRect(px, py, cellSize, cellSize);
-                        ctx.fillStyle = getContrastTextColor(color.rgb);
-                        ctx.font = `bold ${fontSize}px sans-serif`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    const nameLen = color.name.length;
+                    let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
+                    let fontSize = fontSizeBase;
+                    if (nameLen === 1) {
+                        fontSize = Math.floor(fontSizeBase * 1.1);
+                    } else if (nameLen === 2) {
+                        fontSize = fontSizeBase;
+                    } else if (nameLen === 3) {
+                        fontSize = Math.floor(fontSizeBase * 0.85);
                     } else {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(px, py, cellSize, cellSize);
-                        ctx.strokeStyle = '#999';
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
-                        ctx.fillStyle = '#333';
-                        ctx.font = `${fontSize}px sans-serif`;
-                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        fontSize = Math.floor(fontSizeBase * 0.7);
                     }
                     
-                    ctx.restore();
-                    
-                    ctx.beginPath();
-                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#ddd';
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
-                } else {
-                    if (chartStyle === 'color') {
-                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
-                    } else if (chartStyle === 'color-with-code') {
-                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
-                        ctx.fillStyle = getContrastTextColor(color.rgb);
-                        ctx.font = `bold ${fontSize}px sans-serif`;
-                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    if (beadShape === 'circle') {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.clip();
+                        
+                        if (chartStyle === 'color') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                        } else if (chartStyle === 'color-with-code') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                            ctx.fillStyle = getContrastTextColor(color.rgb);
+                            ctx.font = `bold ${fontSize}px sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                            ctx.strokeStyle = '#999';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            ctx.fillStyle = '#333';
+                            ctx.font = `${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        }
+                        
+                        ctx.restore();
+                        
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
                     } else {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
-                        ctx.strokeStyle = '#999';
-                        ctx.strokeRect(px, py, cellSize - 1, cellSize - 1);
-                        ctx.fillStyle = '#333';
-                        ctx.font = `${fontSize}px sans-serif`;
-                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        if (chartStyle === 'color') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        } else if (chartStyle === 'color-with-code') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.fillStyle = getContrastTextColor(color.rgb);
+                            ctx.font = `bold ${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.strokeStyle = '#999';
+                            ctx.strokeRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.fillStyle = '#333';
+                            ctx.font = `${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        }
+                    }
+                }
+            }
+            
+            currentBlockX++;
+            if (currentBlockX >= totalBlocksX) {
+                currentBlockX = 0;
+                currentBlockY++;
+            }
+            
+            if (currentBlockY < totalBlocksY) {
+                requestAnimationFrame(drawBlock);
+            } else {
+                this.drawColorLegend();
+                drawFooter();
+            }
+        };
+        
+        if (totalBlocksX * totalBlocksY > 1) {
+            requestAnimationFrame(drawBlock);
+        } else {
+            for (let y = 0; y < perlerHeight; y++) {
+                for (let x = 0; x < perlerWidth; x++) {
+                    const color = perlerColors[y][x];
+                    const px = coordSize + x * cellSize;
+                    const py = coordSize + y * cellSize;
+                    
+                    const nameLen = color.name.length;
+                    let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
+                    let fontSize = fontSizeBase;
+                    if (nameLen === 1) {
+                        fontSize = Math.floor(fontSizeBase * 1.1);
+                    } else if (nameLen === 2) {
+                        fontSize = fontSizeBase;
+                    } else if (nameLen === 3) {
+                        fontSize = Math.floor(fontSizeBase * 0.85);
+                    } else {
+                        fontSize = Math.floor(fontSizeBase * 0.7);
+                    }
+                    
+                    if (beadShape === 'circle') {
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.clip();
+                        
+                        if (chartStyle === 'color') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                        } else if (chartStyle === 'color-with-code') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                            ctx.fillStyle = getContrastTextColor(color.rgb);
+                            ctx.font = `bold ${fontSize}px sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(px, py, cellSize, cellSize);
+                            ctx.strokeStyle = '#999';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            ctx.fillStyle = '#333';
+                            ctx.font = `${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        }
+                        
+                        ctx.restore();
+                        
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    } else {
+                        if (chartStyle === 'color') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        } else if (chartStyle === 'color-with-code') {
+                            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.fillStyle = getContrastTextColor(color.rgb);
+                            ctx.font = `bold ${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.strokeStyle = '#999';
+                            ctx.strokeRect(px, py, cellSize - 1, cellSize - 1);
+                            ctx.fillStyle = '#333';
+                            ctx.font = `${fontSize}px sans-serif`;
+                            ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                        }
                     }
                 }
             }
         }
-        
         this.drawColorLegend();
+        drawFooter();
     }
 
     drawColorLegend() {
@@ -479,23 +620,47 @@ class PixelArtGenerator {
         
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
         
-        const columns = Math.min(6, Math.ceil(colorNames.length / 10));
-        const itemsPerColumn = Math.ceil(colorNames.length / columns);
-        const columnWidth = 90;
+        const position = this.legendPosition.value;
+        const perlerWidth = Math.ceil(parseInt(this.widthInput.value) / parseInt(this.pixelSizeSlider.value));
+        const perlerHeight = Math.ceil(parseInt(this.heightInput.value) / parseInt(this.pixelSizeSlider.value));
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const chartWidth = coordSize + perlerWidth * cellSize;
+        const chartHeight = coordSize + perlerHeight * cellSize;
         
-        legendCanvas.width = columns * columnWidth + 20;
-        legendCanvas.height = 70 + itemsPerColumn * 24;
+        let columns, itemsPerColumn, columnWidth;
+        const rowHeight = 20;
+        
+        if (position === 'right') {
+            columnWidth = 85;
+            const availableHeight = chartHeight - 60;
+            const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeight));
+            columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
+            itemsPerColumn = Math.ceil(colorNames.length / columns);
+        } else {
+            const maxWidth = chartWidth - 20;
+            columnWidth = 80;
+            columns = Math.max(1, Math.min(Math.floor(maxWidth / columnWidth), Math.ceil(colorNames.length / 1)));
+            itemsPerColumn = Math.ceil(colorNames.length / columns);
+        }
+        
+        const legendWidth = columns * columnWidth + 20;
+        const legendHeight = 60 + itemsPerColumn * rowHeight;
+        
+        legendCanvas.width = legendWidth;
+        legendCanvas.height = legendHeight;
+        
         legendCtx.fillStyle = '#ffffff';
         legendCtx.fillRect(0, 0, legendCanvas.width, legendCanvas.height);
         
-        legendCtx.font = 'bold 14px sans-serif';
+        legendCtx.font = 'bold 13px sans-serif';
         legendCtx.fillStyle = '#667eea';
         legendCtx.textAlign = 'left';
-        legendCtx.fillText(getI18nText('colorLegend'), 10, 20);
+        legendCtx.fillText(getI18nText('colorLegend'), 8, 18);
         
-        legendCtx.font = 'bold 13px sans-serif';
+        legendCtx.font = 'bold 12px sans-serif';
         legendCtx.fillStyle = '#333';
-        legendCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, 10, 42);
+        legendCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, 8, 36);
         
         let col = 0, row = 0;
         
@@ -505,27 +670,27 @@ class PixelArtGenerator {
             const colorSet = colorSets[colorSetName];
             const color = colorSet.find(c => c.name === name);
             
-            const x = 10 + col * columnWidth;
-            const y = 60 + row * 24;
+            const x = 8 + col * columnWidth;
+            const y = 50 + row * rowHeight;
             
             if (color) {
                 legendCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                legendCtx.fillRect(x, y - 8, 22, 22);
+                legendCtx.fillRect(x, y - 6, 18, 18);
                 legendCtx.strokeStyle = '#999';
-                legendCtx.strokeRect(x, y - 8, 22, 22);
+                legendCtx.strokeRect(x, y - 6, 18, 18);
                 
                 legendCtx.fillStyle = getContrastTextColor(color.rgb);
-                legendCtx.font = 'bold 8px sans-serif';
+                legendCtx.font = 'bold 7px sans-serif';
                 legendCtx.textAlign = 'center';
                 legendCtx.textBaseline = 'middle';
-                legendCtx.fillText(name, x + 11, y + 3);
+                legendCtx.fillText(name, x + 9, y + 2);
                 legendCtx.textAlign = 'left';
                 legendCtx.textBaseline = 'alphabetic';
             }
             
             legendCtx.fillStyle = '#333';
-            legendCtx.font = '11px sans-serif';
-            legendCtx.fillText(`×${count}`, x + 28, y + 5);
+            legendCtx.font = '10px sans-serif';
+            legendCtx.fillText(`×${count}`, x + 23, y + 3);
             
             row++;
             if (row >= itemsPerColumn) {
@@ -539,7 +704,6 @@ class PixelArtGenerator {
             existingLegend.remove();
         }
         
-        const position = this.legendPosition.value;
         const legendDiv = document.createElement('div');
         legendDiv.id = 'colorLegend';
         legendDiv.style.padding = '15px';
@@ -557,12 +721,14 @@ class PixelArtGenerator {
             this.perlerContent.style.flexDirection = 'row';
             this.perlerContent.style.gap = '20px';
             colorLegendArea.style.flexDirection = 'column';
+            colorLegendArea.style.alignItems = 'flex-start';
         } else {
             legendDiv.classList.remove('horizontal');
             colorLegendArea.classList.remove('horizontal');
             this.perlerContent.style.flexDirection = 'column';
             this.perlerContent.style.gap = '0px';
             colorLegendArea.style.flexDirection = 'column';
+            colorLegendArea.style.alignItems = 'center';
         }
         
         colorLegendArea.appendChild(legendDiv);
@@ -618,30 +784,47 @@ class PixelArtGenerator {
         const perlerWidth = Math.ceil(parseInt(this.widthInput.value) / parseInt(this.pixelSizeSlider.value));
         const perlerHeight = Math.ceil(parseInt(this.heightInput.value) / parseInt(this.pixelSizeSlider.value));
         
-        const cellSize = 24;
-        const coordSize = 35;
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const footerSize = 25;
         const colorNames = Object.keys(this.colorCounts).sort();
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
         
-        const columns = Math.min(6, Math.ceil(colorNames.length / 10));
-        const itemsPerColumn = Math.ceil(colorNames.length / columns);
-        const columnWidth = 100;
-        const legendWidth = columns * columnWidth + 40;
-        const legendHeight = 80 + itemsPerColumn * 28;
-        
         const position = this.legendPosition.value;
+        const chartWidth = coordSize + perlerWidth * cellSize;
+        const chartHeight = coordSize + perlerHeight * cellSize + footerSize;
+        
+        let columns, itemsPerColumn, columnWidth;
+        const rowHeight = 20;
+        
+        if (position === 'right') {
+            columnWidth = 85;
+            const availableHeight = chartHeight - 60;
+            const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeight));
+            columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
+            itemsPerColumn = Math.ceil(colorNames.length / columns);
+        } else {
+            const maxWidth = chartWidth - 20;
+            columnWidth = 80;
+            columns = Math.max(1, Math.min(Math.floor(maxWidth / columnWidth), Math.ceil(colorNames.length / 1)));
+            itemsPerColumn = Math.ceil(colorNames.length / columns);
+        }
+        
+        const legendWidth = columns * columnWidth + 20;
+        const legendHeight = 60 + itemsPerColumn * rowHeight;
+        
         let canvasWidth, canvasHeight, legendX, legendY;
         
         if (position === 'right') {
-            canvasWidth = coordSize + perlerWidth * cellSize + legendWidth + 40;
-            canvasHeight = Math.max(coordSize + perlerHeight * cellSize, legendHeight + 40);
-            legendX = coordSize + perlerWidth * cellSize + 20;
-            legendY = 20;
+            canvasWidth = chartWidth + Math.max(legendWidth, 150) + 40;
+            canvasHeight = Math.max(chartHeight, legendHeight);
+            legendX = chartWidth + 20;
+            legendY = 0;
         } else {
-            canvasWidth = Math.max(coordSize + perlerWidth * cellSize, legendWidth);
-            canvasHeight = coordSize + perlerHeight * cellSize + legendHeight + 40;
-            legendX = 20;
-            legendY = coordSize + perlerHeight * cellSize + 20;
+            canvasWidth = Math.max(chartWidth, legendWidth);
+            canvasHeight = chartHeight + legendHeight + 40;
+            legendX = 0;
+            legendY = chartHeight + 20;
         }
         
         const downloadCanvas = document.createElement('canvas');
@@ -654,14 +837,14 @@ class PixelArtGenerator {
         
         downloadCtx.drawImage(this.perlerCanvas, 0, 0);
         
-        downloadCtx.font = 'bold 16px sans-serif';
+        downloadCtx.font = 'bold 13px sans-serif';
         downloadCtx.fillStyle = '#667eea';
         downloadCtx.textAlign = 'left';
-        downloadCtx.fillText(getI18nText('colorLegend'), legendX, legendY + 20);
+        downloadCtx.fillText(getI18nText('colorLegend'), legendX + 8, legendY + 18);
         
-        downloadCtx.font = 'bold 14px sans-serif';
+        downloadCtx.font = 'bold 12px sans-serif';
         downloadCtx.fillStyle = '#333';
-        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, legendX, legendY + 45);
+        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, legendX + 8, legendY + 36);
         
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
@@ -672,27 +855,27 @@ class PixelArtGenerator {
             const count = this.colorCounts[name];
             const color = colorSet.find(c => c.name === name);
             
-            const x = legendX + col * columnWidth;
-            const y = legendY + 70 + row * 28;
+            const x = legendX + 8 + col * columnWidth;
+            const y = legendY + 50 + row * rowHeight;
             
             if (color) {
                 downloadCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                downloadCtx.fillRect(x, y - 10, 24, 24);
+                downloadCtx.fillRect(x, y - 6, 18, 18);
                 downloadCtx.strokeStyle = '#999';
-                downloadCtx.strokeRect(x, y - 10, 24, 24);
+                downloadCtx.strokeRect(x, y - 6, 18, 18);
                 
                 downloadCtx.fillStyle = getContrastTextColor(color.rgb);
-                downloadCtx.font = 'bold 9px sans-serif';
+                downloadCtx.font = 'bold 7px sans-serif';
                 downloadCtx.textAlign = 'center';
                 downloadCtx.textBaseline = 'middle';
-                downloadCtx.fillText(name, x + 12, y + 2);
+                downloadCtx.fillText(name, x + 9, y + 2);
                 downloadCtx.textAlign = 'left';
                 downloadCtx.textBaseline = 'alphabetic';
             }
             
             downloadCtx.fillStyle = '#333';
-            downloadCtx.font = '12px sans-serif';
-            downloadCtx.fillText(`×${count}`, x + 32, y + 4);
+            downloadCtx.font = '10px sans-serif';
+            downloadCtx.fillText(`×${count}`, x + 23, y + 3);
             
             row++;
             if (row >= itemsPerColumn) {
@@ -704,7 +887,6 @@ class PixelArtGenerator {
         const link = document.createElement('a');
         
         const chartStyle = this.chartStyle.value;
-        const legendPosition = this.legendPosition.value;
         const beadShape = this.beadShape.value;
         
         const i18nFileName = i18n[getCurrentLang()].fileName;
@@ -712,7 +894,7 @@ class PixelArtGenerator {
         if (chartStyle === 'bw') fileName += `_${i18nFileName.bw}`;
         if (chartStyle === 'color-with-code') fileName += `_${i18nFileName.withCode}`;
         if (beadShape === 'circle') fileName += `_${i18nFileName.circle}`;
-        if (legendPosition === 'right') fileName += `_${i18nFileName.legendRight}`;
+        if (position === 'right') fileName += `_${i18nFileName.legendRight}`;
         fileName += '.png';
         
         link.download = fileName;

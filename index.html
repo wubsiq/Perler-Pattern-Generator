@@ -137,7 +137,10 @@
                                 <span data-i18n="colorCount">颜色数量：</span>
                                 <span id="colorCountValue">8</span>
                             </label>
-                            <input type="range" id="colorCountSlider" min="2" max="32" step="1" value="8">
+                            <div class="color-count-inputs">
+                                <input type="range" id="colorCountSlider" min="2" max="291" step="1" value="8">
+                                <input type="number" id="colorCountInput" min="2" max="291" value="8" style="width: 60px; margin-left: 10px;">
+                            </div>
                         </div>
                         <div class="action-buttons">
                             <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
@@ -213,14 +216,31 @@
                             </select>
                         </div>
                         <div class="control-group">
+                            <label>
+                                <span data-i18n="beadSize">拼豆大小：</span>
+                                <span id="beadSizeValue">24px</span>
+                            </label>
+                            <input type="range" id="beadSizeSlider" min="12" max="48" step="2" value="24">
+                        </div>
+                        <div class="control-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="showGridLines" checked>
                                 <span data-i18n="showGridLines">显示网格线</span>
                             </label>
                         </div>
                         <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showCoordNumbers" checked>
+                                <span data-i18n="showCoordNumbers">显示坐标数字</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
                             <label><span data-i18n="coordLineColor">网格线颜色：</span></label>
                             <input type="color" id="coordLineColor" value="#888888">
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="coordNumberColor">坐标数字颜色：</span></label>
+                            <input type="color" id="coordNumberColor" value="#666666">
                         </div>
                         <div class="control-group">
                             <button id="renderPerlerBtn" class="btn btn-primary" data-i18n="renderPerler">🎨 渲染拼豆图纸</button>
