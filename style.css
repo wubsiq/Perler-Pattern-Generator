@@ -123,15 +123,36 @@ header p {
     padding: 30px;
 }
 
-.preview-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+.preview-section {
+    display: flex;
     gap: 30px;
     margin-bottom: 30px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
 }
 
-.preview-container.has-perler {
-    grid-template-columns: 1fr 1fr 1fr;
+.preview-left {
+    flex: 1;
+}
+
+.preview-right {
+    flex: 0 0 380px;
+}
+
+.controls-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    height: 100%;
+}
+
+.global-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 25px;
+    border-top: 2px solid #e9ecef;
 }
 
 .preview-panel {
@@ -351,12 +372,26 @@ select:focus {
     border-color: #667eea;
 }
 
-#perlerOptions {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    border: 2px dashed #667eea;
+input[type="color"] {
+    width: 60px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 2px;
+    transition: border-color 0.3s;
 }
+
+input[type="color"]:hover {
+    border-color: #667eea;
+}
+
+input[type="color"]:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+
 
 #perlerContent {
     display: flex;
@@ -402,17 +437,27 @@ select:focus {
     }
 }
 
-@media (max-width: 768px) {
-    .preview-container,
-    .preview-container.has-perler {
-        grid-template-columns: 1fr;
+@media (max-width: 1024px) {
+    .preview-section {
+        flex-direction: column;
     }
 
+    .preview-right {
+        flex: none;
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
     .size-inputs {
         flex-direction: column;
     }
 
     .action-buttons {
+        flex-direction: column;
+    }
+
+    .global-actions {
         flex-direction: column;
     }
 }

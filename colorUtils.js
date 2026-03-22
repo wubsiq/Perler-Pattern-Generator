@@ -32,31 +32,343 @@ function xyzToLab(x, y, z) {
     return [l, a, b];
 }
 
-function colorDistance(lab1, lab2) {
+function rgbToLab(r, g, b) {
+    const xyz = rgbToXyz(r, g, b);
+    return xyzToLab(xyz[0], xyz[1], xyz[2]);
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0;
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
+    }
+
+    return [h * 360, s * 100, l * 100];
+}
+
+function rgbToHsv(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    let h, s = max === 0 ? 0 : d / max, v = max;
+
+    if (max === min) {
+        h = 0;
+    } else {
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
+    }
+
+    return [h * 360, s * 100, v * 100];
+}
+
+function deltaE76(lab1, lab2) {
     const dl = lab1[0] - lab2[0];
     const da = lab1[1] - lab2[1];
     const db = lab1[2] - lab2[2];
     return Math.sqrt(dl * dl + da * da + db * db);
 }
 
-function findClosestColor(rgb, colorSet) {
-    const xyz1 = rgbToXyz(rgb[0], rgb[1], rgb[2]);
-    const lab1 = xyzToLab(xyz1[0], xyz1[1], xyz1[2]);
-    let closest = null;
-    let minDistance = Infinity;
+function deltaE94(lab1, lab2) {
+    const dl = lab1[0] - lab2[0];
+    const da = lab1[1] - lab2[1];
+    const db = lab1[2] - lab2[2];
+    
+    const c1 = Math.sqrt(lab1[1] * lab1[1] + lab1[2] * lab1[2]);
+    const c2 = Math.sqrt(lab2[1] * lab2[1] + lab2[2] * lab2[2]);
+    const dc = c1 - c2;
+    
+    const dh = Math.sqrt(da * da + db * db - dc * dc);
+    
+    const kL = 1;
+    const kC = 1;
+    const kH = 1;
+    const K1 = 0.045;
+    const K2 = 0.015;
+    
+    const SL = 1;
+    const SC = 1 + K1 * c1;
+    const SH = 1 + K2 * c1;
+    
+    const term1 = dl / (kL * SL);
+    const term2 = dc / (kC * SC);
+    const term3 = dh / (kH * SH);
+    
+    return Math.sqrt(term1 * term1 + term2 * term2 + term3 * term3);
+}
 
-    for (const color of colorSet) {
-        const xyz2 = rgbToXyz(color.rgb[0], color.rgb[1], color.rgb[2]);
-        const lab2 = xyzToLab(xyz2[0], xyz2[1], xyz2[2]);
-        const distance = colorDistance(lab1, lab2);
+function deltaE2000(lab1, lab2) {
+    const L1 = lab1[0], a1 = lab1[1], b1 = lab1[2];
+    const L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    
+    const kL = 1, kC = 1, kH = 1;
+    
+    const C1 = Math.sqrt(a1 * a1 + b1 * b1);
+    const C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    const Cavg = (C1 + C2) / 2;
+    
+    const G = 0.5 * (1 - Math.sqrt(Math.pow(Cavg, 7) / (Math.pow(Cavg, 7) + Math.pow(25, 7))));
+    
+    const a1p = a1 * (1 + G);
+    const a2p = a2 * (1 + G);
+    
+    const C1p = Math.sqrt(a1p * a1p + b1 * b1);
+    const C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    
+    let h1p = Math.atan2(b1, a1p) * 180 / Math.PI;
+    if (h1p < 0) h1p += 360;
+    
+    let h2p = Math.atan2(b2, a2p) * 180 / Math.PI;
+    if (h2p < 0) h2p += 360;
+    
+    const dLp = L2 - L1;
+    const dCp = C2p - C1p;
+    
+    let dhp;
+    if (C1p * C2p === 0) {
+        dhp = 0;
+    } else if (Math.abs(h2p - h1p) <= 180) {
+        dhp = h2p - h1p;
+    } else if (h2p - h1p > 180) {
+        dhp = h2p - h1p - 360;
+    } else {
+        dhp = h2p - h1p + 360;
+    }
+    
+    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * Math.PI / 360);
+    
+    const Lpavg = (L1 + L2) / 2;
+    const Cpavg = (C1p + C2p) / 2;
+    
+    let Hpavg;
+    if (C1p * C2p === 0) {
+        Hpavg = h1p + h2p;
+    } else if (Math.abs(h1p - h2p) <= 180) {
+        Hpavg = (h1p + h2p) / 2;
+    } else if (h1p + h2p < 360) {
+        Hpavg = (h1p + h2p + 360) / 2;
+    } else {
+        Hpavg = (h1p + h2p - 360) / 2;
+    }
+    
+    const T = 1 - 0.17 * Math.cos((Hpavg - 30) * Math.PI / 180)
+              + 0.24 * Math.cos(2 * Hpavg * Math.PI / 180)
+              + 0.32 * Math.cos((3 * Hpavg + 6) * Math.PI / 180)
+              - 0.20 * Math.cos((4 * Hpavg - 63) * Math.PI / 180);
+    
+    const SL = 1 + (0.015 * Math.pow(Lpavg - 50, 2)) / Math.sqrt(20 + Math.pow(Lpavg - 50, 2));
+    const SC = 1 + 0.045 * Cpavg;
+    const SH = 1 + 0.015 * Cpavg * T;
+    
+    const RT = -2 * Math.sqrt(Math.pow(Cpavg, 7) / (Math.pow(Cpavg, 7) + Math.pow(25, 7)))
+               * Math.sin(60 * Math.exp(-Math.pow((Hpavg - 275) / 25, 2)) * Math.PI / 180);
+    
+    const term1 = dLp / (kL * SL);
+    const term2 = dCp / (kC * SC);
+    const term3 = dHp / (kH * SH);
+    
+    return Math.sqrt(term1 * term1 + term2 * term2 + term3 * term3 + RT * term2 * term3);
+}
 
-        if (distance < minDistance) {
-            minDistance = distance;
-            closest = color;
+function weightedRgbDistance(rgb1, rgb2) {
+    const rmean = (rgb1[0] + rgb2[0]) / 2;
+    const r = rgb1[0] - rgb2[0];
+    const g = rgb1[1] - rgb2[1];
+    const b = rgb1[2] - rgb2[2];
+    
+    return Math.sqrt(
+        (2 + rmean / 256) * r * r +
+        4 * g * g +
+        (2 + (255 - rmean) / 256) * b * b
+    );
+}
+
+function hslDistance(hsl1, hsl2) {
+    let hDiff = Math.abs(hsl1[0] - hsl2[0]);
+    if (hDiff > 180) hDiff = 360 - hDiff;
+    
+    const sDiff = hsl1[1] - hsl2[1];
+    const lDiff = hsl1[2] - hsl2[2];
+    
+    return Math.sqrt(
+        hDiff * hDiff * 0.8 +
+        sDiff * sDiff * 0.1 +
+        lDiff * lDiff * 0.5
+    );
+}
+
+function hsvDistance(hsv1, hsv2) {
+    let hDiff = Math.abs(hsv1[0] - hsv2[0]);
+    if (hDiff > 180) hDiff = 360 - hDiff;
+    
+    const sDiff = hsv1[1] - hsv2[1];
+    const vDiff = hsv1[2] - hsv2[2];
+    
+    return Math.sqrt(
+        hDiff * hDiff * 0.8 +
+        sDiff * sDiff * 0.1 +
+        vDiff * vDiff * 0.5
+    );
+}
+
+const colorMappingMethods = {
+    'cie2000': {
+        name: 'CIEDE2000',
+        nameZh: 'CIEDE2000 (最精确)',
+        description: '最精确的颜色差异算法，适合专业色彩匹配',
+        findClosest: function(rgb, colorSet) {
+            const lab1 = rgbToLab(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const lab2 = rgbToLab(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = deltaE2000(lab1, lab2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
+    'cie94': {
+        name: 'CIE94',
+        nameZh: 'CIE94 (精确)',
+        description: '改进的Lab颜色差异算法，精确度较高',
+        findClosest: function(rgb, colorSet) {
+            const lab1 = rgbToLab(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const lab2 = rgbToLab(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = deltaE94(lab1, lab2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
+    'cie76': {
+        name: 'CIE76',
+        nameZh: 'CIE76 (Lab)',
+        description: '原始的Lab颜色差异算法，速度快',
+        findClosest: function(rgb, colorSet) {
+            const lab1 = rgbToLab(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const lab2 = rgbToLab(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = deltaE76(lab1, lab2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
+    'weighted-rgb': {
+        name: 'Weighted RGB',
+        nameZh: '加权RGB',
+        description: '考虑人眼对不同颜色敏感度的RGB算法',
+        findClosest: function(rgb, colorSet) {
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const distance = weightedRgbDistance(rgb, color.rgb);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
+    'hsl': {
+        name: 'HSL',
+        nameZh: 'HSL色彩空间',
+        description: '基于色相、饱和度、亮度的颜色匹配',
+        findClosest: function(rgb, colorSet) {
+            const hsl1 = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const hsl2 = rgbToHsl(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = hslDistance(hsl1, hsl2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
+    'hsv': {
+        name: 'HSV',
+        nameZh: 'HSV色彩空间',
+        description: '基于色相、饱和度、明度的颜色匹配',
+        findClosest: function(rgb, colorSet) {
+            const hsv1 = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const hsv2 = rgbToHsv(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = hsvDistance(hsv1, hsv2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
         }
     }
+};
 
-    return closest;
+function findClosestColor(rgb, colorSet, method = 'cie2000') {
+    const mappingMethod = colorMappingMethods[method] || colorMappingMethods['cie2000'];
+    return mappingMethod.findClosest(rgb, colorSet);
 }
 
 function pixelate(imageData, blockSize) {
@@ -97,6 +409,100 @@ function pixelate(imageData, blockSize) {
     }
 
     return newData;
+}
+
+function adjustContrast(imageData, factor) {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.min(255, Math.max(0, ((data[i] / 255 - 0.5) * factor + 0.5) * 255));
+        data[i + 1] = Math.min(255, Math.max(0, ((data[i + 1] / 255 - 0.5) * factor + 0.5) * 255));
+        data[i + 2] = Math.min(255, Math.max(0, ((data[i + 2] / 255 - 0.5) * factor + 0.5) * 255));
+    }
+    
+    return imageData;
+}
+
+function sharpenImage(imageData, strength) {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    const result = new Uint8ClampedArray(data);
+    
+    const kernel = [0, -strength, 0, -strength, 1 + 4 * strength, -strength, 0, -strength, 0];
+    
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            let r = 0, g = 0, b = 0;
+            let ki = 0;
+            
+            for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                    const idx = ((y + ky) * width + (x + kx)) * 4;
+                    r += data[idx] * kernel[ki];
+                    g += data[idx + 1] * kernel[ki];
+                    b += data[idx + 2] * kernel[ki];
+                    ki++;
+                }
+            }
+            
+            const idx = (y * width + x) * 4;
+            result[idx] = Math.min(255, Math.max(0, r));
+            result[idx + 1] = Math.min(255, Math.max(0, g));
+            result[idx + 2] = Math.min(255, Math.max(0, b));
+        }
+    }
+    
+    for (let i = 0; i < data.length; i++) {
+        data[i] = result[i];
+    }
+    
+    return imageData;
+}
+
+function quantizeColors(imageData, colorCount) {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    const colors = [];
+    const colorMap = new Map();
+    
+    for (let i = 0; i < data.length; i += 4) {
+        const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+        if (!colorMap.has(key)) {
+            colorMap.set(key, { r: data[i], g: data[i + 1], b: data[i + 2], count: 0 });
+            colors.push(colorMap.get(key));
+        }
+        colorMap.get(key).count++;
+    }
+    
+    colors.sort((a, b) => b.count - a.count);
+    
+    const targetColors = colors.slice(0, colorCount);
+    
+    for (let i = 0; i < data.length; i += 4) {
+        let minDist = Infinity;
+        let closestColor = targetColors[0];
+        
+        for (const color of targetColors) {
+            const dist = weightedRgbDistance(
+                [data[i], data[i + 1], data[i + 2]],
+                [color.r, color.g, color.b]
+            );
+            if (dist < minDist) {
+                minDist = dist;
+                closestColor = color;
+            }
+        }
+        
+        data[i] = closestColor.r;
+        data[i + 1] = closestColor.g;
+        data[i + 2] = closestColor.b;
+    }
+    
+    return imageData;
 }
 
 function getContrastTextColor(rgb) {

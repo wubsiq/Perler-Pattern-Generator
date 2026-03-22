@@ -15,7 +15,7 @@ class PixelArtGenerator {
         this.fileInput = document.getElementById('fileInput');
         this.uploadSection = document.getElementById('uploadSection');
         this.workspace = document.getElementById('workspace');
-        this.previewContainer = document.querySelector('.preview-container');
+        this.perlerSection = document.getElementById('perlerSection');
         
         this.originalCanvas = document.getElementById('originalCanvas');
         this.originalCtx = this.originalCanvas.getContext('2d', { willReadFrequently: true });
@@ -37,14 +37,14 @@ class PixelArtGenerator {
         this.heightInput = document.getElementById('heightInput');
         this.keepRatioCheckbox = document.getElementById('keepRatioCheckbox');
         
-        this.perlerModeCheckbox = document.getElementById('perlerModeCheckbox');
-        this.perlerOptions = document.getElementById('perlerOptions');
-        this.perlerPanel = document.getElementById('perlerPanel');
         this.perlerContent = document.getElementById('perlerContent');
         this.colorSetSelect = document.getElementById('colorSetSelect');
+        this.colorMappingMethod = document.getElementById('colorMappingMethod');
         this.chartStyle = document.getElementById('chartStyle');
         this.legendPosition = document.getElementById('legendPosition');
         this.beadShape = document.getElementById('beadShape');
+        this.showGridLines = document.getElementById('showGridLines');
+        this.coordLineColor = document.getElementById('coordLineColor');
         
         this.clearBtn = document.getElementById('clearBtn');
         this.resetBtn = document.getElementById('resetBtn');
@@ -55,6 +55,18 @@ class PixelArtGenerator {
         
         this.langZh = document.getElementById('langZh');
         this.langEn = document.getElementById('langEn');
+        
+        this.enableContrast = document.getElementById('enableContrast');
+        this.contrastSlider = document.getElementById('contrastSlider');
+        this.contrastValue = document.getElementById('contrastValue');
+        
+        this.enableSharpen = document.getElementById('enableSharpen');
+        this.sharpenSlider = document.getElementById('sharpenSlider');
+        this.sharpenValue = document.getElementById('sharpenValue');
+        
+        this.enableColorQuantize = document.getElementById('enableColorQuantize');
+        this.colorCountSlider = document.getElementById('colorCountSlider');
+        this.colorCountValue = document.getElementById('colorCountValue');
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
@@ -121,23 +133,12 @@ class PixelArtGenerator {
             });
         });
         
-        this.perlerModeCheckbox.addEventListener('change', () => {
-            this.perlerMode = this.perlerModeCheckbox.checked;
-            if (this.perlerMode) {
-                this.previewContainer.classList.add('has-perler');
-                this.perlerOptions.style.display = 'block';
-                this.perlerPanel.style.display = 'block';
-                this.downloadPerlerBtn.style.display = 'block';
-                this.showPerlerPlaceholder();
-            } else {
-                this.previewContainer.classList.remove('has-perler');
-                this.perlerOptions.style.display = 'none';
-                this.perlerPanel.style.display = 'none';
-                this.downloadPerlerBtn.style.display = 'none';
+        this.colorSetSelect.addEventListener('change', () => this.showPerlerPlaceholder());
+        this.showGridLines.addEventListener('change', () => {
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.updatePerlerChart();
             }
         });
-        
-        this.colorSetSelect.addEventListener('change', () => this.showPerlerPlaceholder());
         this.chartStyle.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
                 this.updatePerlerChart();
@@ -148,6 +149,24 @@ class PixelArtGenerator {
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
+        
+        this.enableContrast.addEventListener('change', () => this.updatePixelatedImage());
+        this.contrastSlider.addEventListener('input', () => {
+            this.contrastValue.textContent = this.contrastSlider.value + 'x';
+            this.updatePixelatedImage();
+        });
+        
+        this.enableSharpen.addEventListener('change', () => this.updatePixelatedImage());
+        this.sharpenSlider.addEventListener('input', () => {
+            this.sharpenValue.textContent = this.sharpenSlider.value;
+            this.updatePixelatedImage();
+        });
+        
+        this.enableColorQuantize.addEventListener('change', () => this.updatePixelatedImage());
+        this.colorCountSlider.addEventListener('input', () => {
+            this.colorCountValue.textContent = this.colorCountSlider.value;
+            this.updatePixelatedImage();
+        });
         
         this.clearBtn.addEventListener('click', () => this.clear());
         this.resetBtn.addEventListener('click', () => this.reset());
@@ -193,6 +212,7 @@ class PixelArtGenerator {
     showWorkspace() {
         this.uploadSection.style.display = 'none';
         this.workspace.style.display = 'block';
+        this.showPerlerPlaceholder();
     }
 
     drawOriginalImage() {
@@ -208,12 +228,8 @@ class PixelArtGenerator {
         this.widthInput.value = Math.min(this.originalWidth, 512);
         this.heightInput.value = Math.round(Math.min(this.originalWidth, 512) * (this.originalHeight / this.originalWidth));
         this.keepRatioCheckbox.checked = true;
-        this.perlerModeCheckbox.checked = false;
-        this.previewContainer.classList.remove('has-perler');
-        this.perlerOptions.style.display = 'none';
-        this.perlerPanel.style.display = 'none';
-        this.downloadPerlerBtn.style.display = 'none';
-        this.perlerMode = false;
+        this.showGridLines.checked = true;
+        this.coordLineColor.value = '#888888';
     }
 
     updatePixelatedImage() {
@@ -228,17 +244,29 @@ class PixelArtGenerator {
         
         const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
         const pixelSize = parseInt(this.pixelSizeSlider.value);
-        const pixelatedData = pixelate(imageData, pixelSize);
+        let pixelatedData = pixelate(imageData, pixelSize);
+        
+        if (this.enableContrast.checked) {
+            const contrastFactor = parseFloat(this.contrastSlider.value);
+            pixelatedData = adjustContrast(pixelatedData, contrastFactor);
+        }
+        
+        if (this.enableSharpen.checked) {
+            const sharpenStrength = parseFloat(this.sharpenSlider.value);
+            pixelatedData = sharpenImage(pixelatedData, sharpenStrength);
+        }
+        
+        if (this.enableColorQuantize.checked) {
+            const colorCount = parseInt(this.colorCountSlider.value);
+            pixelatedData = quantizeColors(pixelatedData, colorCount);
+        }
         
         this.pixelatedCanvas.width = targetWidth;
         this.pixelatedCanvas.height = targetHeight;
         this.pixelatedCtx.putImageData(pixelatedData, 0, 0);
         
         this.pixelatedSize.textContent = `像素化尺寸: ${targetWidth} × ${targetHeight} px`;
-        
-        if (this.perlerMode) {
-            this.showPerlerPlaceholder();
-        }
+        this.showPerlerPlaceholder();
     }
 
     showPerlerPlaceholder() {
@@ -262,13 +290,31 @@ class PixelArtGenerator {
         
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
         
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = perlerWidth;
-        tempCanvas.height = perlerHeight;
-        tempCtx.drawImage(this.originalImage, 0, 0, perlerWidth, perlerHeight);
-        const imageData = tempCtx.getImageData(0, 0, perlerWidth, perlerHeight);
+        const smallCanvas = document.createElement('canvas');
+        const smallCtx = smallCanvas.getContext('2d');
+        smallCanvas.width = perlerWidth;
+        smallCanvas.height = perlerHeight;
+        smallCtx.drawImage(this.originalImage, 0, 0, perlerWidth, perlerHeight);
+        
+        let imageData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
+        let processedData = imageData;
+        
+        if (this.enableContrast.checked) {
+            const contrastFactor = parseFloat(this.contrastSlider.value);
+            processedData = adjustContrast(processedData, contrastFactor);
+        }
+        
+        if (this.enableSharpen.checked) {
+            const sharpenStrength = parseFloat(this.sharpenSlider.value);
+            processedData = sharpenImage(processedData, sharpenStrength);
+        }
+        
+        if (this.enableColorQuantize.checked) {
+            const colorCount = parseInt(this.colorCountSlider.value);
+            processedData = quantizeColors(processedData, colorCount);
+        }
         
         this.colorCounts = {};
         const perlerColors = [];
@@ -277,10 +323,10 @@ class PixelArtGenerator {
             const row = [];
             for (let x = 0; x < perlerWidth; x++) {
                 const index = (y * perlerWidth + x) * 4;
-                const r = imageData.data[index];
-                const g = imageData.data[index + 1];
-                const b = imageData.data[index + 2];
-                const closestColor = findClosestColor([r, g, b], colorSet);
+                const r = processedData.data[index];
+                const g = processedData.data[index + 1];
+                const b = processedData.data[index + 2];
+                const closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
                 row.push(closestColor);
                 
                 if (this.colorCounts[closestColor.name]) {
@@ -301,6 +347,8 @@ class PixelArtGenerator {
         const coordSize = 35;
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
+        const showGrid = this.showGridLines.checked;
+        const coordColor = this.coordLineColor.value;
         
         this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
         this.perlerCanvas.height = coordSize + perlerHeight * cellSize;
@@ -317,7 +365,7 @@ class PixelArtGenerator {
         ctx.font = '11px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#333';
+        ctx.fillStyle = coordColor;
         
         for (let x = 0; x < perlerWidth; x++) {
             ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
@@ -325,6 +373,24 @@ class PixelArtGenerator {
         
         for (let y = 0; y < perlerHeight; y++) {
             ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+        }
+        
+        if (showGrid) {
+            ctx.strokeStyle = coordColor;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            
+            for (let x = 0; x <= perlerWidth; x++) {
+                ctx.moveTo(coordSize + x * cellSize, coordSize);
+                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+            }
+            
+            for (let y = 0; y <= perlerHeight; y++) {
+                ctx.moveTo(coordSize, coordSize + y * cellSize);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+            }
+            
+            ctx.stroke();
         }
         
         for (let y = 0; y < perlerHeight; y++) {
@@ -512,7 +578,6 @@ class PixelArtGenerator {
         this.originalImage = null;
         this.originalWidth = 0;
         this.originalHeight = 0;
-        this.perlerMode = false;
         this.colorCounts = {};
         
         this.uploadSection.style.display = 'block';
@@ -531,6 +596,7 @@ class PixelArtGenerator {
         this.resetInputs();
         this.drawOriginalImage();
         this.updatePixelatedImage();
+        this.showPerlerPlaceholder();
         
         this.perlerContent.style.flexDirection = 'column';
         this.perlerContent.style.gap = '0px';

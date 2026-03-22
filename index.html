@@ -31,134 +31,210 @@
         </div>
 
         <div class="workspace" id="workspace" style="display: none;">
-            <div class="preview-container">
-                <div class="preview-panel">
-                    <h3 data-i18n="originalPreview">原图预览</h3>
-                    <div class="canvas-wrapper">
-                        <canvas id="originalCanvas"></canvas>
+            
+            <div class="preview-section">
+                <div class="preview-left">
+                    <div class="preview-panel">
+                        <h3 data-i18n="originalPreview">原图预览</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="originalCanvas"></canvas>
+                        </div>
+                        <p id="originalSize" class="size-info"></p>
                     </div>
-                    <p id="originalSize" class="size-info"></p>
                 </div>
-                <div class="preview-panel">
-                    <h3 data-i18n="pixelatedPreview">像素化预览</h3>
-                    <div class="canvas-wrapper">
-                        <canvas id="pixelatedCanvas"></canvas>
-                    </div>
-                    <p id="pixelatedSize" class="size-info"></p>
-                </div>
-                <div class="preview-panel" id="perlerPanel" style="display: none;">
-                    <h3 data-i18n="perlerChart">拼豆图纸</h3>
-                    <div id="perlerContent">
-                        <div id="perlerChartArea">
-                            <div class="perler-chart-wrapper">
-                                <div class="canvas-wrapper">
-                                    <canvas id="perlerCanvas"></canvas>
+                <div class="preview-right">
+                    <div class="controls-section">
+                        <div class="control-group">
+                            <label data-i18n="targetSize">目标尺寸</label>
+                            <div class="size-inputs">
+                                <div>
+                                    <label data-i18n="width">宽度：</label>
+                                    <input type="number" id="widthInput" min="16" max="4096">
+                                    <span>px</span>
                                 </div>
-                                <p id="perlerSize" class="size-info"></p>
+                                <div>
+                                    <label data-i18n="height">高度：</label>
+                                    <input type="number" id="heightInput" min="16" max="4096">
+                                    <span>px</span>
+                                </div>
                             </div>
                         </div>
-                        <div id="colorLegendArea"></div>
+                        <div class="control-group">
+                            <label data-i18n="presetSize">预设尺寸</label>
+                            <div class="preset-sizes">
+                                <button class="preset-btn" data-width="64" data-height="64">64×64</button>
+                                <button class="preset-btn" data-width="128" data-height="128">128×128</button>
+                                <button class="preset-btn" data-width="256" data-height="256">256×256</button>
+                                <button class="preset-btn" data-width="512" data-height="512">512×512</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="keepRatioCheckbox" checked>
+                                <span data-i18n="keepRatio">保持宽高比</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="controls">
-                <div class="control-group">
-                    <label>
-                        <span data-i18n="pixelSize">像素块大小：</span>
-                        <span id="pixelSizeValue">16px</span>
-                    </label>
-                    <input type="range" id="pixelSizeSlider" min="2" max="64" value="16">
-                </div>
-
-                <div class="control-group">
-                    <label data-i18n="targetSize">目标尺寸</label>
-                    <div class="size-inputs">
-                        <div>
-                            <label data-i18n="width">宽度：</label>
-                            <input type="number" id="widthInput" min="16" max="4096">
-                            <span>px</span>
+            <div class="preview-section">
+                <div class="preview-left">
+                    <div class="preview-panel">
+                        <h3 data-i18n="pixelatedPreview">像素化预览</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="pixelatedCanvas"></canvas>
                         </div>
-                        <div>
-                            <label data-i18n="height">高度：</label>
-                            <input type="number" id="heightInput" min="16" max="4096">
-                            <span>px</span>
+                        <p id="pixelatedSize" class="size-info"></p>
+                    </div>
+                </div>
+                <div class="preview-right">
+                    <div class="controls-section">
+                        <div class="control-group">
+                            <label>
+                                <span data-i18n="pixelSize">像素块大小：</span>
+                                <span id="pixelSizeValue">16px</span>
+                            </label>
+                            <input type="range" id="pixelSizeSlider" min="2" max="64" value="16">
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="pixelProcessing">像素化后处理：</span></label>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableContrast" checked>
+                                <span data-i18n="enableContrast">增强对比度</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span data-i18n="contrastLevel">对比度强度：</span>
+                                <span id="contrastValue">1.3x</span>
+                            </label>
+                            <input type="range" id="contrastSlider" min="1.0" max="3.0" step="0.1" value="1.3">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableSharpen">
+                                <span data-i18n="enableSharpen">图片锐化</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span data-i18n="sharpenLevel">锐化强度：</span>
+                                <span id="sharpenValue">0.5</span>
+                            </label>
+                            <input type="range" id="sharpenSlider" min="0.1" max="2.0" step="0.1" value="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableColorQuantize">
+                                <span data-i18n="enableColorQuantize">颜色量化</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span data-i18n="colorCount">颜色数量：</span>
+                                <span id="colorCountValue">8</span>
+                            </label>
+                            <input type="range" id="colorCountSlider" min="2" max="32" step="1" value="8">
+                        </div>
+                        <div class="action-buttons">
+                            <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="control-group">
-                    <label data-i18n="presetSize">预设尺寸</label>
-                    <div class="preset-sizes">
-                        <button class="preset-btn" data-width="64" data-height="64">64×64</button>
-                        <button class="preset-btn" data-width="128" data-height="128">128×128</button>
-                        <button class="preset-btn" data-width="256" data-height="256">256×256</button>
-                        <button class="preset-btn" data-width="512" data-height="512">512×512</button>
+            <div class="preview-section" id="perlerSection">
+                <div class="preview-left">
+                    <div class="preview-panel" id="perlerPanel">
+                        <h3 data-i18n="perlerChart">拼豆图纸</h3>
+                        <div id="perlerContent">
+                            <div id="perlerChartArea">
+                                <div class="perler-chart-wrapper">
+                                    <div class="canvas-wrapper">
+                                        <canvas id="perlerCanvas"></canvas>
+                                    </div>
+                                    <p id="perlerSize" class="size-info"></p>
+                                </div>
+                            </div>
+                            <div id="colorLegendArea"></div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="keepRatioCheckbox" checked>
-                        <span data-i18n="keepRatio">保持宽高比</span>
-                    </label>
+                <div class="preview-right">
+                    <div id="perlerOptions" class="controls-section">
+                        <div class="control-group">
+                            <label for="colorSetSelect"><span data-i18n="colorSet">颜色套装：</span></label>
+                            <select id="colorSetSelect">
+                                <option value="mard291" selected>Mard 291色 (默认)</option>
+                                <option value="mard120">Mard 120色</option>
+                                <option value="mard72">Mard 72色</option>
+                                <option value="mard48">Mard 48色</option>
+                                <option value="mard24">Mard 24色</option>
+                                <option value="perler24">Perler 24色</option>
+                                <option value="perler48">Perler 48色</option>
+                                <option value="perler72">Perler 72色</option>
+                                <option value="hama">Hama (10色)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="colorMapping">颜色映射方法：</span></label>
+                            <select id="colorMappingMethod">
+                                <option value="cie2000" data-i18n-value="mappingCie2000">CIEDE2000 (最精确)</option>
+                                <option value="cie94" data-i18n-value="mappingCie94">CIE94 (精确)</option>
+                                <option value="cie76" data-i18n-value="mappingCie76">CIE76 (Lab)</option>
+                                <option value="weighted-rgb" data-i18n-value="mappingWeightedRgb">加权RGB</option>
+                                <option value="hsl" data-i18n-value="mappingHsl">HSL色彩空间</option>
+                                <option value="hsv" data-i18n-value="mappingHsv">HSV色彩空间</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="chartStyle">图纸样式：</span></label>
+                            <select id="chartStyle">
+                                <option value="color" data-i18n-value="chartStyleColor">彩色图纸</option>
+                                <option value="color-with-code" data-i18n-value="chartStyleColorWithCode">彩色图纸（带编号）</option>
+                                <option value="bw" data-i18n-value="chartStyleBw">黑白图纸(带编号)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="legendPosition">颜色统计位置：</span></label>
+                            <select id="legendPosition">
+                                <option value="bottom" data-i18n-value="legendPositionBottom">图纸下方</option>
+                                <option value="right" data-i18n-value="legendPositionRight">图纸右侧</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="beadShape">拼豆形状：</span></label>
+                            <select id="beadShape">
+                                <option value="square" data-i18n-value="beadShapeSquare">正方形</option>
+                                <option value="circle" data-i18n-value="beadShapeCircle">圆形</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showGridLines" checked>
+                                <span data-i18n="showGridLines">显示网格线</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="coordLineColor">网格线颜色：</span></label>
+                            <input type="color" id="coordLineColor" value="#888888">
+                        </div>
+                        <div class="control-group">
+                            <button id="renderPerlerBtn" class="btn btn-primary" data-i18n="renderPerler">🎨 渲染拼豆图纸</button>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="downloadPerlerBtn" class="btn btn-primary" data-i18n="downloadPerler">下载拼豆图纸</button>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="perlerModeCheckbox">
-                        <span>🧩 <span data-i18n="perlerMode">拼豆模式</span></span>
-                    </label>
-                </div>
-
-                <div id="perlerOptions" style="display: none;">
-                    <div class="control-group">
-                        <label for="colorSetSelect"><span data-i18n="colorSet">颜色套装：</span></label>
-                        <select id="colorSetSelect">
-                            <option value="mard291" selected>Mard 291色 (默认)</option>
-                            <option value="mard120">Mard 120色</option>
-                            <option value="mard72">Mard 72色</option>
-                            <option value="mard48">Mard 48色</option>
-                            <option value="mard24">Mard 24色</option>
-                            <option value="perler24">Perler 24色</option>
-                            <option value="perler48">Perler 48色</option>
-                            <option value="perler72">Perler 72色</option>
-                            <option value="hama">Hama (10色)</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label><span data-i18n="chartStyle">图纸样式：</span></label>
-                        <select id="chartStyle">
-                            <option value="color" data-i18n-value="chartStyleColor">彩色图纸</option>
-                            <option value="color-with-code" data-i18n-value="chartStyleColorWithCode">彩色图纸（带编号）</option>
-                            <option value="bw" data-i18n-value="chartStyleBw">黑白图纸(带编号)</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label><span data-i18n="legendPosition">颜色统计位置：</span></label>
-                        <select id="legendPosition">
-                            <option value="bottom" data-i18n-value="legendPositionBottom">图纸下方</option>
-                            <option value="right" data-i18n-value="legendPositionRight">图纸右侧</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label><span data-i18n="beadShape">拼豆形状：</span></label>
-                        <select id="beadShape">
-                            <option value="square" data-i18n-value="beadShapeSquare">正方形</option>
-                            <option value="circle" data-i18n-value="beadShapeCircle">圆形</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <button id="renderPerlerBtn" class="btn btn-primary" data-i18n="renderPerler">🎨 渲染拼豆图纸</button>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="clearBtn" class="btn btn-danger" data-i18n="clear">清空</button>
-                    <button id="resetBtn" class="btn btn-secondary" data-i18n="reset">重置</button>
-                    <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
-                    <button id="downloadPerlerBtn" class="btn btn-primary" style="display: none;" data-i18n="downloadPerler">下载拼豆图纸</button>
-                </div>
+            <div class="global-actions">
+                <button id="clearBtn" class="btn btn-danger" data-i18n="clear">清空</button>
+                <button id="resetBtn" class="btn btn-secondary" data-i18n="reset">重置</button>
             </div>
         </div>
     </div>
