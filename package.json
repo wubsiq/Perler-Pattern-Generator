@@ -1,0 +1,13 @@
+{
+  "name": "pixel-art-generator",
+  "version": "1.0.0",
+  "description": "像素化图片生成器 - 纯前端实现的图片像素化工具",
+  "scripts": {
+    "dev": "npx live-server --port=3000",
+    "build": "echo 'No build required for static site'",
+    "serve": "npx serve -l 3000"
+  },
+  "keywords": ["pixel-art", "image-processing", "pixelate"],
+  "author": "",
+  "license": "MIT"
+}
