@@ -371,6 +371,35 @@ function findClosestColor(rgb, colorSet, method = 'cie2000') {
     return mappingMethod.findClosest(rgb, colorSet);
 }
 
+function calculateColorDistance(rgb1, rgb2, method = 'cie2000') {
+    switch (method) {
+        case 'cie2000':
+            const lab1 = rgbToLab(rgb1[0], rgb1[1], rgb1[2]);
+            const lab2 = rgbToLab(rgb2[0], rgb2[1], rgb2[2]);
+            return deltaE2000(lab1, lab2);
+        case 'cie94':
+            const lab94_1 = rgbToLab(rgb1[0], rgb1[1], rgb1[2]);
+            const lab94_2 = rgbToLab(rgb2[0], rgb2[1], rgb2[2]);
+            return deltaE94(lab94_1, lab94_2);
+        case 'cie76':
+            const lab76_1 = rgbToLab(rgb1[0], rgb1[1], rgb1[2]);
+            const lab76_2 = rgbToLab(rgb2[0], rgb2[1], rgb2[2]);
+            return deltaE76(lab76_1, lab76_2);
+        case 'weighted-rgb':
+            return weightedRgbDistance(rgb1, rgb2);
+        case 'hsl':
+            const hsl1 = rgbToHsl(rgb1[0], rgb1[1], rgb1[2]);
+            const hsl2 = rgbToHsl(rgb2[0], rgb2[1], rgb2[2]);
+            return hslDistance(hsl1, hsl2);
+        case 'hsv':
+            const hsv1 = rgbToHsv(rgb1[0], rgb1[1], rgb1[2]);
+            const hsv2 = rgbToHsv(rgb2[0], rgb2[1], rgb2[2]);
+            return hsvDistance(hsv1, hsv2);
+        default:
+            return weightedRgbDistance(rgb1, rgb2);
+    }
+}
+
 function pixelate(imageData, blockSize) {
     const width = imageData.width;
     const height = imageData.height;
@@ -409,6 +438,154 @@ function pixelate(imageData, blockSize) {
     }
 
     return newData;
+}
+
+function pixelArtPixelate(imageData, blockSize) {
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    const smallWidth = Math.ceil(width / blockSize);
+    const smallHeight = Math.ceil(height / blockSize);
+    
+    const smallData = new ImageData(smallWidth, smallHeight);
+    
+    for (let y = 0; y < smallHeight; y++) {
+        for (let x = 0; x < smallWidth; x++) {
+            let r = 0, g = 0, b = 0, a = 0, count = 0;
+            
+            for (let dy = 0; dy < blockSize; dy++) {
+                for (let dx = 0; dx < blockSize; dx++) {
+                    const srcX = x * blockSize + dx;
+                    const srcY = y * blockSize + dy;
+                    if (srcX < width && srcY < height) {
+                        const index = (srcY * width + srcX) * 4;
+                        r += imageData.data[index];
+                        g += imageData.data[index + 1];
+                        b += imageData.data[index + 2];
+                        a += imageData.data[index + 3];
+                        count++;
+                    }
+                }
+            }
+            
+            const dstIndex = (y * smallWidth + x) * 4;
+            smallData.data[dstIndex] = Math.round(r / count);
+            smallData.data[dstIndex + 1] = Math.round(g / count);
+            smallData.data[dstIndex + 2] = Math.round(b / count);
+            smallData.data[dstIndex + 3] = Math.round(a / count);
+        }
+    }
+    
+    const segmentedData = regionSegmentation(smallData);
+    
+    const resultData = new ImageData(width, height);
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const smallX = Math.floor(x / blockSize);
+            const smallY = Math.floor(y / blockSize);
+            const srcIndex = (smallY * smallWidth + smallX) * 4;
+            const dstIndex = (y * width + x) * 4;
+            resultData.data[dstIndex] = segmentedData.data[srcIndex];
+            resultData.data[dstIndex + 1] = segmentedData.data[srcIndex + 1];
+            resultData.data[dstIndex + 2] = segmentedData.data[srcIndex + 2];
+            resultData.data[dstIndex + 3] = segmentedData.data[srcIndex + 3];
+        }
+    }
+    
+    return resultData;
+}
+
+function regionSegmentation(imageData) {
+    const width = imageData.width;
+    const height = imageData.height;
+    const result = new ImageData(width, height);
+    
+    const visited = new Uint8Array(width * height);
+    const labels = new Int32Array(width * height);
+    let labelCount = 0;
+    const regionColors = [];
+    
+    const colorThreshold = 60;
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+            if (!visited[idx]) {
+                const stack = [{x, y}];
+                const regionPixels = [];
+                const seedIndex = idx * 4;
+                const seedR = imageData.data[seedIndex];
+                const seedG = imageData.data[seedIndex + 1];
+                const seedB = imageData.data[seedIndex + 2];
+                
+                while (stack.length > 0) {
+                    const {x: cx, y: cy} = stack.pop();
+                    const cidx = cy * width + cx;
+                    
+                    if (cx < 0 || cx >= width || cy < 0 || cy >= height || visited[cidx]) {
+                        continue;
+                    }
+                    
+                    const cDataIndex = cidx * 4;
+                    const cr = imageData.data[cDataIndex];
+                    const cg = imageData.data[cDataIndex + 1];
+                    const cb = imageData.data[cDataIndex + 2];
+                    
+                    const dist = Math.sqrt(
+                        Math.pow(cr - seedR, 2) +
+                        Math.pow(cg - seedG, 2) +
+                        Math.pow(cb - seedB, 2)
+                    );
+                    
+                    if (dist > colorThreshold) {
+                        continue;
+                    }
+                    
+                    visited[cidx] = 1;
+                    labels[cidx] = labelCount;
+                    regionPixels.push({r: cr, g: cg, b: cb});
+                    
+                    stack.push({x: cx + 1, y: cy});
+                    stack.push({x: cx - 1, y: cy});
+                    stack.push({x: cx, y: cy + 1});
+                    stack.push({x: cx, y: cy - 1});
+                }
+                
+                if (regionPixels.length > 0) {
+                    let sumR = 0, sumG = 0, sumB = 0;
+                    for (const pixel of regionPixels) {
+                        sumR += pixel.r;
+                        sumG += pixel.g;
+                        sumB += pixel.b;
+                    }
+                    const count = regionPixels.length;
+                    regionColors.push({
+                        r: Math.round(sumR / count),
+                        g: Math.round(sumG / count),
+                        b: Math.round(sumB / count)
+                    });
+                    labelCount++;
+                }
+            }
+        }
+    }
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+            const label = labels[idx];
+            const dstIdx = idx * 4;
+            if (label >= 0 && label < regionColors.length) {
+                const color = regionColors[label];
+                result.data[dstIdx] = color.r;
+                result.data[dstIdx + 1] = color.g;
+                result.data[dstIdx + 2] = color.b;
+                result.data[dstIdx + 3] = 255;
+            }
+        }
+    }
+    
+    return result;
 }
 
 function adjustContrast(imageData, factor) {
@@ -462,7 +639,7 @@ function sharpenImage(imageData, strength) {
     return imageData;
 }
 
-function quantizeColors(imageData, colorCount) {
+function quantizeColors(imageData, colorCount, excludedColors = new Set()) {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
@@ -480,7 +657,13 @@ function quantizeColors(imageData, colorCount) {
     
     colors.sort((a, b) => b.count - a.count);
     
-    const targetColors = colors.slice(0, colorCount);
+    let targetColors = colors.filter(color => !excludedColors.has(`${color.r},${color.g},${color.b}`));
+    
+    if (targetColors.length < colorCount) {
+        targetColors = colors.slice(0, colorCount);
+    } else {
+        targetColors = targetColors.slice(0, colorCount);
+    }
     
     for (let i = 0; i < data.length; i += 4) {
         let minDist = Infinity;

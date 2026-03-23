@@ -415,7 +415,361 @@ input[type="color"]:focus {
     border-color: #667eea;
 }
 
+.color-usage-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s;
+}
 
+.color-usage-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.color-usage-item.selected {
+    border-color: #667eea;
+    background: #f0f2ff;
+}
+
+.color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 2px solid #ddd;
+    flex-shrink: 0;
+}
+
+.color-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.color-count {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9em;
+}
+
+.color-percentage {
+    font-size: 0.8em;
+    color: #888;
+    margin-left: 8px;
+}
+
+.color-rgb {
+    font-size: 0.75em;
+    color: #999;
+    font-family: monospace;
+}
+
+.color-action-btn {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    color: #666;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.color-action-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.color-action-btn.remove {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.color-action-btn.remove:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.sort-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.sort-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.sort-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.sort-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.edit-tools {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.edit-tool-btn {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #666;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 60px;
+}
+
+.edit-tool-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.edit-tool-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.current-color-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.current-color-wrapper input[type="color"] {
+    width: 50px;
+    height: 40px;
+}
+
+#currentColorValue {
+    font-family: monospace;
+    font-size: 0.95em;
+    color: #666;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.3em;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2em;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 25px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.optimization-summary {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.summary-item:last-child {
+    margin-bottom: 0;
+}
+
+.summary-label {
+    color: #666;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.suggestions-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.suggestion-item.accepted {
+    border-color: #28a745;
+    background: #e6f9e9;
+}
+
+.suggestion-item.rejected {
+    border-color: #dc3545;
+    background: #ffe6e8;
+    opacity: 0.6;
+}
+
+.color-swatch-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 2px solid #ddd;
+    flex-shrink: 0;
+}
+
+.suggestion-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.suggestion-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.suggestion-text .arrow {
+    color: #667eea;
+    font-weight: bold;
+}
+
+.suggestion-beans {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 4px;
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.suggestion-action-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s;
+}
+
+.suggestion-action-btn.accept {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.suggestion-action-btn.accept:hover {
+    background: #28a745;
+    color: white;
+}
+
+.suggestion-action-btn.reject {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.suggestion-action-btn.reject:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.suggestion-action-btn.preview {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.suggestion-action-btn.preview:hover {
+    background: #667eea;
+    color: white;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 25px;
+    border-top: 1px solid #e9ecef;
+}
+
+.modal-footer .btn {
+    flex: 1;
+}
 
 #perlerContent {
     display: flex;

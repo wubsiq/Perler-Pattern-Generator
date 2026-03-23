@@ -91,6 +91,13 @@
                 <div class="preview-right">
                     <div class="controls-section">
                         <div class="control-group">
+                            <label><span data-i18n="pixelMethod">像素化方法：</span></label>
+                            <select id="pixelMethod">
+                                <option value="mosaic" data-i18n-value="pixelMethodMosaic">马赛克化</option>
+                                <option value="pixel-art" data-i18n-value="pixelMethodPixelArt">像素艺术</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
                             <label>
                                 <span data-i18n="pixelSize">像素块大小：</span>
                                 <span id="pixelSizeValue">16px</span>
@@ -141,6 +148,15 @@
                                 <input type="range" id="colorCountSlider" min="2" max="291" step="1" value="8">
                                 <input type="number" id="colorCountInput" min="2" max="291" value="8" style="width: 60px; margin-left: 10px;">
                             </div>
+                        </div>
+                        <div class="control-group" id="colorQuantizePanel" style="display: none;">
+                            <label><span data-i18n="colorUsage">颜色使用统计：</span></label>
+                            <div class="sort-buttons">
+                                <button class="sort-btn active" data-sort="count-desc" data-i18n="sortCountDesc">数量降序</button>
+                                <button class="sort-btn" data-sort="count-asc" data-i18n="sortCountAsc">数量升序</button>
+                                <button class="sort-btn" data-sort="hue" data-i18n="sortHue">色相</button>
+                            </div>
+                            <div id="colorUsageList" style="max-height: 250px; overflow-y: auto; background: #f8f9fa; border-radius: 6px; padding: 10px;"></div>
                         </div>
                         <div class="action-buttons">
                             <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
@@ -245,8 +261,60 @@
                         <div class="control-group">
                             <button id="renderPerlerBtn" class="btn btn-primary" data-i18n="renderPerler">🎨 渲染拼豆图纸</button>
                         </div>
+                        <div class="control-group">
+                            <button id="smartOptimizeBtn" class="btn btn-primary" data-i18n="smartOptimize">🧠 智能优化</button>
+                        </div>
                         <div class="action-buttons">
                             <button id="downloadPerlerBtn" class="btn btn-primary" data-i18n="downloadPerler">下载拼豆图纸</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section" id="customEditSection">
+                <div class="preview-left">
+                    <div class="preview-panel">
+                        <h3 data-i18n="customEdit">自定义编辑</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="customEditCanvas"></canvas>
+                        </div>
+                        <p id="customEditInfo" class="size-info"></p>
+                    </div>
+                </div>
+                <div class="preview-right">
+                    <div class="controls-section">
+                        <div class="control-group">
+                            <label><span data-i18n="editTool">编辑工具：</span></label>
+                            <div class="edit-tools">
+                                <button class="edit-tool-btn active" data-tool="brush" data-i18n="toolBrush">画笔</button>
+                                <button class="edit-tool-btn" data-tool="eraser" data-i18n="toolEraser">橡皮擦</button>
+                                <button class="edit-tool-btn" data-tool="fill" data-i18n="toolFill">填充</button>
+                                <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="currentColor">当前颜色：</span></label>
+                            <div class="current-color-wrapper">
+                                <input type="color" id="customEditColor" value="#000000">
+                                <span id="currentColorValue">#000000</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label><span data-i18n="brushSize">画笔大小：</span></label>
+                            <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
+                            <span id="brushSizeValue">1</span>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showCustomEditGrid" checked>
+                                <span data-i18n="showCustomEditGrid">显示网格</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <button id="applyCustomEditBtn" class="btn btn-primary" data-i18n="applyEdit">✓ 应用编辑</button>
+                        </div>
+                        <div class="control-group">
+                            <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit">↩ 撤销</button>
                         </div>
                     </div>
                 </div>
@@ -263,5 +331,23 @@
     <script src="colorUtils.js"></script>
     <script src="i18n.js"></script>
     <script src="app.js"></script>
+
+    <div id="smartOptimizeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 data-i18n="smartOptimizeTitle">🧠 智能颜色优化</h2>
+                <button id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="optimization-summary" id="optimizationSummary"></div>
+                <div class="suggestions-list" id="suggestionsList"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="rejectAllBtn" class="btn btn-secondary" data-i18n="rejectAll">✗ 全部拒绝</button>
+                <button id="applyAllBtn" class="btn btn-primary" data-i18n="applyAll">✓ 全部应用</button>
+                <button id="confirmBtn" class="btn btn-primary" data-i18n="confirm">确认</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

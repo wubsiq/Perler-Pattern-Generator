@@ -5,6 +5,9 @@ class PixelArtGenerator {
         this.originalHeight = 0;
         this.perlerMode = false;
         this.colorCounts = {};
+        this.pixelColorStats = [];
+        this.currentSort = 'count-desc';
+        this.excludedColors = new Set();
         
         this.initElements();
         this.initEventListeners();
@@ -72,6 +75,39 @@ class PixelArtGenerator {
         this.colorCountSlider = document.getElementById('colorCountSlider');
         this.colorCountValue = document.getElementById('colorCountValue');
         this.colorCountInput = document.getElementById('colorCountInput');
+        this.colorQuantizePanel = document.getElementById('colorQuantizePanel');
+        this.colorUsageList = document.getElementById('colorUsageList');
+        this.pixelMethod = document.getElementById('pixelMethod');
+        
+        this.customEditCanvas = document.getElementById('customEditCanvas');
+        this.customEditCtx = this.customEditCanvas.getContext('2d', { willReadFrequently: true });
+        this.customEditInfo = document.getElementById('customEditInfo');
+        this.customEditColor = document.getElementById('customEditColor');
+        this.currentColorValue = document.getElementById('currentColorValue');
+        this.customEditBrushSize = document.getElementById('customEditBrushSize');
+        this.brushSizeValue = document.getElementById('brushSizeValue');
+        this.showCustomEditGrid = document.getElementById('showCustomEditGrid');
+        this.applyCustomEditBtn = document.getElementById('applyCustomEditBtn');
+        this.undoCustomEditBtn = document.getElementById('undoCustomEditBtn');
+        
+        this.customEditData = null;
+        this.customEditHistory = [];
+        this.currentEditTool = 'brush';
+        this.isDrawing = false;
+        
+        this.smartOptimizeBtn = document.getElementById('smartOptimizeBtn');
+        this.smartOptimizeModal = document.getElementById('smartOptimizeModal');
+        this.closeModalBtn = document.getElementById('closeModalBtn');
+        this.optimizationSummary = document.getElementById('optimizationSummary');
+        this.suggestionsList = document.getElementById('suggestionsList');
+        this.rejectAllBtn = document.getElementById('rejectAllBtn');
+        this.applyAllBtn = document.getElementById('applyAllBtn');
+        this.confirmBtn = document.getElementById('confirmBtn');
+        
+        this.colorSuggestions = [];
+        this.acceptedSuggestions = new Set();
+        this.rejectedSuggestions = new Set();
+        this.originalPerlerColors = null;
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
@@ -179,7 +215,10 @@ class PixelArtGenerator {
             this.updatePixelatedImage();
         });
         
-        this.enableColorQuantize.addEventListener('change', () => this.updatePixelatedImage());
+        this.enableColorQuantize.addEventListener('change', () => {
+            this.colorQuantizePanel.style.display = this.enableColorQuantize.checked ? 'block' : 'none';
+            this.updatePixelatedImage();
+        });
         this.colorCountSlider.addEventListener('input', () => {
             const value = this.colorCountSlider.value;
             this.colorCountValue.textContent = value;
@@ -201,6 +240,46 @@ class PixelArtGenerator {
         this.resetBtn.addEventListener('click', () => this.reset());
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.downloadPerlerBtn.addEventListener('click', () => this.downloadPerlerChart());
+        
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.currentSort = btn.dataset.sort;
+                this.updateColorUsageList();
+            });
+        });
+        
+        this.pixelMethod.addEventListener('change', () => this.updatePixelatedImage());
+        
+        document.querySelectorAll('.edit-tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.currentEditTool = btn.dataset.tool;
+            });
+        });
+        
+        this.customEditColor.addEventListener('input', () => {
+            this.currentColorValue.textContent = this.customEditColor.value;
+        });
+        
+        this.customEditBrushSize.addEventListener('input', () => {
+            this.brushSizeValue.textContent = this.customEditBrushSize.value;
+        });
+        
+        this.showCustomEditGrid.addEventListener('change', () => this.drawCustomEditCanvas());
+        
+        this.applyCustomEditBtn.addEventListener('click', () => this.applyCustomEdit());
+        this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
+        
+        this.initCustomEditCanvasEvents();
+        
+        this.smartOptimizeBtn.addEventListener('click', () => this.openSmartOptimizeModal());
+        this.closeModalBtn.addEventListener('click', () => this.closeSmartOptimizeModal());
+        this.rejectAllBtn.addEventListener('click', () => this.rejectAllSuggestions());
+        this.applyAllBtn.addEventListener('click', () => this.acceptAllSuggestions());
+        this.confirmBtn.addEventListener('click', () => this.confirmOptimization());
     }
 
     handleFileSelect(e) {
@@ -280,7 +359,14 @@ class PixelArtGenerator {
         
         const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
         const pixelSize = parseInt(this.pixelSizeSlider.value);
-        let pixelatedData = pixelate(imageData, pixelSize);
+        const method = this.pixelMethod.value;
+        
+        let pixelatedData;
+        if (method === 'pixel-art') {
+            pixelatedData = pixelArtPixelate(imageData, pixelSize);
+        } else {
+            pixelatedData = pixelate(imageData, pixelSize);
+        }
         
         if (this.enableContrast.checked) {
             const contrastFactor = parseFloat(this.contrastSlider.value);
@@ -292,9 +378,11 @@ class PixelArtGenerator {
             pixelatedData = sharpenImage(pixelatedData, sharpenStrength);
         }
         
+        this.pixelColorStats = this.calculateColorStats(pixelatedData);
+        
         if (this.enableColorQuantize.checked) {
             const colorCount = parseInt(this.colorCountSlider.value);
-            pixelatedData = quantizeColors(pixelatedData, colorCount);
+            pixelatedData = quantizeColors(pixelatedData, colorCount, this.excludedColors);
         }
         
         this.pixelatedCanvas.width = targetWidth;
@@ -302,7 +390,98 @@ class PixelArtGenerator {
         this.pixelatedCtx.putImageData(pixelatedData, 0, 0);
         
         this.pixelatedSize.textContent = `像素化尺寸: ${targetWidth} × ${targetHeight} px`;
+        
+        if (this.enableColorQuantize.checked) {
+            this.updateColorUsageList();
+        }
+        
         this.showPerlerPlaceholder();
+    }
+
+    calculateColorStats(imageData) {
+        const data = imageData.data;
+        const colorMap = new Map();
+        const totalPixels = imageData.width * imageData.height;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const key = `${r},${g},${b}`;
+            
+            if (!colorMap.has(key)) {
+                colorMap.set(key, { r, g, b, count: 0 });
+            }
+            colorMap.get(key).count++;
+        }
+        
+        return Array.from(colorMap.values()).map(color => ({
+            ...color,
+            percentage: ((color.count / totalPixels) * 100).toFixed(2)
+        }));
+    }
+
+    updateColorUsageList() {
+        if (!this.pixelColorStats.length) {
+            this.colorUsageList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无颜色数据</p>';
+            return;
+        }
+        
+        let sortedColors = [...this.pixelColorStats];
+        
+        switch (this.currentSort) {
+            case 'count-desc':
+                sortedColors.sort((a, b) => b.count - a.count);
+                break;
+            case 'count-asc':
+                sortedColors.sort((a, b) => a.count - b.count);
+                break;
+            case 'hue':
+                sortedColors.sort((a, b) => {
+                    const hslA = rgbToHsl(a.r, a.g, a.b);
+                    const hslB = rgbToHsl(b.r, b.g, b.b);
+                    return hslA[0] - hslB[0];
+                });
+                break;
+        }
+        
+        const colorCount = parseInt(this.colorCountSlider.value);
+        const displayColors = sortedColors.slice(0, colorCount);
+        
+        const html = displayColors.map((color, index) => {
+            const colorKey = `${color.r},${color.g},${color.b}`;
+            const isExcluded = this.excludedColors.has(colorKey);
+            return `
+                <div class="color-usage-item ${isExcluded ? 'excluded' : ''}" data-color="${colorKey}">
+                    <div class="color-swatch" style="background-color: rgb(${color.r}, ${color.g}, ${color.b});"></div>
+                    <div class="color-info">
+                        <div>
+                            <span class="color-count">${color.count}</span>
+                            <span class="color-percentage">(${color.percentage}%)</span>
+                        </div>
+                        <div class="color-rgb">RGB(${color.r}, ${color.g}, ${color.b})</div>
+                    </div>
+                    <button class="color-action-btn remove" data-color="${colorKey}" data-i18n="remove">
+                        ${getI18nText('remove')}
+                    </button>
+                </div>
+            `;
+        }).join('');
+        
+        this.colorUsageList.innerHTML = html;
+        
+        this.colorUsageList.querySelectorAll('.color-action-btn.remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const colorKey = btn.dataset.color;
+                if (this.excludedColors.has(colorKey)) {
+                    this.excludedColors.delete(colorKey);
+                } else {
+                    this.excludedColors.add(colorKey);
+                }
+                this.updatePixelatedImage();
+            });
+        });
     }
 
     showPerlerPlaceholder() {
@@ -337,7 +516,7 @@ class PixelArtGenerator {
         const processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
         
         this.colorCounts = {};
-        const perlerColors = [];
+        this.perlerColors = [];
         
         for (let y = 0; y < perlerHeight; y++) {
             const row = [];
@@ -355,11 +534,12 @@ class PixelArtGenerator {
                     this.colorCounts[closestColor.name] = 1;
                 }
             }
-            perlerColors.push(row);
+            this.perlerColors.push(row);
         }
         
-        this.drawPerlerChart(perlerColors, perlerWidth, perlerHeight, colorSetName);
+        this.drawPerlerChart(this.perlerColors, perlerWidth, perlerHeight, colorSetName);
         this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${perlerWidth} × ${perlerHeight} ${getI18nText('beans')}`;
+        this.initCustomEditData();
     }
 
     drawPerlerChart(perlerColors, perlerWidth, perlerHeight, colorSetName) {
@@ -613,12 +793,156 @@ class PixelArtGenerator {
         drawFooter();
     }
 
+    drawPerlerChartSync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const footerSize = 25;
+        const chartStyle = this.chartStyle.value;
+        const beadShape = this.beadShape.value;
+        const showGrid = this.showGridLines.checked;
+        const showCoords = this.showCoordNumbers.checked;
+        const coordColor = this.coordLineColor.value;
+        const coordNumColor = this.coordNumberColor.value;
+        
+        this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
+        this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
+        
+        const ctx = this.perlerCtx;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, this.perlerCanvas.width, this.perlerCanvas.height);
+        
+        const drawFooter = () => {
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            ctx.fillText('豆师傅-perler-pattern-generator.pages.dev', this.perlerCanvas.width / 2, footerY);
+        };
+        
+        const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
+        ctx.font = `${fontSizeCoord}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (showCoords) {
+            ctx.fillStyle = coordNumColor;
+            
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
+            }
+            
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
+        }
+        
+        if (showGrid) {
+            ctx.strokeStyle = coordColor;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            
+            for (let x = 0; x <= perlerWidth; x++) {
+                ctx.moveTo(coordSize + x * cellSize, coordSize);
+                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+            }
+            
+            for (let y = 0; y <= perlerHeight; y++) {
+                ctx.moveTo(coordSize, coordSize + y * cellSize);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+            }
+            
+            ctx.stroke();
+        }
+        
+        for (let y = 0; y < perlerHeight; y++) {
+            for (let x = 0; x < perlerWidth; x++) {
+                const color = perlerColors[y][x];
+                const px = coordSize + x * cellSize;
+                const py = coordSize + y * cellSize;
+                
+                const nameLen = color.name.length;
+                let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
+                let fontSize = fontSizeBase;
+                if (nameLen === 1) {
+                    fontSize = Math.floor(fontSizeBase * 1.1);
+                } else if (nameLen === 2) {
+                    fontSize = fontSizeBase;
+                } else if (nameLen === 3) {
+                    fontSize = Math.floor(fontSizeBase * 0.85);
+                } else {
+                    fontSize = Math.floor(fontSizeBase * 0.7);
+                }
+                
+                if (beadShape === 'circle') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.clip();
+                    
+                    if (chartStyle === 'color') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                    } else if (chartStyle === 'color-with-code') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.fillStyle = getContrastTextColor(color.rgb);
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.strokeStyle = '#999';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        ctx.fillStyle = '#333';
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    }
+                    
+                    ctx.restore();
+                    
+                    ctx.beginPath();
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                } else {
+                    if (chartStyle === 'color') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                    } else if (chartStyle === 'color-with-code') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.fillStyle = getContrastTextColor(color.rgb);
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.strokeStyle = '#999';
+                        ctx.strokeRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.fillStyle = '#333';
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    }
+                }
+            }
+        }
+        
+        this.drawColorLegend();
+        drawFooter();
+    }
+
     drawColorLegend() {
         const legendCanvas = document.createElement('canvas');
         const legendCtx = legendCanvas.getContext('2d');
         const colorNames = Object.keys(this.colorCounts).sort();
         
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
+        const colorTypes = colorNames.length;
         
         const position = this.legendPosition.value;
         const perlerWidth = Math.ceil(parseInt(this.widthInput.value) / parseInt(this.pixelSizeSlider.value));
@@ -660,7 +984,7 @@ class PixelArtGenerator {
         
         legendCtx.font = 'bold 12px sans-serif';
         legendCtx.fillStyle = '#333';
-        legendCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, 8, 36);
+        legendCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')} · ${getI18nText('colorTypes')}: ${colorTypes}`, 8, 36);
         
         let col = 0, row = 0;
         
@@ -745,6 +1069,8 @@ class PixelArtGenerator {
         this.originalWidth = 0;
         this.originalHeight = 0;
         this.colorCounts = {};
+        this.pixelColorStats = [];
+        this.excludedColors.clear();
         
         this.uploadSection.style.display = 'block';
         this.workspace.style.display = 'none';
@@ -761,6 +1087,7 @@ class PixelArtGenerator {
     reset() {
         this.resetInputs();
         this.drawOriginalImage();
+        this.excludedColors.clear();
         this.updatePixelatedImage();
         this.showPerlerPlaceholder();
         
@@ -789,6 +1116,7 @@ class PixelArtGenerator {
         const footerSize = 25;
         const colorNames = Object.keys(this.colorCounts).sort();
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
+        const colorTypes = colorNames.length;
         
         const position = this.legendPosition.value;
         const chartWidth = coordSize + perlerWidth * cellSize;
@@ -844,7 +1172,7 @@ class PixelArtGenerator {
         
         downloadCtx.font = 'bold 12px sans-serif';
         downloadCtx.fillStyle = '#333';
-        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')}`, legendX + 8, legendY + 36);
+        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')} · ${getI18nText('colorTypes')}: ${colorTypes}`, legendX + 8, legendY + 36);
         
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
@@ -900,6 +1228,495 @@ class PixelArtGenerator {
         link.download = fileName;
         link.href = downloadCanvas.toDataURL('image/png');
         link.click();
+    }
+
+    initCustomEditCanvasEvents() {
+        this.customEditCanvas.addEventListener('mousedown', (e) => this.handleCustomEditMouseDown(e));
+        this.customEditCanvas.addEventListener('mousemove', (e) => this.handleCustomEditMouseMove(e));
+        this.customEditCanvas.addEventListener('mouseup', () => this.handleCustomEditMouseUp());
+        this.customEditCanvas.addEventListener('mouseleave', () => this.handleCustomEditMouseUp());
+    }
+
+    initCustomEditData() {
+        if (!this.perlerColors || !this.perlerColors.length) return;
+        
+        this.perlerWidth = this.perlerColors[0].length;
+        this.perlerHeight = this.perlerColors.length;
+        this.customEditData = this.perlerColors.map(row => [...row]);
+        this.customEditHistory = [this.customEditData.map(row => [...row])];
+        
+        this.drawCustomEditCanvas();
+    }
+
+    drawCustomEditCanvas() {
+        if (!this.customEditData) return;
+        
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const showGrid = this.showCustomEditGrid.checked;
+        
+        this.customEditCanvas.width = this.perlerWidth * cellSize;
+        this.customEditCanvas.height = this.perlerHeight * cellSize;
+        
+        const ctx = this.customEditCtx;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, this.customEditCanvas.width, this.customEditCanvas.height);
+        
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const color = this.customEditData[y][x];
+                ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+            }
+        }
+        
+        if (showGrid) {
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= this.perlerWidth; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * cellSize, 0);
+                ctx.lineTo(x * cellSize, this.perlerHeight * cellSize);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= this.perlerHeight; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * cellSize);
+                ctx.lineTo(this.perlerWidth * cellSize, y * cellSize);
+                ctx.stroke();
+            }
+        }
+        
+        this.customEditInfo.textContent = `编辑尺寸: ${this.perlerWidth} × ${this.perlerHeight}`;
+    }
+
+    getCustomEditCell(e) {
+        const rect = this.customEditCanvas.getBoundingClientRect();
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const x = Math.floor((e.clientX - rect.left) / cellSize);
+        const y = Math.floor((e.clientY - rect.top) / cellSize);
+        return { x, y };
+    }
+
+    handleCustomEditMouseDown(e) {
+        if (!this.customEditData) return;
+        
+        this.isDrawing = true;
+        const { x, y } = this.getCustomEditCell(e);
+        this.applyEditToCell(x, y);
+    }
+
+    handleCustomEditMouseMove(e) {
+        if (!this.isDrawing || !this.customEditData) return;
+        
+        const { x, y } = this.getCustomEditCell(e);
+        this.applyEditToCell(x, y);
+    }
+
+    handleCustomEditMouseUp() {
+        if (this.isDrawing && this.customEditData) {
+            this.saveCustomEditHistory();
+        }
+        this.isDrawing = false;
+    }
+
+    applyEditToCell(x, y) {
+        if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) return;
+        
+        const brushSize = parseInt(this.customEditBrushSize.value);
+        const halfBrush = Math.floor(brushSize / 2);
+        
+        for (let dy = -halfBrush; dy <= halfBrush; dy++) {
+            for (let dx = -halfBrush; dx <= halfBrush; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < this.perlerWidth && ny >= 0 && ny < this.perlerHeight) {
+                    this.applySingleEdit(nx, ny);
+                }
+            }
+        }
+        
+        this.drawCustomEditCanvas();
+    }
+
+    applySingleEdit(x, y) {
+        switch (this.currentEditTool) {
+            case 'brush':
+                const hexColor = this.customEditColor.value;
+                const r = parseInt(hexColor.slice(1, 3), 16);
+                const g = parseInt(hexColor.slice(3, 5), 16);
+                const b = parseInt(hexColor.slice(5, 7), 16);
+                
+                const colorSetName = this.colorSetSelect.value;
+                const colorSet = colorSets[colorSetName];
+                const mappingMethod = this.colorMappingMethod.value;
+                const closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
+                
+                this.customEditData[y][x] = closestColor;
+                break;
+                
+            case 'eraser':
+                this.customEditData[y][x] = this.perlerColors[y][x];
+                break;
+                
+            case 'fill':
+                if (!this.isDrawing) {
+                    const targetColor = this.customEditData[y][x];
+                    const hexFill = this.customEditColor.value;
+                    const fr = parseInt(hexFill.slice(1, 3), 16);
+                    const fg = parseInt(hexFill.slice(3, 5), 16);
+                    const fb = parseInt(hexFill.slice(5, 7), 16);
+                    
+                    const csName = this.colorSetSelect.value;
+                    const cs = colorSets[csName];
+                    const mm = this.colorMappingMethod.value;
+                    const fillColor = findClosestColor([fr, fg, fb], cs, mm);
+                    
+                    this.floodFill(x, y, targetColor, fillColor);
+                }
+                break;
+                
+            case 'picker':
+                const pickedColor = this.customEditData[y][x];
+                const pickedHex = `#${pickedColor.rgb[0].toString(16).padStart(2, '0')}${pickedColor.rgb[1].toString(16).padStart(2, '0')}${pickedColor.rgb[2].toString(16).padStart(2, '0')}`;
+                this.customEditColor.value = pickedHex;
+                this.currentColorValue.textContent = pickedHex;
+                break;
+        }
+    }
+
+    floodFill(startX, startY, targetColor, fillColor) {
+        if (targetColor.name === fillColor.name) return;
+        
+        const visited = new Set();
+        const stack = [{x: startX, y: startY}];
+        
+        while (stack.length > 0) {
+            const {x, y} = stack.pop();
+            const key = `${x},${y}`;
+            
+            if (visited.has(key)) continue;
+            if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) continue;
+            if (this.customEditData[y][x].name !== targetColor.name) continue;
+            
+            visited.add(key);
+            this.customEditData[y][x] = fillColor;
+            
+            stack.push({x: x + 1, y});
+            stack.push({x: x - 1, y});
+            stack.push({x, y: y + 1});
+            stack.push({x, y: y - 1});
+        }
+    }
+
+    saveCustomEditHistory() {
+        this.customEditHistory.push(this.customEditData.map(row => [...row]));
+        if (this.customEditHistory.length > 50) {
+            this.customEditHistory.shift();
+        }
+    }
+
+    undoCustomEdit() {
+        if (this.customEditHistory.length > 1) {
+            this.customEditHistory.pop();
+            this.customEditData = this.customEditHistory[this.customEditHistory.length - 1].map(row => [...row]);
+            this.drawCustomEditCanvas();
+        }
+    }
+
+    applyCustomEdit() {
+        if (!this.customEditData) return;
+        
+        this.perlerColors = this.customEditData.map(row => [...row]);
+        
+        this.colorCounts = {};
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const color = this.perlerColors[y][x];
+                if (this.colorCounts[color.name]) {
+                    this.colorCounts[color.name]++;
+                } else {
+                    this.colorCounts[color.name] = 1;
+                }
+            }
+        }
+        
+        this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+        this.drawColorLegend();
+    }
+
+    openSmartOptimizeModal() {
+        if (!this.perlerColors || !this.perlerColors.length) {
+            alert('请先渲染拼豆图纸！');
+            return;
+        }
+        
+        this.originalPerlerColors = this.perlerColors.map(row => [...row]);
+        this.colorSuggestions = this.generateColorSuggestions();
+        this.acceptedSuggestions = new Set();
+        this.rejectedSuggestions = new Set();
+        
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+        this.smartOptimizeModal.style.display = 'flex';
+    }
+
+    closeSmartOptimizeModal(restoreOriginal = true) {
+        this.smartOptimizeModal.style.display = 'none';
+        if (this.originalPerlerColors && restoreOriginal) {
+            this.perlerColors = this.originalPerlerColors.map(row => [...row]);
+            this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+            this.drawColorLegend();
+        }
+        this.initCustomEditData();
+    }
+
+    generateColorSuggestions() {
+        const suggestions = [];
+        const colorSetName = this.colorSetSelect.value;
+        const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
+        
+        const colorUsage = new Map();
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const color = this.perlerColors[y][x];
+                colorUsage.set(color.name, (colorUsage.get(color.name) || 0) + 1);
+            }
+        }
+        
+        const totalBeans = this.perlerWidth * this.perlerHeight;
+        const threshold = Math.max(3, Math.floor(totalBeans * 0.01));
+        
+        const colorsByUsage = Array.from(colorUsage.entries())
+            .sort((a, b) => a[1] - b[1]);
+        
+        const highUsageColors = colorsByUsage
+            .filter(([_, count]) => count > threshold * 3)
+            .map(([name]) => colorSet.find(c => c.name === name))
+            .filter(Boolean);
+        
+        for (const [colorName, count] of colorsByUsage) {
+            if (count >= threshold) continue;
+            
+            const originalColor = colorSet.find(c => c.name === colorName);
+            if (!originalColor) continue;
+            
+            let bestReplacement = null;
+            let minDistance = Infinity;
+            
+            for (const candidate of highUsageColors) {
+                if (candidate.name === colorName) continue;
+                
+                const distance = calculateColorDistance(originalColor.rgb, candidate.rgb, mappingMethod);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestReplacement = candidate;
+                }
+            }
+            
+            if (bestReplacement && minDistance < 50) {
+                suggestions.push({
+                    id: suggestions.length,
+                    originalColor,
+                    replacementColor: bestReplacement,
+                    beanCount: count,
+                    accepted: false
+                });
+            }
+        }
+        
+        return suggestions.sort((a, b) => a.beanCount - b.beanCount);
+    }
+
+    renderOptimizationSummary() {
+        const originalColors = new Set();
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                originalColors.add(this.perlerColors[y][x].name);
+            }
+        }
+        
+        const acceptedCount = this.acceptedSuggestions.size;
+        const replacedColors = new Set();
+        for (const idx of this.acceptedSuggestions) {
+            replacedColors.add(this.colorSuggestions[idx].originalColor.name);
+        }
+        
+        const suggestedColors = originalColors.size - replacedColors.size;
+        
+        this.optimizationSummary.innerHTML = `
+            <div class="summary-item">
+                <span class="summary-label">${getI18nText('originalColors')}:</span>
+                <span class="summary-value">${originalColors.size}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">${getI18nText('suggestedColors')}:</span>
+                <span class="summary-value">${suggestedColors}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">${getI18nText('colorReduction')}:</span>
+                <span class="summary-value">${originalColors.size - suggestedColors}</span>
+            </div>
+        `;
+    }
+
+    renderSuggestionsList() {
+        if (this.colorSuggestions.length === 0) {
+            this.suggestionsList.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">没有可优化的建议</p>';
+            return;
+        }
+        
+        const html = this.colorSuggestions.map((suggestion, index) => {
+            const statusClass = this.acceptedSuggestions.has(index) ? 'accepted' : 
+                             this.rejectedSuggestions.has(index) ? 'rejected' : '';
+            
+            return `
+                <div class="suggestion-item ${statusClass}" data-index="${index}">
+                    <div class="color-swatch-small" style="background-color: rgb(${suggestion.originalColor.rgb[0]}, ${suggestion.originalColor.rgb[1]}, ${suggestion.originalColor.rgb[2]});"></div>
+                    <div class="suggestion-info">
+                        <div class="suggestion-text">
+                            <span>${suggestion.originalColor.name}</span>
+                            <span class="arrow">→</span>
+                            <div class="color-swatch-small" style="background-color: rgb(${suggestion.replacementColor.rgb[0]}, ${suggestion.replacementColor.rgb[1]}, ${suggestion.replacementColor.rgb[2]}); width: 24px; height: 24px;"></div>
+                            <span>${suggestion.replacementColor.name}</span>
+                        </div>
+                        <div class="suggestion-beans">
+                            ${getI18nText('beansAffected')}: ${suggestion.beanCount} ${getI18nText('beans')}
+                        </div>
+                    </div>
+                    <div class="suggestion-actions">
+                        <button class="suggestion-action-btn preview" data-index="${index}">${getI18nText('preview')}</button>
+                        <button class="suggestion-action-btn accept" data-index="${index}">${getI18nText('accept')}</button>
+                        <button class="suggestion-action-btn reject" data-index="${index}">${getI18nText('reject')}</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        this.suggestionsList.innerHTML = html;
+        
+        this.suggestionsList.querySelectorAll('.suggestion-action-btn.accept').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(btn.dataset.index);
+                this.acceptSuggestion(index);
+            });
+        });
+        
+        this.suggestionsList.querySelectorAll('.suggestion-action-btn.reject').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(btn.dataset.index);
+                this.rejectSuggestion(index);
+            });
+        });
+        
+        this.suggestionsList.querySelectorAll('.suggestion-action-btn.preview').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(btn.dataset.index);
+                this.previewSuggestion(index);
+            });
+        });
+    }
+
+    acceptSuggestion(index) {
+        if (this.rejectedSuggestions.has(index)) {
+            this.rejectedSuggestions.delete(index);
+        }
+        this.acceptedSuggestions.add(index);
+        this.applySuggestion(index);
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+    }
+
+    rejectSuggestion(index) {
+        if (this.acceptedSuggestions.has(index)) {
+            this.acceptedSuggestions.delete(index);
+            this.restoreSuggestion(index);
+        }
+        this.rejectedSuggestions.add(index);
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+    }
+
+    acceptAllSuggestions() {
+        for (let i = 0; i < this.colorSuggestions.length; i++) {
+            if (!this.rejectedSuggestions.has(i)) {
+                this.acceptedSuggestions.add(i);
+                this.applySuggestion(i);
+            }
+        }
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+    }
+
+    rejectAllSuggestions() {
+        for (const index of this.acceptedSuggestions) {
+            this.restoreSuggestion(index);
+        }
+        this.acceptedSuggestions.clear();
+        this.rejectedSuggestions = new Set(this.colorSuggestions.map((_, i) => i));
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+    }
+
+    applySuggestion(index) {
+        const suggestion = this.colorSuggestions[index];
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.perlerColors[y][x].name === suggestion.originalColor.name) {
+                    this.perlerColors[y][x] = suggestion.replacementColor;
+                }
+            }
+        }
+        this.updateColorCounts();
+        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+        this.drawColorLegend();
+    }
+
+    restoreSuggestion(index) {
+        const suggestion = this.colorSuggestions[index];
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.originalPerlerColors[y][x].name === suggestion.originalColor.name) {
+                    this.perlerColors[y][x] = this.originalPerlerColors[y][x];
+                }
+            }
+        }
+        this.updateColorCounts();
+        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+        this.drawColorLegend();
+    }
+
+    previewSuggestion(index) {
+        const suggestion = this.colorSuggestions[index];
+        const tempColors = this.perlerColors.map(row => [...row]);
+        
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                if (tempColors[y][x].name === suggestion.originalColor.name) {
+                    tempColors[y][x] = suggestion.replacementColor;
+                }
+            }
+        }
+        
+        this.drawPerlerChartSync(tempColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+    }
+
+    updateColorCounts() {
+        this.colorCounts = {};
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const color = this.perlerColors[y][x];
+                if (this.colorCounts[color.name]) {
+                    this.colorCounts[color.name]++;
+                } else {
+                    this.colorCounts[color.name] = 1;
+                }
+            }
+        }
+    }
+
+    confirmOptimization() {
+        this.closeSmartOptimizeModal(false);
     }
 }
 
