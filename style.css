@@ -2,6 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -10,6 +11,28 @@ body {
     min-height: 100vh;
     padding: 20px;
     color: #333;
+    touch-action: manipulation;
+}
+
+/* 移动端按钮激活状态 */
+.btn:active,
+.preset-btn:active,
+.edit-tool-btn:active,
+.suggestion-action-btn:active,
+.sort-btn:active,
+.color-action-btn:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+}
+
+.btn-primary:active {
+    transform: scale(0.98) translateY(-1px);
+}
+
+.upload-area:active {
+    transform: scale(0.99);
+    border-color: #764ba2;
+    background: #e8ebff;
 }
 
 .container {
@@ -826,16 +849,204 @@ input[type="color"]:focus {
     }
 }
 
+/* 移动端优化 */
 @media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        border-radius: 8px;
+    }
+
+    header {
+        padding: 20px 15px;
+    }
+
+    .header-content {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .header-title {
+        text-align: left;
+    }
+
+    header h1 {
+        font-size: 1.4em;
+    }
+
+    header p {
+        font-size: 0.9em;
+    }
+
+    .language-switch {
+        align-self: flex-start;
+    }
+
+    .upload-section {
+        padding: 20px 15px;
+    }
+
+    .upload-area {
+        padding: 40px 15px;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .upload-icon {
+        font-size: 3em;
+    }
+
+    .upload-area p {
+        font-size: 1em;
+    }
+
+    .workspace {
+        padding: 15px;
+    }
+
+    .preview-section {
+        gap: 15px;
+        margin-bottom: 15px;
+        padding: 15px;
+    }
+
+    .controls-section {
+        padding: 15px;
+    }
+
+    .control-group {
+        margin-bottom: 18px;
+    }
+
     .size-inputs {
         flex-direction: column;
+        gap: 10px;
+    }
+
+    .size-inputs input[type="number"] {
+        width: 100%;
+        max-width: none;
+    }
+
+    .preset-sizes {
+        gap: 8px;
+    }
+
+    .preset-btn {
+        padding: 8px 12px;
+        font-size: 0.85em;
+        flex: 1;
+        min-width: 70px;
+    }
+
+    .btn {
+        padding: 12px 18px;
+        font-size: 0.95em;
+        min-height: 44px;
     }
 
     .action-buttons {
         flex-direction: column;
+        gap: 10px;
     }
 
     .global-actions {
         flex-direction: column;
+        gap: 10px;
+    }
+
+    .edit-tools {
+        gap: 6px;
+    }
+
+    .edit-tool-btn {
+        padding: 10px 12px;
+        font-size: 0.85em;
+        min-height: 44px;
+    }
+
+    .canvas-wrapper {
+        min-height: 150px;
+    }
+
+    select,
+    input[type="number"],
+    input[type="range"] {
+        min-height: 44px;
+    }
+
+    input[type="checkbox"] {
+        width: 24px;
+        height: 24px;
+    }
+
+    .checkbox-label {
+        align-items: flex-start;
+        padding: 5px 0;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 10px;
+        border-radius: 12px;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 15px;
+    }
+
+    .suggestion-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .suggestion-action-btn {
+        width: 100%;
+        padding: 8px 12px;
+        min-height: 36px;
+    }
+
+    .sort-buttons {
+        gap: 6px;
+    }
+
+    .sort-btn {
+        padding: 8px 10px;
+        font-size: 0.8em;
+        min-height: 36px;
+    }
+
+    .color-usage-item {
+        flex-wrap: wrap;
+    }
+
+    .color-action-btn {
+        min-height: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.2em;
+    }
+
+    .preview-panel h3 {
+        font-size: 1em;
+    }
+
+    .modal-header h2 {
+        font-size: 1.1em;
+    }
+
+    .suggestion-text {
+        font-size: 0.9em;
     }
 }

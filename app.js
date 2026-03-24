@@ -114,7 +114,18 @@ class PixelArtGenerator {
     }
 
     initEventListeners() {
-        this.uploadArea.addEventListener('click', () => this.fileInput.click());
+        this.uploadArea.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.fileInput.click();
+        });
+        
+        this.uploadArea.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.fileInput.click();
+        });
+        
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         
         this.uploadArea.addEventListener('dragover', (e) => {
