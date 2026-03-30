@@ -114,18 +114,7 @@ class PixelArtGenerator {
     }
 
     initEventListeners() {
-        this.uploadArea.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.fileInput.click();
-        });
-        
-        this.uploadArea.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.fileInput.click();
-        });
-        
+        this.uploadArea.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         
         this.uploadArea.addEventListener('dragover', (e) => {
@@ -207,9 +196,6 @@ class PixelArtGenerator {
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
         this.beadSizeSlider.addEventListener('input', () => {
             this.beadSizeValue.textContent = this.beadSizeSlider.value + 'px';
-            if (Object.keys(this.colorCounts).length > 0) {
-                this.updatePerlerChart();
-            }
         });
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
@@ -301,9 +287,10 @@ class PixelArtGenerator {
     }
 
     loadImage(file) {
+        console.log('开始加载图片:', file.name, '类型:', file.type, '大小:', file.size);
+        
         if (!file.type.startsWith('image/')) {
-            alert('请选择有效的图片文件！');
-            return;
+            console.warn('文件类型不标准，尝试继续加载');
         }
         
         if (file.size > 20 * 1024 * 1024) {
@@ -311,21 +298,28 @@ class PixelArtGenerator {
             return;
         }
         
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                this.originalImage = img;
-                this.originalWidth = img.width;
-                this.originalHeight = img.height;
-                this.showWorkspace();
-                this.drawOriginalImage();
-                this.resetInputs();
-                this.updatePixelatedImage();
-            };
-            img.src = e.target.result;
+        const img = new Image();
+        const objectURL = URL.createObjectURL(file);
+        
+        img.onload = () => {
+            console.log('图片加载完成，尺寸:', img.width, 'x', img.height);
+            this.originalImage = img;
+            this.originalWidth = img.width;
+            this.originalHeight = img.height;
+            this.showWorkspace();
+            this.drawOriginalImage();
+            this.resetInputs();
+            this.updatePixelatedImage();
+            URL.revokeObjectURL(objectURL);
         };
-        reader.readAsDataURL(file);
+        
+        img.onerror = (error) => {
+            console.error('图片加载失败:', error);
+            URL.revokeObjectURL(objectURL);
+            alert('图片加载失败，请尝试其他图片！');
+        };
+        
+        img.src = objectURL;
     }
 
     showWorkspace() {
@@ -1733,4 +1727,178 @@ class PixelArtGenerator {
 
 document.addEventListener('DOMContentLoaded', () => {
     new PixelArtGenerator();
+    initMatrixTimer();
 });
+
+function initMatrixTimer() {
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const uploadSection = document.getElementById('uploadSection');
+    const workspace = document.getElementById('workspace');
+    const timerSection = document.getElementById('timerSection');
+    const addTimerBtn = document.getElementById('addTimerBtn');
+    const timersGrid = document.getElementById('timersGrid');
+    
+    let timerCount = 0;
+    
+    // 导航切换
+    navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            navBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (btn.textContent === '图转拼豆') {
+                uploadSection.style.display = 'block';
+                workspace.style.display = 'none';
+                timerSection.style.display = 'none';
+            } else if (btn.textContent === '矩阵计时') {
+                uploadSection.style.display = 'none';
+                workspace.style.display = 'none';
+                timerSection.style.display = 'block';
+            }
+        });
+    });
+    
+    // 添加计时器
+    addTimerBtn.addEventListener('click', () => {
+        const modal = document.getElementById('timerModal');
+        modal.style.display = 'block';
+        
+        // 重置表单
+        document.getElementById('modal-hours').value = '0';
+        document.getElementById('modal-minutes').value = '0';
+        document.getElementById('modal-title').value = '';
+    });
+    
+    // 关闭弹窗
+    document.getElementById('closeTimerModalBtn').addEventListener('click', () => {
+        document.getElementById('timerModal').style.display = 'none';
+    });
+    
+    // 取消添加
+    document.getElementById('cancelAddTimerBtn').addEventListener('click', () => {
+        document.getElementById('timerModal').style.display = 'none';
+    });
+    
+    // 确认添加计时器
+    document.getElementById('confirmAddTimerBtn').addEventListener('click', () => {
+        const hours = parseInt(document.getElementById('modal-hours').value) || 0;
+        const minutes = parseInt(document.getElementById('modal-minutes').value) || 1;
+        const title = document.getElementById('modal-title').value || `计时器 ${timerCount + 1}`;
+        
+        if (hours <= 0 && minutes <= 0) {
+            alert('请设置倒计时时间！');
+            return;
+        }
+        
+        timerCount++;
+        const timerId = `timer-${timerCount}`;
+        const timerCard = document.createElement('div');
+        timerCard.className = 'timer-card';
+        timerCard.innerHTML = `
+            <div class="timer-title">${title}</div>
+            <div class="timer-display" id="${timerId}-display">${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00</div>
+            <div class="timer-controls">
+                <button class="timer-btn" id="${timerId}-start">开始</button>
+                <button class="timer-btn" id="${timerId}-pause">暂停</button>
+                <button class="timer-btn" id="${timerId}-reset">重置</button>
+                <button class="timer-btn btn-danger" id="${timerId}-delete">删除</button>
+            </div>
+        `;
+        timersGrid.appendChild(timerCard);
+        
+        initTimer(timerId, hours, minutes, 0);
+        
+        document.getElementById('timerModal').style.display = 'none';
+    });
+    
+    // 初始化第一个计时器
+    timerCount++;
+    const timerId = `timer-${timerCount}`;
+    const timerCard = document.createElement('div');
+    timerCard.className = 'timer-card';
+    timerCard.innerHTML = `
+        <div class="timer-title">计时器 1</div>
+        <div class="timer-display" id="${timerId}-display">00:00:00</div>
+        <div class="timer-controls">
+            <button class="timer-btn" id="${timerId}-start">开始</button>
+            <button class="timer-btn" id="${timerId}-pause">暂停</button>
+            <button class="timer-btn" id="${timerId}-reset">重置</button>
+            <button class="timer-btn btn-danger" id="${timerId}-delete">删除</button>
+        </div>
+    `;
+    timersGrid.appendChild(timerCard);
+    initTimer(timerId, 0, 0, 0);
+}
+
+function initTimer(timerId, initialHours, initialMinutes, initialSeconds) {
+    const display = document.getElementById(`${timerId}-display`);
+    const startBtn = document.getElementById(`${timerId}-start`);
+    const pauseBtn = document.getElementById(`${timerId}-pause`);
+    const resetBtn = document.getElementById(`${timerId}-reset`);
+    const deleteBtn = document.getElementById(`${timerId}-delete`);
+    
+    let remainingTime = initialHours * 3600 + initialMinutes * 60 + initialSeconds;
+    let originalTime = remainingTime;
+    let timerInterval = null;
+    let isRunning = false;
+    
+    function updateDisplay() {
+        const hours = Math.floor(remainingTime / 3600).toString().padStart(2, '0');
+        const minutes = Math.floor((remainingTime % 3600) / 60).toString().padStart(2, '0');
+        const seconds = (remainingTime % 60).toString().padStart(2, '0');
+        display.textContent = `${hours}:${minutes}:${seconds}`;
+        
+        if (remainingTime <= 0) {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.classList.remove('active');
+            pauseBtn.classList.remove('active');
+            alert('倒计时结束！');
+        }
+    }
+    
+    startBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            if (remainingTime <= 0) {
+                remainingTime = originalTime;
+            }
+            
+            if (remainingTime <= 0) {
+                alert('请设置倒计时时间！');
+                return;
+            }
+            
+            timerInterval = setInterval(() => {
+                remainingTime--;
+                updateDisplay();
+            }, 1000);
+            isRunning = true;
+            startBtn.classList.add('active');
+            pauseBtn.classList.remove('active');
+        }
+    });
+    
+    pauseBtn.addEventListener('click', () => {
+        if (isRunning) {
+            clearInterval(timerInterval);
+            isRunning = false;
+            pauseBtn.classList.add('active');
+            startBtn.classList.remove('active');
+        }
+    });
+    
+    resetBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        remainingTime = originalTime;
+        isRunning = false;
+        updateDisplay();
+        startBtn.classList.remove('active');
+        pauseBtn.classList.remove('active');
+    });
+    
+    deleteBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        const timerCard = document.getElementById(`${timerId}-display`).parentElement;
+        timerCard.remove();
+    });
+}
