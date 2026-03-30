@@ -75,9 +75,15 @@ class PixelArtGenerator {
         this.colorCountSlider = document.getElementById('colorCountSlider');
         this.colorCountValue = document.getElementById('colorCountValue');
         this.colorCountInput = document.getElementById('colorCountInput');
+        this.imageTotalColors = document.getElementById('imageTotalColors');
         this.colorQuantizePanel = document.getElementById('colorQuantizePanel');
         this.colorUsageList = document.getElementById('colorUsageList');
         this.pixelMethod = document.getElementById('pixelMethod');
+        this.targetColorCountSlider = document.getElementById('targetColorCountSlider');
+        this.targetColorCountValue = document.getElementById('targetColorCountValue');
+        this.targetColorCountInput = document.getElementById('targetColorCountInput');
+        this.quantizedPixelControls = document.getElementById('quantizedPixelControls');
+        this.enableNeighborSmooth = document.getElementById('enableNeighborSmooth');
         
         this.customEditCanvas = document.getElementById('customEditCanvas');
         this.customEditCtx = this.customEditCanvas.getContext('2d', { willReadFrequently: true });
@@ -89,9 +95,16 @@ class PixelArtGenerator {
         this.showCustomEditGrid = document.getElementById('showCustomEditGrid');
         this.applyCustomEditBtn = document.getElementById('applyCustomEditBtn');
         this.undoCustomEditBtn = document.getElementById('undoCustomEditBtn');
+        this.eraserColor = document.getElementById('eraserColor');
+        this.eraserColorValue = document.getElementById('eraserColorValue');
+        this.saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
+        this.snapshotsList = document.getElementById('snapshotsList');
+        this.snapshotsContainer = document.getElementById('snapshotsContainer');
         
         this.customEditData = null;
         this.customEditHistory = [];
+        this.customEditSnapshots = [];
+        this.lastPerlerSignature = null;
         this.currentEditTool = 'brush';
         this.isDrawing = false;
         
@@ -111,6 +124,8 @@ class PixelArtGenerator {
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
+        
+        this.quantizedPixelControls.style.display = this.pixelMethod.value === 'quantized' ? 'block' : 'none';
     }
 
     initEventListeners() {
@@ -247,7 +262,33 @@ class PixelArtGenerator {
             });
         });
         
-        this.pixelMethod.addEventListener('change', () => this.updatePixelatedImage());
+        this.pixelMethod.addEventListener('change', () => {
+            this.quantizedPixelControls.style.display = this.pixelMethod.value === 'quantized' ? 'block' : 'none';
+            this.updatePixelatedImage();
+        });
+        
+        this.targetColorCountSlider.addEventListener('input', () => {
+            const value = this.targetColorCountSlider.value;
+            this.targetColorCountValue.textContent = value;
+            this.targetColorCountInput.value = value;
+            this.updatePixelatedImage();
+        });
+        this.targetColorCountInput.addEventListener('input', () => {
+            let value = parseInt(this.targetColorCountInput.value);
+            if (isNaN(value)) value = 8;
+            if (value < 8) value = 8;
+            if (value > 96) value = 96;
+            this.targetColorCountValue.textContent = value;
+            this.targetColorCountSlider.value = value;
+            this.targetColorCountInput.value = value;
+            this.updatePixelatedImage();
+        });
+        
+        this.enableNeighborSmooth.addEventListener('change', () => {
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.updatePerlerChart();
+            }
+        });
         
         document.querySelectorAll('.edit-tool-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -261,6 +302,10 @@ class PixelArtGenerator {
             this.currentColorValue.textContent = this.customEditColor.value;
         });
         
+        this.eraserColor.addEventListener('input', () => {
+            this.eraserColorValue.textContent = this.eraserColor.value;
+        });
+        
         this.customEditBrushSize.addEventListener('input', () => {
             this.brushSizeValue.textContent = this.customEditBrushSize.value;
         });
@@ -269,6 +314,7 @@ class PixelArtGenerator {
         
         this.applyCustomEditBtn.addEventListener('click', () => this.applyCustomEdit());
         this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
+        this.saveSnapshotBtn.addEventListener('click', () => this.saveCustomEditSnapshot());
         
         this.initCustomEditCanvasEvents();
         
@@ -350,6 +396,15 @@ class PixelArtGenerator {
         this.colorCountInput.value = 8;
         this.beadSizeSlider.value = 24;
         this.beadSizeValue.textContent = '24px';
+        
+        this.lastPerlerSignature = null;
+        this.customEditSnapshots = [];
+        if (this.snapshotsContainer) {
+            this.snapshotsContainer.innerHTML = '';
+        }
+        if (this.snapshotsList) {
+            this.snapshotsList.style.display = 'none';
+        }
     }
 
     updatePixelatedImage() {
@@ -369,6 +424,9 @@ class PixelArtGenerator {
         let pixelatedData;
         if (method === 'pixel-art') {
             pixelatedData = pixelArtPixelate(imageData, pixelSize);
+        } else if (method === 'quantized') {
+            const targetColorCount = parseInt(this.targetColorCountSlider.value);
+            pixelatedData = quantizedPixelate(imageData, pixelSize, targetColorCount);
         } else {
             pixelatedData = pixelate(imageData, pixelSize);
         }
@@ -384,6 +442,16 @@ class PixelArtGenerator {
         }
         
         this.pixelColorStats = this.calculateColorStats(pixelatedData);
+        const totalColors = this.pixelColorStats.length;
+        this.imageTotalColors.textContent = totalColors;
+        
+        this.colorCountSlider.max = Math.max(2, totalColors);
+        this.colorCountInput.max = Math.max(2, totalColors);
+        if (parseInt(this.colorCountSlider.value) > totalColors) {
+            this.colorCountSlider.value = Math.max(2, totalColors);
+            this.colorCountInput.value = this.colorCountSlider.value;
+            this.colorCountValue.textContent = this.colorCountSlider.value;
+        }
         
         if (this.enableColorQuantize.checked) {
             const colorCount = parseInt(this.colorCountSlider.value);
@@ -450,10 +518,7 @@ class PixelArtGenerator {
                 break;
         }
         
-        const colorCount = parseInt(this.colorCountSlider.value);
-        const displayColors = sortedColors.slice(0, colorCount);
-        
-        const html = displayColors.map((color, index) => {
+        const html = sortedColors.map((color, index) => {
             const colorKey = `${color.r},${color.g},${color.b}`;
             const isExcluded = this.excludedColors.has(colorKey);
             return `
@@ -467,7 +532,7 @@ class PixelArtGenerator {
                         <div class="color-rgb">RGB(${color.r}, ${color.g}, ${color.b})</div>
                     </div>
                     <button class="color-action-btn remove" data-color="${colorKey}" data-i18n="remove">
-                        ${getI18nText('remove')}
+                        ${isExcluded ? '恢复' : '排除'}
                     </button>
                 </div>
             `;
@@ -540,6 +605,22 @@ class PixelArtGenerator {
                 }
             }
             this.perlerColors.push(row);
+        }
+        
+        if (this.enableNeighborSmooth.checked) {
+            this.perlerColors = mapWithNeighborConsistencyOnMatrix(this.perlerColors, colorSet);
+            
+            this.colorCounts = {};
+            for (let y = 0; y < perlerHeight; y++) {
+                for (let x = 0; x < perlerWidth; x++) {
+                    const color = this.perlerColors[y][x];
+                    if (this.colorCounts[color.name]) {
+                        this.colorCounts[color.name]++;
+                    } else {
+                        this.colorCounts[color.name] = 1;
+                    }
+                }
+            }
         }
         
         this.drawPerlerChart(this.perlerColors, perlerWidth, perlerHeight, colorSetName);
@@ -1076,6 +1157,16 @@ class PixelArtGenerator {
         this.colorCounts = {};
         this.pixelColorStats = [];
         this.excludedColors.clear();
+        this.lastPerlerSignature = null;
+        this.customEditSnapshots = [];
+        this.customEditData = null;
+        this.customEditHistory = [];
+        if (this.snapshotsContainer) {
+            this.snapshotsContainer.innerHTML = '';
+        }
+        if (this.snapshotsList) {
+            this.snapshotsList.style.display = 'none';
+        }
         
         this.uploadSection.style.display = 'block';
         this.workspace.style.display = 'none';
@@ -1242,8 +1333,30 @@ class PixelArtGenerator {
         this.customEditCanvas.addEventListener('mouseleave', () => this.handleCustomEditMouseUp());
     }
 
+    getPerlerSignature() {
+        if (!this.perlerColors || !this.perlerColors.length) return '';
+        const width = this.perlerColors[0].length;
+        const height = this.perlerColors.length;
+        const sample = [];
+        for (let y = 0; y < Math.min(3, height); y++) {
+            for (let x = 0; x < Math.min(3, width); x++) {
+                sample.push(this.perlerColors[y][x].name);
+            }
+        }
+        return `${width}x${height}-${sample.join('-')}`;
+    }
+
     initCustomEditData() {
         if (!this.perlerColors || !this.perlerColors.length) return;
+        
+        const currentSignature = this.getPerlerSignature();
+        
+        if (currentSignature !== this.lastPerlerSignature) {
+            this.lastPerlerSignature = currentSignature;
+            this.customEditSnapshots = [];
+            this.snapshotsContainer.innerHTML = '';
+            this.snapshotsList.style.display = 'none';
+        }
         
         this.perlerWidth = this.perlerColors[0].length;
         this.perlerHeight = this.perlerColors.length;
@@ -1360,7 +1473,17 @@ class PixelArtGenerator {
                 break;
                 
             case 'eraser':
-                this.customEditData[y][x] = this.perlerColors[y][x];
+                const eraserHex = this.eraserColor.value;
+                const er = parseInt(eraserHex.slice(1, 3), 16);
+                const eg = parseInt(eraserHex.slice(3, 5), 16);
+                const eb = parseInt(eraserHex.slice(5, 7), 16);
+                
+                const csName = this.colorSetSelect.value;
+                const cs = colorSets[csName];
+                const mm = this.colorMappingMethod.value;
+                const eraserClosestColor = findClosestColor([er, eg, eb], cs, mm);
+                
+                this.customEditData[y][x] = eraserClosestColor;
                 break;
                 
             case 'fill':
@@ -1490,21 +1613,26 @@ class PixelArtGenerator {
         }
         
         const totalBeans = this.perlerWidth * this.perlerHeight;
-        const threshold = Math.max(3, Math.floor(totalBeans * 0.01));
+        const usageThreshold = Math.max(3, Math.floor(totalBeans * 0.01));
+        
+        const minColorDist = computeMinColorDistance(colorSet, mappingMethod);
+        const distanceThreshold = Math.max(5, minColorDist * 1.5);
         
         const colorsByUsage = Array.from(colorUsage.entries())
             .sort((a, b) => a[1] - b[1]);
         
         const highUsageColors = colorsByUsage
-            .filter(([_, count]) => count > threshold * 3)
+            .filter(([_, count]) => count > usageThreshold * 3)
             .map(([name]) => colorSet.find(c => c.name === name))
             .filter(Boolean);
         
         for (const [colorName, count] of colorsByUsage) {
-            if (count >= threshold) continue;
+            if (count >= usageThreshold) continue;
             
             const originalColor = colorSet.find(c => c.name === colorName);
             if (!originalColor) continue;
+            
+            const isEdgeColor = this.isColorOnEdge(colorName);
             
             let bestReplacement = null;
             let minDistance = Infinity;
@@ -1519,18 +1647,59 @@ class PixelArtGenerator {
                 }
             }
             
-            if (bestReplacement && minDistance < 50) {
+            let effectiveThreshold = distanceThreshold;
+            if (isEdgeColor) {
+                effectiveThreshold = distanceThreshold * 0.5;
+            }
+            
+            if (bestReplacement && minDistance < effectiveThreshold) {
                 suggestions.push({
                     id: suggestions.length,
                     originalColor,
                     replacementColor: bestReplacement,
                     beanCount: count,
+                    isEdgeColor,
                     accepted: false
                 });
             }
         }
         
         return suggestions.sort((a, b) => a.beanCount - b.beanCount);
+    }
+    
+    isColorOnEdge(colorName) {
+        let edgeCount = 0;
+        let totalCount = 0;
+        
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.perlerColors[y][x].name === colorName) {
+                    totalCount++;
+                    
+                    let differentNeighbors = 0;
+                    const neighbors = [
+                        [y - 1, x],
+                        [y + 1, x],
+                        [y, x - 1],
+                        [y, x + 1]
+                    ];
+                    
+                    for (const [ny, nx] of neighbors) {
+                        if (ny >= 0 && ny < this.perlerHeight && nx >= 0 && nx < this.perlerWidth) {
+                            if (this.perlerColors[ny][nx].name !== colorName) {
+                                differentNeighbors++;
+                            }
+                        }
+                    }
+                    
+                    if (differentNeighbors >= 2) {
+                        edgeCount++;
+                    }
+                }
+            }
+        }
+        
+        return totalCount > 0 && edgeCount / totalCount > 0.3;
     }
 
     renderOptimizationSummary() {
@@ -1574,6 +1743,7 @@ class PixelArtGenerator {
         const html = this.colorSuggestions.map((suggestion, index) => {
             const statusClass = this.acceptedSuggestions.has(index) ? 'accepted' : 
                              this.rejectedSuggestions.has(index) ? 'rejected' : '';
+            const edgeIndicator = suggestion.isEdgeColor ? '🔍 边缘色' : '';
             
             return `
                 <div class="suggestion-item ${statusClass}" data-index="${index}">
@@ -1584,6 +1754,7 @@ class PixelArtGenerator {
                             <span class="arrow">→</span>
                             <div class="color-swatch-small" style="background-color: rgb(${suggestion.replacementColor.rgb[0]}, ${suggestion.replacementColor.rgb[1]}, ${suggestion.replacementColor.rgb[2]}); width: 24px; height: 24px;"></div>
                             <span>${suggestion.replacementColor.name}</span>
+                            ${edgeIndicator ? `<span style="margin-left: 10px; font-size: 0.85em; color: #ff6b00;">${edgeIndicator}</span>` : ''}
                         </div>
                         <div class="suggestion-beans">
                             ${getI18nText('beansAffected')}: ${suggestion.beanCount} ${getI18nText('beans')}
@@ -1722,6 +1893,70 @@ class PixelArtGenerator {
 
     confirmOptimization() {
         this.closeSmartOptimizeModal(false);
+    }
+    
+    saveCustomEditSnapshot() {
+        if (!this.customEditData) return;
+        
+        const snapshotId = Date.now();
+        const timestamp = new Date().toLocaleTimeString();
+        this.customEditSnapshots.push({
+            id: snapshotId,
+            timestamp,
+            data: this.customEditData.map(row => [...row])
+        });
+        
+        if (this.customEditSnapshots.length > 20) {
+            this.customEditSnapshots.shift();
+        }
+        
+        this.renderSnapshotsList();
+        this.snapshotsList.style.display = 'block';
+    }
+    
+    renderSnapshotsList() {
+        this.snapshotsContainer.innerHTML = '';
+        
+        this.customEditSnapshots.forEach((snapshot, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; margin-bottom: 4px; background: white; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;';
+            item.innerHTML = `
+                <span style="color: #333;">快照 ${index + 1} (${snapshot.timestamp})</span>
+                <div>
+                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" data-snapshot-id="${snapshot.id}" data-action="restore">恢复</button>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" data-snapshot-id="${snapshot.id}" data-action="delete">删除</button>
+                </div>
+            `;
+            
+            item.querySelector('[data-action="restore"]').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.restoreCustomEditSnapshot(snapshot.id);
+            });
+            
+            item.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteCustomEditSnapshot(snapshot.id);
+            });
+            
+            this.snapshotsContainer.appendChild(item);
+        });
+    }
+    
+    restoreCustomEditSnapshot(snapshotId) {
+        const snapshot = this.customEditSnapshots.find(s => s.id === snapshotId);
+        if (snapshot) {
+            this.customEditData = snapshot.data.map(row => [...row]);
+            this.customEditHistory = [this.customEditData.map(row => [...row])];
+            this.drawCustomEditCanvas();
+        }
+    }
+    
+    deleteCustomEditSnapshot(snapshotId) {
+        this.customEditSnapshots = this.customEditSnapshots.filter(s => s.id !== snapshotId);
+        if (this.customEditSnapshots.length === 0) {
+            this.snapshotsList.style.display = 'none';
+        }
+        this.renderSnapshotsList();
     }
 }
 

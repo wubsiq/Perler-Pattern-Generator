@@ -657,12 +657,17 @@ function quantizeColors(imageData, colorCount, excludedColors = new Set()) {
     
     colors.sort((a, b) => b.count - a.count);
     
-    let targetColors = colors.filter(color => !excludedColors.has(`${color.r},${color.g},${color.b}`));
+    let includedColors = colors.filter(color => !excludedColors.has(`${color.r},${color.g},${color.b}`));
     
-    if (targetColors.length < colorCount) {
-        targetColors = colors.slice(0, colorCount);
+    let targetColors;
+    if (includedColors.length > 0) {
+        if (includedColors.length > colorCount) {
+            targetColors = includedColors.slice(0, colorCount);
+        } else {
+            targetColors = includedColors;
+        }
     } else {
-        targetColors = targetColors.slice(0, colorCount);
+        targetColors = colors.slice(0, Math.max(2, colorCount));
     }
     
     for (let i = 0; i < data.length; i += 4) {
@@ -691,4 +696,175 @@ function quantizeColors(imageData, colorCount, excludedColors = new Set()) {
 function getContrastTextColor(rgb) {
     const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
     return brightness > 128 ? '#000000' : '#ffffff';
+}
+
+function medianCutQuantize(colors, maxColors) {
+    if (colors.length <= maxColors) {
+        return colors;
+    }
+
+    const buckets = [colors];
+    
+    while (buckets.length < maxColors) {
+        let maxRange = -1;
+        let splitIndex = -1;
+        let splitChannel = -1;
+
+        for (let i = 0; i < buckets.length; i++) {
+            const bucket = buckets[i];
+            if (bucket.length <= 1) continue;
+
+            let minR = 255, maxR = 0;
+            let minG = 255, maxG = 0;
+            let minB = 255, maxB = 0;
+
+            for (const color of bucket) {
+                minR = Math.min(minR, color[0]);
+                maxR = Math.max(maxR, color[0]);
+                minG = Math.min(minG, color[1]);
+                maxG = Math.max(maxG, color[1]);
+                minB = Math.min(minB, color[2]);
+                maxB = Math.max(maxB, color[2]);
+            }
+
+            const rangeR = maxR - minR;
+            const rangeG = maxG - minG;
+            const rangeB = maxB - minB;
+            const maxRangeBucket = Math.max(rangeR, rangeG, rangeB);
+
+            if (maxRangeBucket > maxRange) {
+                maxRange = maxRangeBucket;
+                splitIndex = i;
+                if (maxRangeBucket === rangeR) splitChannel = 0;
+                else if (maxRangeBucket === rangeG) splitChannel = 1;
+                else splitChannel = 2;
+            }
+        }
+
+        if (splitIndex === -1) break;
+
+        const bucketToSplit = buckets[splitIndex];
+        bucketToSplit.sort((a, b) => a[splitChannel] - b[splitChannel]);
+        const mid = Math.floor(bucketToSplit.length / 2);
+        const bucket1 = bucketToSplit.slice(0, mid);
+        const bucket2 = bucketToSplit.slice(mid);
+
+        buckets.splice(splitIndex, 1, bucket1, bucket2);
+    }
+
+    const palette = [];
+    for (const bucket of buckets) {
+        let sumR = 0, sumG = 0, sumB = 0;
+        for (const color of bucket) {
+            sumR += color[0];
+            sumG += color[1];
+            sumB += color[2];
+        }
+        const avgR = Math.round(sumR / bucket.length);
+        const avgG = Math.round(sumG / bucket.length);
+        const avgB = Math.round(sumB / bucket.length);
+        palette.push([avgR, avgG, avgB]);
+    }
+
+    return palette;
+}
+
+function findClosestInPalette(rgb, palette) {
+    let closest = palette[0];
+    let minDist = weightedRgbDistance(rgb, palette[0]);
+
+    for (const color of palette) {
+        const dist = weightedRgbDistance(rgb, color);
+        if (dist < minDist) {
+            minDist = dist;
+            closest = color;
+        }
+    }
+
+    return closest;
+}
+
+function quantizedPixelate(imageData, blockSize, maxColors) {
+    let tempData = pixelate(imageData, blockSize);
+    
+    const colors = [];
+    const colorMap = new Map();
+    
+    for (let i = 0; i < tempData.data.length; i += 4) {
+        const r = tempData.data[i];
+        const g = tempData.data[i + 1];
+        const b = tempData.data[i + 2];
+        const key = `${r},${g},${b}`;
+        
+        if (!colorMap.has(key)) {
+            colorMap.set(key, [r, g, b]);
+            colors.push([r, g, b]);
+        }
+    }
+
+    let palette = colors;
+    if (colors.length > maxColors) {
+        palette = medianCutQuantize(colors, maxColors);
+    }
+
+    for (let i = 0; i < tempData.data.length; i += 4) {
+        const r = tempData.data[i];
+        const g = tempData.data[i + 1];
+        const b = tempData.data[i + 2];
+        const closest = findClosestInPalette([r, g, b], palette);
+        tempData.data[i] = closest[0];
+        tempData.data[i + 1] = closest[1];
+        tempData.data[i + 2] = closest[2];
+    }
+
+    return tempData;
+}
+
+function mapWithNeighborConsistencyOnMatrix(perlerColors, colorSet) {
+    const width = perlerColors[0] ? perlerColors[0].length : 0;
+    const height = perlerColors.length;
+    const result = perlerColors.map(row => [...row]);
+
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const currentColor = result[y][x];
+            const neighbors = [
+                result[y - 1][x],
+                result[y + 1][x],
+                result[y][x - 1],
+                result[y][x + 1]
+            ];
+
+            const neighborNames = neighbors.map(c => c.name);
+            const currentName = currentColor.name;
+            const uniqueNames = [...new Set(neighborNames)];
+
+            if (uniqueNames.length > 1 && neighbors.every(c => c.name !== currentName)) {
+                const freq = {};
+                neighborNames.forEach(name => {
+                    freq[name] = (freq[name] || 0) + 1;
+                });
+                const mostName = Object.keys(freq).reduce((a, b) => freq[a] > freq[b] ? a : b);
+                const mostColor = neighbors.find(c => c.name === mostName);
+                if (mostColor) {
+                    result[y][x] = mostColor;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+function computeMinColorDistance(colorSet, method = 'cie2000') {
+    let minDist = Infinity;
+    for (let i = 0; i < colorSet.length; i++) {
+        for (let j = i + 1; j < colorSet.length; j++) {
+            const dist = calculateColorDistance(colorSet[i].rgb, colorSet[j].rgb, method);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+    }
+    return minDist;
 }

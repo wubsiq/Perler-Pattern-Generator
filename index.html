@@ -135,6 +135,7 @@
                             <label><span data-i18n="pixelMethod">像素化方法：</span></label>
                             <select id="pixelMethod">
                                 <option value="mosaic" data-i18n-value="pixelMethodMosaic">马赛克化</option>
+                                <option value="quantized" data-i18n-value="pixelMethodQuantized">量化像素化（推荐）</option>
                                 <option value="pixel-art" data-i18n-value="pixelMethodPixelArt">像素艺术</option>
                             </select>
                         </div>
@@ -144,6 +145,16 @@
                                 <span id="pixelSizeValue">16px</span>
                             </label>
                             <input type="range" id="pixelSizeSlider" min="2" max="64" value="16">
+                        </div>
+                        <div class="control-group" id="quantizedPixelControls">
+                            <label>
+                                <span>目标颜色数量：</span>
+                                <span id="targetColorCountValue">32</span>
+                            </label>
+                            <div class="color-count-inputs">
+                                <input type="range" id="targetColorCountSlider" min="8" max="96" step="4" value="32">
+                                <input type="number" id="targetColorCountInput" min="8" max="96" value="32" style="width: 60px; margin-left: 10px;">
+                            </div>
                         </div>
                         <div class="control-group">
                             <label><span data-i18n="pixelProcessing">像素化后处理：</span></label>
@@ -176,18 +187,25 @@
                         </div>
                         <div class="control-group">
                             <label class="checkbox-label">
+                                <input type="checkbox" id="enableNeighborSmooth">
+                                <span>邻域平滑</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
                                 <input type="checkbox" id="enableColorQuantize">
                                 <span data-i18n="enableColorQuantize">颜色量化</span>
                             </label>
                         </div>
                         <div class="control-group">
                             <label>
-                                <span data-i18n="colorCount">颜色数量：</span>
+                                <span>保留颜色数量：</span>
                                 <span id="colorCountValue">8</span>
+                                <span style="color: #888; margin-left: 8px;">(图片实际颜色: <span id="imageTotalColors">0</span>)</span>
                             </label>
                             <div class="color-count-inputs">
-                                <input type="range" id="colorCountSlider" min="2" max="291" step="1" value="8">
-                                <input type="number" id="colorCountInput" min="2" max="291" value="8" style="width: 60px; margin-left: 10px;">
+                                <input type="range" id="colorCountSlider" min="2" max="256" step="1" value="8">
+                                <input type="number" id="colorCountInput" min="2" max="256" value="8" style="width: 60px; margin-left: 10px;">
                             </div>
                         </div>
                         <div class="control-group" id="colorQuantizePanel" style="display: none;">
@@ -352,10 +370,24 @@
                             </label>
                         </div>
                         <div class="control-group">
+                            <label>橡皮擦颜色：</label>
+                            <div class="current-color-wrapper">
+                                <input type="color" id="eraserColor" value="#ffffff">
+                                <span id="eraserColorValue">#ffffff</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
                             <button id="applyCustomEditBtn" class="btn btn-primary" data-i18n="applyEdit">✓ 应用编辑</button>
                         </div>
                         <div class="control-group">
                             <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit">↩ 撤销</button>
+                        </div>
+                        <div class="control-group">
+                            <button id="saveSnapshotBtn" class="btn btn-secondary">💾 保存快照</button>
+                        </div>
+                        <div class="control-group" id="snapshotsList" style="display: none;">
+                            <label>保存的快照：</label>
+                            <div id="snapshotsContainer" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #f8f9fa;"></div>
                         </div>
                     </div>
                 </div>
