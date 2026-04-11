@@ -1604,6 +1604,10 @@ class PixelArtGenerator {
         const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
         
+        console.log('[智能优化] 开始生成建议');
+        console.log('[智能优化] 颜色集:', colorSetName);
+        console.log('[智能优化] 映射方法:', mappingMethod);
+        
         const colorUsage = new Map();
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
@@ -1613,24 +1617,35 @@ class PixelArtGenerator {
         }
         
         const totalBeans = this.perlerWidth * this.perlerHeight;
-        const usageThreshold = Math.max(3, Math.floor(totalBeans * 0.01));
+        const usageThreshold = Math.max(2, Math.floor(totalBeans * 0.005));
         
-        const minColorDist = computeMinColorDistance(colorSet, mappingMethod);
-        const distanceThreshold = Math.max(5, minColorDist * 1.5);
+        console.log('[智能优化] 总豆豆数:', totalBeans);
+        console.log('[智能优化] 使用阈值:', usageThreshold);
+        console.log('[智能优化] 颜色使用情况:', Object.fromEntries(colorUsage));
         
         const colorsByUsage = Array.from(colorUsage.entries())
             .sort((a, b) => a[1] - b[1]);
         
         const highUsageColors = colorsByUsage
-            .filter(([_, count]) => count > usageThreshold * 3)
+            .filter(([_, count]) => count > usageThreshold * 2)
             .map(([name]) => colorSet.find(c => c.name === name))
             .filter(Boolean);
         
+        console.log('[智能优化] 高使用颜色数:', highUsageColors.length);
+        console.log('[智能优化] 高使用颜色:', highUsageColors.map(c => c.name));
+        
         for (const [colorName, count] of colorsByUsage) {
-            if (count >= usageThreshold) continue;
+            console.log(`[智能优化] 处理颜色 ${colorName}, 数量: ${count}`);
+            if (count >= usageThreshold * 2) {
+                console.log(`[智能优化] 跳过 ${colorName}: 数量 ${count} >= 高使用阈值 ${usageThreshold * 2}`);
+                continue;
+            }
             
             const originalColor = colorSet.find(c => c.name === colorName);
-            if (!originalColor) continue;
+            if (!originalColor) {
+                console.log(`[智能优化] 跳过 ${colorName}: 未在颜色集中找到`);
+                continue;
+            }
             
             const isEdgeColor = this.isColorOnEdge(colorName);
             
@@ -1647,10 +1662,9 @@ class PixelArtGenerator {
                 }
             }
             
-            let effectiveThreshold = distanceThreshold;
-            if (isEdgeColor) {
-                effectiveThreshold = distanceThreshold * 0.5;
-            }
+            const effectiveThreshold = 80;
+            
+            console.log(`[智能优化] ${colorName} -> 最佳替换: ${bestReplacement ? bestReplacement.name : '无'}, 距离: ${minDistance}, 阈值: ${effectiveThreshold}`);
             
             if (bestReplacement && minDistance < effectiveThreshold) {
                 suggestions.push({
@@ -1664,6 +1678,7 @@ class PixelArtGenerator {
             }
         }
         
+        console.log('[智能优化] 最终建议数:', suggestions.length);
         return suggestions.sort((a, b) => a.beanCount - b.beanCount);
     }
     
