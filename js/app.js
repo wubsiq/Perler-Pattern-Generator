@@ -52,6 +52,10 @@ class PixelArtGenerator {
         this.showCoordNumbers = document.getElementById('showCoordNumbers');
         this.coordLineColor = document.getElementById('coordLineColor');
         this.coordNumberColor = document.getElementById('coordNumberColor');
+        this.watermarkText = document.getElementById('watermarkText');
+        
+        this.simpleModeBtn = document.getElementById('simpleModeBtn');
+        this.advancedModeBtn = document.getElementById('advancedModeBtn');
         
         this.clearBtn = document.getElementById('clearBtn');
         this.resetBtn = document.getElementById('resetBtn');
@@ -214,6 +218,21 @@ class PixelArtGenerator {
         });
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
+        
+        this.simpleModeBtn = document.getElementById('simpleModeBtn');
+        this.advancedModeBtn = document.getElementById('advancedModeBtn');
+        
+        this.simpleModeBtn.addEventListener('click', () => {
+            this.simpleModeBtn.classList.add('active');
+            this.advancedModeBtn.classList.remove('active');
+            document.querySelector('.workspace').classList.remove('advanced-mode');
+        });
+        
+        this.advancedModeBtn.addEventListener('click', () => {
+            this.advancedModeBtn.classList.add('active');
+            this.simpleModeBtn.classList.remove('active');
+            document.querySelector('.workspace').classList.add('advanced-mode');
+        });
         
         this.enableContrast.addEventListener('change', () => this.updatePixelatedImage());
         this.contrastSlider.addEventListener('input', () => {
@@ -652,7 +671,7 @@ class PixelArtGenerator {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
-            ctx.fillText('豆师傅-perler-pattern-generator.pages.dev', this.perlerCanvas.width / 2, footerY);
+            ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
         };
         
         const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
@@ -903,7 +922,7 @@ class PixelArtGenerator {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
-            ctx.fillText('豆师傅-perler-pattern-generator.pages.dev', this.perlerCanvas.width / 2, footerY);
+            ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
         };
         
         const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));

@@ -11,8 +11,7 @@
         <header>
             <div class="header-content">
                 <div class="header-title">
-                    <h1>🧩 <span data-i18n="title">豆师傅 - 拼豆图纸生成器</span></h1>
-                    <p data-i18n="subtitle">上传图片，一键生成像素艺术与拼豆图纸</p>
+                    <h1>豆师傅</h1>
                 </div>
                 <div class="nav-bar">
                     <button class="nav-btn active">图转拼豆</button>
@@ -119,6 +118,11 @@
                 </div>
             </div>
 
+            <div class="mode-switch">
+                <button id="simpleModeBtn" class="mode-btn active">简单模式</button>
+                <button id="advancedModeBtn" class="mode-btn">高级模式</button>
+            </div>
+
             <div class="preview-section">
                 <div class="preview-left">
                     <div class="preview-panel">
@@ -131,7 +135,7 @@
                 </div>
                 <div class="preview-right">
                     <div class="controls-section">
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="pixelMethod">像素化方法：</span></label>
                             <select id="pixelMethod">
                                 <option value="mosaic" data-i18n-value="pixelMethodMosaic">马赛克化</option>
@@ -146,7 +150,7 @@
                             </label>
                             <input type="range" id="pixelSizeSlider" min="2" max="64" value="16">
                         </div>
-                        <div class="control-group" id="quantizedPixelControls">
+                        <div class="control-group advanced-only" id="quantizedPixelControls">
                             <label>
                                 <span>目标颜色数量：</span>
                                 <span id="targetColorCountValue">32</span>
@@ -156,48 +160,48 @@
                                 <input type="number" id="targetColorCountInput" min="8" max="96" value="32" style="width: 60px; margin-left: 10px;">
                             </div>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="pixelProcessing">像素化后处理：</span></label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableContrast" checked>
                                 <span data-i18n="enableContrast">增强对比度</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label>
                                 <span data-i18n="contrastLevel">对比度强度：</span>
                                 <span id="contrastValue">1.3x</span>
                             </label>
                             <input type="range" id="contrastSlider" min="1.0" max="3.0" step="0.1" value="1.3">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableSharpen">
                                 <span data-i18n="enableSharpen">图片锐化</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label>
                                 <span data-i18n="sharpenLevel">锐化强度：</span>
                                 <span id="sharpenValue">0.5</span>
                             </label>
                             <input type="range" id="sharpenSlider" min="0.1" max="2.0" step="0.1" value="0.5">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableNeighborSmooth">
                                 <span>邻域平滑</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="enableColorQuantize">
                                 <span data-i18n="enableColorQuantize">颜色量化</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label>
                                 <span>保留颜色数量：</span>
                                 <span id="colorCountValue">8</span>
@@ -243,7 +247,7 @@
                 </div>
                 <div class="preview-right">
                     <div id="perlerOptions" class="controls-section">
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label for="colorSetSelect"><span data-i18n="colorSet">颜色套装：</span></label>
                             <select id="colorSetSelect">
                                 <option value="mard291" selected>Mard 291色 (默认)</option>
@@ -257,7 +261,7 @@
                                 <option value="hama">Hama (10色)</option>
                             </select>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="colorMapping">颜色映射方法：</span></label>
                             <select id="colorMappingMethod">
                                 <option value="cie2000" data-i18n-value="mappingCie2000">CIEDE2000 (最精确)</option>
@@ -268,7 +272,7 @@
                                 <option value="hsv" data-i18n-value="mappingHsv">HSV色彩空间</option>
                             </select>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="chartStyle">图纸样式：</span></label>
                             <select id="chartStyle">
                                 <option value="color" data-i18n-value="chartStyleColor">彩色图纸</option>
@@ -276,14 +280,14 @@
                                 <option value="bw" data-i18n-value="chartStyleBw">黑白图纸(带编号)</option>
                             </select>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="legendPosition">颜色统计位置：</span></label>
                             <select id="legendPosition">
                                 <option value="bottom" data-i18n-value="legendPositionBottom">图纸下方</option>
                                 <option value="right" data-i18n-value="legendPositionRight">图纸右侧</option>
                             </select>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="beadShape">拼豆形状：</span></label>
                             <select id="beadShape">
                                 <option value="square" data-i18n-value="beadShapeSquare">正方形</option>
@@ -293,29 +297,33 @@
                         <div class="control-group">
                             <label>
                                 <span data-i18n="beadSize">拼豆大小：</span>
-                                <span id="beadSizeValue">24px</span>
+                                <span id="beadSizeValue">30px</span>
                             </label>
-                            <input type="range" id="beadSizeSlider" min="12" max="48" step="2" value="24">
+                            <input type="range" id="beadSizeSlider" min="12" max="48" step="2" value="30">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="showGridLines" checked>
                                 <span data-i18n="showGridLines">显示网格线</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="showCoordNumbers" checked>
                                 <span data-i18n="showCoordNumbers">显示坐标数字</span>
                             </label>
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="coordLineColor">网格线颜色：</span></label>
                             <input type="color" id="coordLineColor" value="#888888">
                         </div>
-                        <div class="control-group">
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="coordNumberColor">坐标数字颜色：</span></label>
                             <input type="color" id="coordNumberColor" value="#666666">
+                        </div>
+                        <div class="control-group advanced-only">
+                            <label><span data-i18n="watermarkText">水印文本：</span></label>
+                            <input type="text" id="watermarkText" value="豆师傅-perler-pattern-generator.pages.dev" style="width: 100%;">
                         </div>
                         <div class="control-group">
                             <button id="renderPerlerBtn" class="btn btn-primary" data-i18n="renderPerler">🎨 渲染拼豆图纸</button>
