@@ -1187,6 +1187,8 @@ class PixelArtGenerator {
             this.snapshotsList.style.display = 'none';
         }
         
+        this.fileInput.value = '';
+        
         this.uploadSection.style.display = 'block';
         this.workspace.style.display = 'none';
         
