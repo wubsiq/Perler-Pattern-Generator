@@ -828,6 +828,11 @@ function mapWithNeighborConsistencyOnMatrix(perlerColors, colorSet) {
     for (let y = 1; y < height - 1; y++) {
         for (let x = 1; x < width - 1; x++) {
             const currentColor = result[y][x];
+            
+            if (currentColor.isTransparent) {
+                continue;
+            }
+            
             const neighbors = [
                 result[y - 1][x],
                 result[y + 1][x],
@@ -835,17 +840,22 @@ function mapWithNeighborConsistencyOnMatrix(perlerColors, colorSet) {
                 result[y][x + 1]
             ];
 
-            const neighborNames = neighbors.map(c => c.name);
+            const nonTransparentNeighbors = neighbors.filter(c => !c.isTransparent);
+            if (nonTransparentNeighbors.length === 0) {
+                continue;
+            }
+
+            const neighborNames = nonTransparentNeighbors.map(c => c.name);
             const currentName = currentColor.name;
             const uniqueNames = [...new Set(neighborNames)];
 
-            if (uniqueNames.length > 1 && neighbors.every(c => c.name !== currentName)) {
+            if (uniqueNames.length > 1 && nonTransparentNeighbors.every(c => c.name !== currentName)) {
                 const freq = {};
                 neighborNames.forEach(name => {
                     freq[name] = (freq[name] || 0) + 1;
                 });
                 const mostName = Object.keys(freq).reduce((a, b) => freq[a] > freq[b] ? a : b);
-                const mostColor = neighbors.find(c => c.name === mostName);
+                const mostColor = nonTransparentNeighbors.find(c => c.name === mostName);
                 if (mostColor) {
                     result[y][x] = mostColor;
                 }

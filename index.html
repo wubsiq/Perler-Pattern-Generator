@@ -355,6 +355,8 @@
                             <div class="edit-tools">
                                 <button class="edit-tool-btn active" data-tool="brush" data-i18n="toolBrush">画笔</button>
                                 <button class="edit-tool-btn" data-tool="eraser" data-i18n="toolEraser">橡皮擦</button>
+                                <button class="edit-tool-btn" data-tool="razor" data-i18n="toolRazor">剃刀</button>
+                                <button class="edit-tool-btn" data-tool="chainRazor" data-i18n="toolChainRazor">连锁剃刀</button>
                                 <button class="edit-tool-btn" data-tool="fill" data-i18n="toolFill">填充</button>
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
                             </div>
@@ -382,6 +384,19 @@
                             <div class="current-color-wrapper">
                                 <input type="color" id="eraserColor" value="#ffffff">
                                 <span id="eraserColorValue">#ffffff</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>剃刀工具底色：</label>
+                            <div class="current-color-wrapper">
+                                <input type="color" id="razorBgColor" value="#00ff00">
+                                <span id="razorBgColorValue">#00ff00</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>连锁最大色块：</label>
+                            <div class="current-color-wrapper">
+                                <input type="number" id="chainRazorMax" value="1000" min="1" max="10000" style="width: 80px;">
                             </div>
                         </div>
                         <div class="control-group">

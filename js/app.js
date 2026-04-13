@@ -101,6 +101,9 @@ class PixelArtGenerator {
         this.undoCustomEditBtn = document.getElementById('undoCustomEditBtn');
         this.eraserColor = document.getElementById('eraserColor');
         this.eraserColorValue = document.getElementById('eraserColorValue');
+        this.razorBgColor = document.getElementById('razorBgColor');
+        this.razorBgColorValue = document.getElementById('razorBgColorValue');
+        this.chainRazorMax = document.getElementById('chainRazorMax');
         this.saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
         this.snapshotsList = document.getElementById('snapshotsList');
         this.snapshotsContainer = document.getElementById('snapshotsContainer');
@@ -323,6 +326,11 @@ class PixelArtGenerator {
         
         this.eraserColor.addEventListener('input', () => {
             this.eraserColorValue.textContent = this.eraserColor.value;
+        });
+        
+        this.razorBgColor.addEventListener('input', () => {
+            this.razorBgColorValue.textContent = this.razorBgColor.value;
+            this.drawCustomEditCanvas();
         });
         
         this.customEditBrushSize.addEventListener('input', () => {
@@ -607,6 +615,12 @@ class PixelArtGenerator {
         this.colorCounts = {};
         this.perlerColors = [];
         
+        const transparentColor = {
+            name: '',
+            rgb: [255, 255, 255],
+            isTransparent: true
+        };
+        
         for (let y = 0; y < perlerHeight; y++) {
             const row = [];
             for (let x = 0; x < perlerWidth; x++) {
@@ -614,14 +628,20 @@ class PixelArtGenerator {
                 const r = processedData.data[index];
                 const g = processedData.data[index + 1];
                 const b = processedData.data[index + 2];
-                const closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
-                row.push(closestColor);
+                const a = processedData.data[index + 3];
                 
-                if (this.colorCounts[closestColor.name]) {
-                    this.colorCounts[closestColor.name]++;
+                let closestColor;
+                if (a < 128) {
+                    closestColor = transparentColor;
                 } else {
-                    this.colorCounts[closestColor.name] = 1;
+                    closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
+                    if (this.colorCounts[closestColor.name]) {
+                        this.colorCounts[closestColor.name]++;
+                    } else {
+                        this.colorCounts[closestColor.name] = 1;
+                    }
                 }
+                row.push(closestColor);
             }
             this.perlerColors.push(row);
         }
@@ -728,6 +748,18 @@ class PixelArtGenerator {
                     const color = perlerColors[y][x];
                     const px = coordSize + x * cellSize;
                     const py = coordSize + y * cellSize;
+                    
+                    if (color.isTransparent) {
+                        ctx.fillStyle = '#ffffff';
+                        if (beadShape === 'circle') {
+                            ctx.beginPath();
+                            ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                            ctx.fill();
+                        } else {
+                            ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        }
+                        continue;
+                    }
                     
                     const nameLen = color.name.length;
                     let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
@@ -965,6 +997,18 @@ class PixelArtGenerator {
                 const color = perlerColors[y][x];
                 const px = coordSize + x * cellSize;
                 const py = coordSize + y * cellSize;
+                
+                if (color.isTransparent) {
+                    ctx.fillStyle = '#ffffff';
+                    if (beadShape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                    }
+                    continue;
+                }
                 
                 const nameLen = color.name.length;
                 let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
@@ -1403,7 +1447,11 @@ class PixelArtGenerator {
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
                 const color = this.customEditData[y][x];
-                ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                if (color.isTransparent) {
+                    ctx.fillStyle = this.razorBgColor.value;
+                } else {
+                    ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                }
                 ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
             }
         }
@@ -1439,23 +1487,74 @@ class PixelArtGenerator {
     handleCustomEditMouseDown(e) {
         if (!this.customEditData) return;
         
-        this.isDrawing = true;
         const { x, y } = this.getCustomEditCell(e);
-        this.applyEditToCell(x, y);
+        
+        if (this.currentEditTool === 'chainRazor') {
+            this.applyChainRazor(x, y);
+            this.isDrawing = true;
+            this.saveCustomEditHistory();
+        } else {
+            this.isDrawing = true;
+            this.applyEditToCell(x, y);
+        }
     }
 
     handleCustomEditMouseMove(e) {
         if (!this.isDrawing || !this.customEditData) return;
+        
+        if (this.currentEditTool === 'chainRazor') {
+            return;
+        }
         
         const { x, y } = this.getCustomEditCell(e);
         this.applyEditToCell(x, y);
     }
 
     handleCustomEditMouseUp() {
-        if (this.isDrawing && this.customEditData) {
+        if (this.isDrawing && this.customEditData && this.currentEditTool !== 'chainRazor') {
             this.saveCustomEditHistory();
         }
         this.isDrawing = false;
+    }
+
+    applyChainRazor(startX, startY) {
+        const transparentColor = {
+            name: '',
+            rgb: [255, 255, 255],
+            isTransparent: true
+        };
+        
+        const targetColor = this.customEditData[startY][startX];
+        if (targetColor.isTransparent) return;
+        
+        const maxCount = parseInt(this.chainRazorMax.value) || 1000;
+        let count = 0;
+        
+        const visited = new Set();
+        const stack = [{x: startX, y: startY}];
+        
+        while (stack.length > 0 && count < maxCount) {
+            const {x, y} = stack.pop();
+            const key = `${x},${y}`;
+            
+            if (visited.has(key)) continue;
+            if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) continue;
+            
+            const currentColor = this.customEditData[y][x];
+            if (currentColor.isTransparent) continue;
+            if (currentColor.name !== targetColor.name) continue;
+            
+            visited.add(key);
+            this.customEditData[y][x] = transparentColor;
+            count++;
+            
+            stack.push({x: x + 1, y});
+            stack.push({x: x - 1, y});
+            stack.push({x, y: y + 1});
+            stack.push({x, y: y - 1});
+        }
+        
+        this.drawCustomEditCanvas();
     }
 
     applyEditToCell(x, y) {
@@ -1478,6 +1577,12 @@ class PixelArtGenerator {
     }
 
     applySingleEdit(x, y) {
+        const transparentColor = {
+            name: '',
+            rgb: [255, 255, 255],
+            isTransparent: true
+        };
+        
         switch (this.currentEditTool) {
             case 'brush':
                 const hexColor = this.customEditColor.value;
@@ -1507,6 +1612,10 @@ class PixelArtGenerator {
                 this.customEditData[y][x] = eraserClosestColor;
                 break;
                 
+            case 'razor':
+                this.customEditData[y][x] = transparentColor;
+                break;
+                
             case 'fill':
                 if (!this.isDrawing) {
                     const targetColor = this.customEditData[y][x];
@@ -1526,6 +1635,7 @@ class PixelArtGenerator {
                 
             case 'picker':
                 const pickedColor = this.customEditData[y][x];
+                if (pickedColor.isTransparent) break;
                 const pickedHex = `#${pickedColor.rgb[0].toString(16).padStart(2, '0')}${pickedColor.rgb[1].toString(16).padStart(2, '0')}${pickedColor.rgb[2].toString(16).padStart(2, '0')}`;
                 this.customEditColor.value = pickedHex;
                 this.currentColorValue.textContent = pickedHex;
@@ -1534,7 +1644,11 @@ class PixelArtGenerator {
     }
 
     floodFill(startX, startY, targetColor, fillColor) {
-        if (targetColor.name === fillColor.name) return;
+        const targetIsTransparent = targetColor.isTransparent;
+        const fillIsTransparent = fillColor.isTransparent;
+        
+        if (!targetIsTransparent && !fillIsTransparent && targetColor.name === fillColor.name) return;
+        if (targetIsTransparent && fillIsTransparent) return;
         
         const visited = new Set();
         const stack = [{x: startX, y: startY}];
@@ -1545,7 +1659,13 @@ class PixelArtGenerator {
             
             if (visited.has(key)) continue;
             if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) continue;
-            if (this.customEditData[y][x].name !== targetColor.name) continue;
+            
+            const currentColor = this.customEditData[y][x];
+            const currentIsTransparent = currentColor.isTransparent;
+            
+            if (targetIsTransparent && !currentIsTransparent) continue;
+            if (!targetIsTransparent && currentIsTransparent) continue;
+            if (!targetIsTransparent && !currentIsTransparent && currentColor.name !== targetColor.name) continue;
             
             visited.add(key);
             this.customEditData[y][x] = fillColor;
@@ -1581,13 +1701,17 @@ class PixelArtGenerator {
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
                 const color = this.perlerColors[y][x];
-                if (this.colorCounts[color.name]) {
-                    this.colorCounts[color.name]++;
-                } else {
-                    this.colorCounts[color.name] = 1;
+                if (!color.isTransparent) {
+                    if (this.colorCounts[color.name]) {
+                        this.colorCounts[color.name]++;
+                    } else {
+                        this.colorCounts[color.name] = 1;
+                    }
                 }
             }
         }
+        
+        this.saveCustomEditSnapshot();
         
         this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
         this.drawColorLegend();
