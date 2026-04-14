@@ -1,4 +1,11 @@
 # Cloudflare Pages 缓存配置
+# 结合性能优化与安全策略
+
+# 全局安全头
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
 
 # 静态资源长期缓存
 /*.css
@@ -25,6 +32,9 @@
 /*.svg
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML 文件缓存较短时间，确保更新及时
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML 文件缓存 5 分钟，平衡新鲜度和性能
 /*.html
   Cache-Control: public, max-age=300, s-maxage=300, must-revalidate
