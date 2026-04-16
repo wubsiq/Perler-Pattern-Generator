@@ -311,13 +311,10 @@ header h1 {
     align-items: center;
     background: #e9ecef;
     border-radius: 8px;
-    overflow: hidden;
     min-height: 200px;
 }
 
 canvas {
-    max-width: 100%;
-    height: auto;
     display: block;
     image-rendering: pixelated;
 }
@@ -327,6 +324,31 @@ canvas {
     text-align: center;
     color: #666;
     font-size: 0.9em;
+}
+
+#pixelatedCanvas, #perlerCanvas {
+    transition: width 0.2s ease, height 0.2s ease;
+}
+
+.canvas-zoom-control {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.canvas-zoom-control label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95em;
+}
+
+.canvas-zoom-control input[type="range"] {
+    width: 100%;
+    cursor: pointer;
 }
 
 .controls {
@@ -841,6 +863,42 @@ input[type="color"]:focus {
 .summary-value {
     font-weight: 600;
     color: #333;
+}
+
+.optimization-settings {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.optimization-settings .control-group {
+    margin-bottom: 15px;
+}
+
+.optimization-settings .control-group:last-child {
+    margin-bottom: 0;
+}
+
+.optimization-settings label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95em;
+}
+
+.optimization-settings input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+.suggestion-item.merge-suggestion {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-left: 3px solid #667eea;
 }
 
 .suggestions-list {

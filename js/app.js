@@ -125,6 +125,34 @@ class PixelArtGenerator {
         this.confirmBtn = document.getElementById('confirmBtn');
         this.optimizationPreviewCanvas = document.getElementById('optimizationPreviewCanvas');
         this.optimizationPreviewCtx = this.optimizationPreviewCanvas.getContext('2d');
+        this.enableColorMerge = document.getElementById('enableColorMerge');
+        this.colorMergeThresholdSlider = document.getElementById('colorMergeThresholdSlider');
+        this.colorMergeThresholdValue = document.getElementById('colorMergeThresholdValue');
+        
+        this.pixelatedZoomSlider = document.getElementById('pixelatedZoomSlider');
+        this.pixelatedZoomValue = document.getElementById('pixelatedZoomValue');
+        this.perlerZoomSlider = document.getElementById('perlerZoomSlider');
+        this.perlerZoomValue = document.getElementById('perlerZoomValue');
+        
+        this.pixelatedCanvasNaturalWidth = 0;
+        this.pixelatedCanvasNaturalHeight = 0;
+        this.perlerCanvasNaturalWidth = 0;
+        this.perlerCanvasNaturalHeight = 0;
+        this.pixelatedCanvasDisplayWidth = 0;
+        this.pixelatedCanvasDisplayHeight = 0;
+        this.perlerCanvasDisplayWidth = 0;
+        this.perlerCanvasDisplayHeight = 0;
+        
+        this.colorConvertControls = document.getElementById('colorConvertControls');
+        this.colorConvertSourceColor = document.getElementById('colorConvertSourceColor');
+        this.colorConvertSourceColorValue = document.getElementById('colorConvertSourceColorValue');
+        this.colorConvertTargetColor = document.getElementById('colorConvertTargetColor');
+        this.colorConvertTargetColorValue = document.getElementById('colorConvertTargetColorValue');
+        this.pickSourceColorBtn = document.getElementById('pickSourceColorBtn');
+        this.pickTargetColorBtn = document.getElementById('pickTargetColorBtn');
+        this.executeColorConvertBtn = document.getElementById('executeColorConvertBtn');
+        
+        this.colorConvertPickMode = null;
         
         this.colorSuggestions = [];
         this.acceptedSuggestions = new Set();
@@ -319,6 +347,13 @@ class PixelArtGenerator {
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.currentEditTool = btn.dataset.tool;
+                this.colorConvertPickMode = null;
+                
+                if (this.currentEditTool === 'colorConvert') {
+                    this.colorConvertControls.style.display = 'block';
+                } else {
+                    this.colorConvertControls.style.display = 'none';
+                }
             });
         });
         
@@ -345,6 +380,26 @@ class PixelArtGenerator {
         this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
         this.saveSnapshotBtn.addEventListener('click', () => this.saveCustomEditSnapshot());
         
+        this.colorConvertSourceColor.addEventListener('input', () => {
+            this.colorConvertSourceColorValue.textContent = this.colorConvertSourceColor.value;
+        });
+        
+        this.colorConvertTargetColor.addEventListener('input', () => {
+            this.colorConvertTargetColorValue.textContent = this.colorConvertTargetColor.value;
+        });
+        
+        this.pickSourceColorBtn.addEventListener('click', () => {
+            this.colorConvertPickMode = 'source';
+            alert('请点击画布上的颜色来选择源颜色');
+        });
+        
+        this.pickTargetColorBtn.addEventListener('click', () => {
+            this.colorConvertPickMode = 'target';
+            alert('请点击画布上的颜色来选择目标颜色');
+        });
+        
+        this.executeColorConvertBtn.addEventListener('click', () => this.executeColorConvert());
+        
         this.initCustomEditCanvasEvents();
         
         this.smartOptimizeBtn.addEventListener('click', () => this.openSmartOptimizeModal());
@@ -352,6 +407,32 @@ class PixelArtGenerator {
         this.rejectAllBtn.addEventListener('click', () => this.rejectAllSuggestions());
         this.applyAllBtn.addEventListener('click', () => this.acceptAllSuggestions());
         this.confirmBtn.addEventListener('click', () => this.confirmOptimization());
+        
+        this.enableColorMerge.addEventListener('change', () => this.regenerateSuggestions());
+        this.colorMergeThresholdSlider.addEventListener('input', () => {
+            this.colorMergeThresholdValue.textContent = this.colorMergeThresholdSlider.value + '%';
+        });
+        this.colorMergeThresholdSlider.addEventListener('change', () => this.regenerateSuggestions());
+        
+        this.pixelatedZoomSlider.addEventListener('input', () => {
+            const zoom = this.pixelatedZoomSlider.value;
+            this.pixelatedZoomValue.textContent = zoom + '%';
+            const scale = zoom / 100;
+            if (this.pixelatedCanvasDisplayWidth && this.pixelatedCanvasDisplayHeight) {
+                this.pixelatedCanvas.style.width = (this.pixelatedCanvasDisplayWidth * scale) + 'px';
+                this.pixelatedCanvas.style.height = (this.pixelatedCanvasDisplayHeight * scale) + 'px';
+            }
+        });
+        
+        this.perlerZoomSlider.addEventListener('input', () => {
+            const zoom = this.perlerZoomSlider.value;
+            this.perlerZoomValue.textContent = zoom + '%';
+            const scale = zoom / 100;
+            if (this.perlerCanvasDisplayWidth && this.perlerCanvasDisplayHeight) {
+                this.perlerCanvas.style.width = (this.perlerCanvasDisplayWidth * scale) + 'px';
+                this.perlerCanvas.style.height = (this.perlerCanvasDisplayHeight * scale) + 'px';
+            }
+        });
     }
 
     handleFileSelect(e) {
@@ -497,7 +578,32 @@ class PixelArtGenerator {
             this.updateColorUsageList();
         }
         
+        this.pixelatedCanvasNaturalWidth = targetWidth;
+        this.pixelatedCanvasNaturalHeight = targetHeight;
+        this.pixelatedCanvas.style.width = 'auto';
+        this.pixelatedCanvas.style.height = 'auto';
+        
+        requestAnimationFrame(() => {
+            this.pixelatedCanvasDisplayWidth = this.pixelatedCanvas.offsetWidth;
+            this.pixelatedCanvasDisplayHeight = this.pixelatedCanvas.offsetHeight;
+        });
+        
+        this.pixelatedZoomSlider.value = 100;
+        this.pixelatedZoomValue.textContent = '100%';
+        
         this.showPerlerPlaceholder();
+    }
+
+    resetPerlerZoom() {
+        this.perlerZoomSlider.value = 100;
+        this.perlerZoomValue.textContent = '100%';
+        this.perlerCanvas.style.width = 'auto';
+        this.perlerCanvas.style.height = 'auto';
+        
+        requestAnimationFrame(() => {
+            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
+            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
+        });
     }
 
     calculateColorStats(imageData) {
@@ -687,6 +793,15 @@ class PixelArtGenerator {
         
         this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
         this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
+        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
+        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
+        this.perlerCanvas.style.width = 'auto';
+        this.perlerCanvas.style.height = 'auto';
+        
+        requestAnimationFrame(() => {
+            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
+            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
+        });
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -850,6 +965,7 @@ class PixelArtGenerator {
             } else {
                 this.drawColorLegend();
                 drawFooter();
+                this.resetPerlerZoom();
             }
         };
         
@@ -935,6 +1051,7 @@ class PixelArtGenerator {
         }
         this.drawColorLegend();
         drawFooter();
+        this.resetPerlerZoom();
     }
 
     drawPerlerChartSync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
@@ -950,6 +1067,15 @@ class PixelArtGenerator {
         
         this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
         this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
+        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
+        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
+        this.perlerCanvas.style.width = 'auto';
+        this.perlerCanvas.style.height = 'auto';
+        
+        requestAnimationFrame(() => {
+            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
+            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
+        });
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -1090,6 +1216,7 @@ class PixelArtGenerator {
         
         this.drawColorLegend();
         drawFooter();
+        this.resetPerlerZoom();
     }
 
     drawColorLegend() {
@@ -1496,6 +1623,22 @@ class PixelArtGenerator {
         
         const { x, y } = this.getCustomEditCell(e);
         
+        if (this.colorConvertPickMode) {
+            const color = this.customEditData[y][x];
+            if (!color.isTransparent) {
+                const hex = this.rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
+                if (this.colorConvertPickMode === 'source') {
+                    this.colorConvertSourceColor.value = hex;
+                    this.colorConvertSourceColorValue.textContent = hex;
+                } else if (this.colorConvertPickMode === 'target') {
+                    this.colorConvertTargetColor.value = hex;
+                    this.colorConvertTargetColorValue.textContent = hex;
+                }
+            }
+            this.colorConvertPickMode = null;
+            return;
+        }
+        
         if (this.currentEditTool === 'chainRazor') {
             this.applyChainRazor(x, y);
             this.isDrawing = true;
@@ -1690,6 +1833,63 @@ class PixelArtGenerator {
             this.customEditHistory.shift();
         }
     }
+    
+    rgbToHex(r, g, b) {
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    
+    hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+    }
+    
+    executeColorConvert() {
+        if (!this.customEditData) return;
+        
+        const sourceHex = this.colorConvertSourceColor.value;
+        const targetHex = this.colorConvertTargetColor.value;
+        
+        if (sourceHex === targetHex) {
+            alert('源颜色和目标颜色不能相同！');
+            return;
+        }
+        
+        const sourceRgb = this.hexToRgb(sourceHex);
+        const targetRgb = this.hexToRgb(targetHex);
+        
+        const colorSetName = this.colorSetSelect.value;
+        const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
+        
+        const sourceColor = findClosestColor(sourceRgb, colorSet, mappingMethod);
+        const targetColor = findClosestColor(targetRgb, colorSet, mappingMethod);
+        
+        if (sourceColor.name === targetColor.name) {
+            alert('源颜色和目标颜色在当前色板中是同一个颜色！');
+            return;
+        }
+        
+        let convertedCount = 0;
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const currentColor = this.customEditData[y][x];
+                if (currentColor.name === sourceColor.name) {
+                    this.customEditData[y][x] = targetColor;
+                    convertedCount++;
+                }
+            }
+        }
+        
+        if (convertedCount > 0) {
+            this.saveCustomEditHistory();
+            this.drawCustomEditCanvas();
+            alert(`成功转换 ${convertedCount} 个豆粒！`);
+        } else {
+            alert('没有找到匹配的颜色！');
+        }
+    }
 
     undoCustomEdit() {
         if (this.customEditHistory.length > 1) {
@@ -1735,10 +1935,34 @@ class PixelArtGenerator {
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
         
+        for (let i = 0; i < this.colorSuggestions.length; i++) {
+            if (this.colorSuggestions[i].isMerge) {
+                this.acceptedSuggestions.add(i);
+                this.applySuggestion(i);
+            }
+        }
+        
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
         this.drawOptimizationPreview();
         this.smartOptimizeModal.style.display = 'flex';
+    }
+    
+    regenerateSuggestions() {
+        this.colorSuggestions = this.generateColorSuggestions();
+        this.acceptedSuggestions = new Set();
+        this.rejectedSuggestions = new Set();
+        
+        for (let i = 0; i < this.colorSuggestions.length; i++) {
+            if (this.colorSuggestions[i].isMerge) {
+                this.acceptedSuggestions.add(i);
+                this.applySuggestion(i);
+            }
+        }
+        
+        this.renderOptimizationSummary();
+        this.renderSuggestionsList();
+        this.drawOptimizationPreview();
     }
     
     drawOptimizationPreview() {
@@ -1756,24 +1980,41 @@ class PixelArtGenerator {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         
+        const colorsToReplace = new Set();
+        for (const idx of this.acceptedSuggestions) {
+            const suggestion = this.colorSuggestions[idx];
+            if (suggestion) {
+                colorsToReplace.add(suggestion.originalColor.name);
+            }
+        }
+        
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
-                let color = this.originalPerlerColors[y][x];
+                const originalColor = this.originalPerlerColors[y][x];
+                let displayColor = originalColor;
+                let willBeReplaced = false;
                 
                 for (const idx of this.acceptedSuggestions) {
                     const suggestion = this.colorSuggestions[idx];
-                    if (suggestion && color.name === suggestion.originalColor.name) {
-                        color = suggestion.replacementColor;
+                    if (suggestion && originalColor.name === suggestion.originalColor.name) {
+                        displayColor = suggestion.replacementColor;
+                        willBeReplaced = true;
                         break;
                     }
                 }
                 
-                if (color.isTransparent) {
+                if (displayColor.isTransparent) {
                     ctx.fillStyle = '#ffffff';
                 } else {
-                    ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                    ctx.fillStyle = `rgb(${displayColor.rgb[0]}, ${displayColor.rgb[1]}, ${displayColor.rgb[2]})`;
                 }
                 ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+                
+                if (willBeReplaced) {
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x * cellSize + 1, y * cellSize + 1, cellSize - 3, cellSize - 3);
+                }
             }
         }
     }
@@ -1793,10 +2034,14 @@ class PixelArtGenerator {
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
+        const enableMerge = this.enableColorMerge.checked;
+        const mergeThreshold = parseInt(this.colorMergeThresholdSlider.value);
         
         console.log('[智能优化] 开始生成建议');
         console.log('[智能优化] 颜色集:', colorSetName);
         console.log('[智能优化] 映射方法:', mappingMethod);
+        console.log('[智能优化] 近似色融合:', enableMerge);
+        console.log('[智能优化] 融合相似度:', mergeThreshold);
         
         const colorUsage = new Map();
         for (let y = 0; y < this.perlerHeight; y++) {
@@ -1824,7 +2069,16 @@ class PixelArtGenerator {
         console.log('[智能优化] 高使用颜色数:', highUsageColors.length);
         console.log('[智能优化] 高使用颜色:', highUsageColors.map(c => c.name));
         
+        if (enableMerge) {
+            const mergeSuggestions = this.generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold);
+            suggestions.push(...mergeSuggestions);
+        }
+        
+        const processedColors = new Set(suggestions.map(s => s.originalColor.name));
+        
         for (const [colorName, count] of colorsByUsage) {
+            if (processedColors.has(colorName)) continue;
+            
             console.log(`[智能优化] 处理颜色 ${colorName}, 数量: ${count}`);
             if (count >= usageThreshold * 2) {
                 console.log(`[智能优化] 跳过 ${colorName}: 数量 ${count} >= 高使用阈值 ${usageThreshold * 2}`);
@@ -1863,13 +2117,86 @@ class PixelArtGenerator {
                     replacementColor: bestReplacement,
                     beanCount: count,
                     isEdgeColor,
-                    accepted: false
+                    accepted: false,
+                    isMerge: false
                 });
             }
         }
         
         console.log('[智能优化] 最终建议数:', suggestions.length);
-        return suggestions.sort((a, b) => a.beanCount - b.beanCount);
+        return suggestions.sort((a, b) => {
+            if (a.isMerge && !b.isMerge) return -1;
+            if (!a.isMerge && b.isMerge) return 1;
+            return a.beanCount - b.beanCount;
+        });
+    }
+    
+    generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold) {
+        const suggestions = [];
+        const rgbDistanceThreshold = ((100 - mergeThreshold) / 100) * 255 * 3;
+        
+        console.log('[近似色融合] 开始生成融合建议');
+        console.log('[近似色融合] RGB距离阈值:', rgbDistanceThreshold);
+        
+        const mergedPairs = new Set();
+        
+        for (let i = 0; i < colorsByUsage.length; i++) {
+            const [nameA, countA] = colorsByUsage[i];
+            if (mergedPairs.has(nameA)) continue;
+            
+            const colorA = colorSet.find(c => c.name === nameA);
+            if (!colorA) continue;
+            
+            let bestMerge = null;
+            let minDistance = Infinity;
+            let bestCount = 0;
+            
+            for (let j = i + 1; j < colorsByUsage.length; j++) {
+                const [nameB, countB] = colorsByUsage[j];
+                if (mergedPairs.has(nameB)) continue;
+                
+                const colorB = colorSet.find(c => c.name === nameB);
+                if (!colorB) continue;
+                
+                const distance = this.getRgbDistance(colorA.rgb, colorB.rgb);
+                
+                if (distance <= rgbDistanceThreshold && distance < minDistance) {
+                    minDistance = distance;
+                    bestMerge = { color: colorB, name: nameB, count: countB };
+                    bestCount = countB;
+                }
+            }
+            
+            if (bestMerge) {
+                const keepColor = countA >= bestCount ? colorA : bestMerge.color;
+                const mergeColor = countA >= bestCount ? bestMerge.color : colorA;
+                
+                suggestions.push({
+                    id: suggestions.length,
+                    originalColor: mergeColor,
+                    replacementColor: keepColor,
+                    beanCount: countA >= bestCount ? bestCount : countA,
+                    isEdgeColor: false,
+                    accepted: true,
+                    isMerge: true
+                });
+                
+                mergedPairs.add(nameA);
+                mergedPairs.add(bestMerge.name);
+                
+                console.log(`[近似色融合] ${mergeColor.name} -> ${keepColor.name}, 距离: ${minDistance.toFixed(1)}`);
+            }
+        }
+        
+        console.log('[近似色融合] 融合建议数:', suggestions.length);
+        return suggestions;
+    }
+    
+    getRgbDistance(rgb1, rgb2) {
+        const dr = rgb1[0] - rgb2[0];
+        const dg = rgb1[1] - rgb2[1];
+        const db = rgb1[2] - rgb2[2];
+        return Math.sqrt(dr * dr + dg * dg + db * db);
     }
     
     isColorOnEdge(colorName) {
@@ -1949,9 +2276,10 @@ class PixelArtGenerator {
             const statusClass = this.acceptedSuggestions.has(index) ? 'accepted' : 
                              this.rejectedSuggestions.has(index) ? 'rejected' : '';
             const edgeIndicator = suggestion.isEdgeColor ? '🔍 边缘色' : '';
+            const mergeIndicator = suggestion.isMerge ? '🔄 近似色融合' : '';
             
             return `
-                <div class="suggestion-item ${statusClass}" data-index="${index}">
+                <div class="suggestion-item ${statusClass} ${suggestion.isMerge ? 'merge-suggestion' : ''}" data-index="${index}">
                     <div class="color-swatch-small" style="background-color: rgb(${suggestion.originalColor.rgb[0]}, ${suggestion.originalColor.rgb[1]}, ${suggestion.originalColor.rgb[2]});"></div>
                     <div class="suggestion-info">
                         <div class="suggestion-text">
@@ -1959,6 +2287,7 @@ class PixelArtGenerator {
                             <span class="arrow">→</span>
                             <div class="color-swatch-small" style="background-color: rgb(${suggestion.replacementColor.rgb[0]}, ${suggestion.replacementColor.rgb[1]}, ${suggestion.replacementColor.rgb[2]}); width: 24px; height: 24px;"></div>
                             <span>${suggestion.replacementColor.name}</span>
+                            ${mergeIndicator ? `<span style="margin-left: 10px; font-size: 0.85em; color: #667eea;">${mergeIndicator}</span>` : ''}
                             ${edgeIndicator ? `<span style="margin-left: 10px; font-size: 0.85em; color: #ff6b00;">${edgeIndicator}</span>` : ''}
                         </div>
                         <div class="suggestion-beans">

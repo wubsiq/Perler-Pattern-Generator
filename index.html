@@ -134,6 +134,13 @@
                             <canvas id="pixelatedCanvas"></canvas>
                         </div>
                         <p id="pixelatedSize" class="size-info"></p>
+                        <div class="canvas-zoom-control">
+                            <label>
+                                <span>缩放：</span>
+                                <span id="pixelatedZoomValue">100%</span>
+                            </label>
+                            <input type="range" id="pixelatedZoomSlider" min="25" max="200" value="100">
+                        </div>
                     </div>
                 </div>
                 <div class="preview-right">
@@ -242,6 +249,13 @@
                                         <canvas id="perlerCanvas"></canvas>
                                     </div>
                                     <p id="perlerSize" class="size-info"></p>
+                                    <div class="canvas-zoom-control">
+                                        <label>
+                                            <span>缩放：</span>
+                                            <span id="perlerZoomValue">100%</span>
+                                        </label>
+                                        <input type="range" id="perlerZoomSlider" min="25" max="200" value="100">
+                                    </div>
                                 </div>
                             </div>
                             <div id="colorLegendArea"></div>
@@ -362,6 +376,7 @@
                                 <button class="edit-tool-btn" data-tool="chainRazor" data-i18n="toolChainRazor">连锁剃刀</button>
                                 <button class="edit-tool-btn" data-tool="fill" data-i18n="toolFill">填充</button>
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
+                                <button class="edit-tool-btn" data-tool="colorConvert">🔄 颜色转换</button>
                             </div>
                         </div>
                         <div class="control-group">
@@ -411,6 +426,28 @@
                         <div class="control-group">
                             <button id="saveSnapshotBtn" class="btn btn-secondary">💾 保存快照</button>
                         </div>
+                        <div class="control-group" id="colorConvertControls" style="display: none;">
+                            <label>颜色转换设置：</label>
+                            <div style="margin-top: 10px;">
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">源颜色（要替换的颜色）：</label>
+                                    <div class="current-color-wrapper">
+                                        <input type="color" id="colorConvertSourceColor" value="#ffffff">
+                                        <span id="colorConvertSourceColorValue">#ffffff</span>
+                                        <button id="pickSourceColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">目标颜色（替换后的颜色）：</label>
+                                    <div class="current-color-wrapper">
+                                        <input type="color" id="colorConvertTargetColor" value="#000000">
+                                        <span id="colorConvertTargetColorValue">#000000</span>
+                                        <button id="pickTargetColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
+                                    </div>
+                                </div>
+                                <button id="executeColorConvertBtn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">▶ 执行颜色转换</button>
+                            </div>
+                        </div>
                         <div class="control-group" id="snapshotsList" style="display: none;">
                             <label>保存的快照：</label>
                             <div id="snapshotsContainer" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #f8f9fa;"></div>
@@ -439,6 +476,21 @@
             </div>
             <div class="modal-body">
                 <div class="optimization-summary" id="optimizationSummary"></div>
+                <div class="optimization-settings">
+                    <div class="control-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableColorMerge" checked>
+                            <span>近似色融合</span>
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            <span>融合相似度：</span>
+                            <span id="colorMergeThresholdValue">90%</span>
+                        </label>
+                        <input type="range" id="colorMergeThresholdSlider" min="50" max="100" value="90">
+                    </div>
+                </div>
                 <div class="smart-optimize-container">
                     <div class="optimization-preview">
                         <h3>预览效果</h3>
