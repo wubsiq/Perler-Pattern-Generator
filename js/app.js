@@ -123,6 +123,8 @@ class PixelArtGenerator {
         this.rejectAllBtn = document.getElementById('rejectAllBtn');
         this.applyAllBtn = document.getElementById('applyAllBtn');
         this.confirmBtn = document.getElementById('confirmBtn');
+        this.optimizationPreviewCanvas = document.getElementById('optimizationPreviewCanvas');
+        this.optimizationPreviewCtx = this.optimizationPreviewCanvas.getContext('2d');
         
         this.colorSuggestions = [];
         this.acceptedSuggestions = new Set();
@@ -199,18 +201,18 @@ class PixelArtGenerator {
         this.colorSetSelect.addEventListener('change', () => this.showPerlerPlaceholder());
         this.showGridLines.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
-                this.updatePerlerChart();
+                this.refreshPerlerChartDisplay();
             }
         });
         this.showCoordNumbers.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
-                this.updatePerlerChart();
+                this.refreshPerlerChartDisplay();
             }
         });
         // 注意：颜色选择器（coordLineColor 和 coordNumberColor）不实时渲染，只有点击"渲染拼豆图纸"按钮才会生效
         this.chartStyle.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
-                this.updatePerlerChart();
+                this.refreshPerlerChartDisplay();
             } else {
                 this.showPerlerPlaceholder();
             }
@@ -590,6 +592,11 @@ class PixelArtGenerator {
         this.perlerCtx.textAlign = 'center';
         this.perlerCtx.fillText('点击"渲染拼豆图纸"按钮生成图纸', this.perlerCanvas.width / 2, this.perlerCanvas.height / 2);
         this.perlerSize.textContent = '拼豆尺寸: 等待渲染';
+    }
+
+    refreshPerlerChartDisplay() {
+        if (!this.perlerColors || !this.perlerColors.length) return;
+        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
     }
 
     updatePerlerChart() {
@@ -1730,7 +1737,45 @@ class PixelArtGenerator {
         
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
+        this.drawOptimizationPreview();
         this.smartOptimizeModal.style.display = 'flex';
+    }
+    
+    drawOptimizationPreview() {
+        const cellSize = Math.min(
+            Math.floor(400 / Math.max(this.perlerWidth, this.perlerHeight)),
+            25
+        );
+        const canvasWidth = this.perlerWidth * cellSize;
+        const canvasHeight = this.perlerHeight * cellSize;
+        
+        this.optimizationPreviewCanvas.width = canvasWidth;
+        this.optimizationPreviewCanvas.height = canvasHeight;
+        
+        const ctx = this.optimizationPreviewCtx;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                let color = this.originalPerlerColors[y][x];
+                
+                for (const idx of this.acceptedSuggestions) {
+                    const suggestion = this.colorSuggestions[idx];
+                    if (suggestion && color.name === suggestion.originalColor.name) {
+                        color = suggestion.replacementColor;
+                        break;
+                    }
+                }
+                
+                if (color.isTransparent) {
+                    ctx.fillStyle = '#ffffff';
+                } else {
+                    ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                }
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+            }
+        }
     }
 
     closeSmartOptimizeModal(restoreOriginal = true) {
@@ -1957,10 +2002,13 @@ class PixelArtGenerator {
         if (this.rejectedSuggestions.has(index)) {
             this.rejectedSuggestions.delete(index);
         }
-        this.acceptedSuggestions.add(index);
-        this.applySuggestion(index);
+        if (!this.acceptedSuggestions.has(index)) {
+            this.acceptedSuggestions.add(index);
+            this.applySuggestion(index);
+        }
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
+        this.drawOptimizationPreview();
     }
 
     rejectSuggestion(index) {
@@ -1971,17 +2019,18 @@ class PixelArtGenerator {
         this.rejectedSuggestions.add(index);
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
+        this.drawOptimizationPreview();
     }
 
     acceptAllSuggestions() {
+        this.rejectedSuggestions.clear();
         for (let i = 0; i < this.colorSuggestions.length; i++) {
-            if (!this.rejectedSuggestions.has(i)) {
-                this.acceptedSuggestions.add(i);
-                this.applySuggestion(i);
-            }
+            this.acceptedSuggestions.add(i);
+            this.applySuggestion(i);
         }
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
+        this.drawOptimizationPreview();
     }
 
     rejectAllSuggestions() {
@@ -1992,6 +2041,7 @@ class PixelArtGenerator {
         this.rejectedSuggestions = new Set(this.colorSuggestions.map((_, i) => i));
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
+        this.drawOptimizationPreview();
     }
 
     applySuggestion(index) {

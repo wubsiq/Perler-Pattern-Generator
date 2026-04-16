@@ -432,14 +432,22 @@
     <script src="js/app.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content smart-optimize-modal">
             <div class="modal-header">
                 <h2 data-i18n="smartOptimizeTitle">🧠 智能颜色优化</h2>
                 <button id="closeModalBtn" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="optimization-summary" id="optimizationSummary"></div>
-                <div class="suggestions-list" id="suggestionsList"></div>
+                <div class="smart-optimize-container">
+                    <div class="optimization-preview">
+                        <h3>预览效果</h3>
+                        <div class="preview-canvas-wrapper">
+                            <canvas id="optimizationPreviewCanvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="suggestions-list" id="suggestionsList"></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="rejectAllBtn" class="btn btn-secondary" data-i18n="rejectAll">✗ 全部拒绝</button>
