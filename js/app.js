@@ -154,6 +154,9 @@ class PixelArtGenerator {
         
         this.colorConvertPickMode = null;
         
+        this.exportScaleSlider = document.getElementById('exportScaleSlider');
+        this.exportScaleValue = document.getElementById('exportScaleValue');
+        
         this.colorSuggestions = [];
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
@@ -305,6 +308,10 @@ class PixelArtGenerator {
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.downloadPerlerBtn.addEventListener('click', () => this.downloadPerlerChart());
         
+        this.exportScaleSlider.addEventListener('input', () => {
+            this.exportScaleValue.textContent = this.exportScaleSlider.value + '×';
+        });
+        
         document.querySelectorAll('.sort-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
@@ -348,6 +355,8 @@ class PixelArtGenerator {
                 btn.classList.add('active');
                 this.currentEditTool = btn.dataset.tool;
                 this.colorConvertPickMode = null;
+                this.pickSourceColorBtn.classList.remove('color-pick-active');
+                this.pickTargetColorBtn.classList.remove('color-pick-active');
                 
                 if (this.currentEditTool === 'colorConvert') {
                     this.colorConvertControls.style.display = 'block';
@@ -389,13 +398,25 @@ class PixelArtGenerator {
         });
         
         this.pickSourceColorBtn.addEventListener('click', () => {
-            this.colorConvertPickMode = 'source';
-            alert('请点击画布上的颜色来选择源颜色');
+            if (this.colorConvertPickMode === 'source') {
+                this.colorConvertPickMode = null;
+                this.pickSourceColorBtn.classList.remove('color-pick-active');
+            } else {
+                this.colorConvertPickMode = 'source';
+                this.pickSourceColorBtn.classList.add('color-pick-active');
+                this.pickTargetColorBtn.classList.remove('color-pick-active');
+            }
         });
         
         this.pickTargetColorBtn.addEventListener('click', () => {
-            this.colorConvertPickMode = 'target';
-            alert('请点击画布上的颜色来选择目标颜色');
+            if (this.colorConvertPickMode === 'target') {
+                this.colorConvertPickMode = null;
+                this.pickTargetColorBtn.classList.remove('color-pick-active');
+            } else {
+                this.colorConvertPickMode = 'target';
+                this.pickTargetColorBtn.classList.add('color-pick-active');
+                this.pickSourceColorBtn.classList.remove('color-pick-active');
+            }
         });
         
         this.executeColorConvertBtn.addEventListener('click', () => this.executeColorConvert());
@@ -1450,13 +1471,17 @@ class PixelArtGenerator {
             legendY = chartHeight + 20;
         }
         
+        const scale = parseFloat(this.exportScaleSlider.value);
+        
         const downloadCanvas = document.createElement('canvas');
         const downloadCtx = downloadCanvas.getContext('2d');
-        downloadCanvas.width = canvasWidth;
-        downloadCanvas.height = canvasHeight;
+        downloadCanvas.width = canvasWidth * scale;
+        downloadCanvas.height = canvasHeight * scale;
+        
+        downloadCtx.scale(scale, scale);
         
         downloadCtx.fillStyle = '#ffffff';
-        downloadCtx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
+        downloadCtx.fillRect(0, 0, canvasWidth, canvasHeight);
         
         downloadCtx.drawImage(this.perlerCanvas, 0, 0);
         
@@ -1518,6 +1543,7 @@ class PixelArtGenerator {
         if (chartStyle === 'color-with-code') fileName += `_${i18nFileName.withCode}`;
         if (beadShape === 'circle') fileName += `_${i18nFileName.circle}`;
         if (position === 'right') fileName += `_${i18nFileName.legendRight}`;
+        if (scale !== 1) fileName += `_${scale}x`;
         fileName += '.png';
         
         link.download = fileName;
@@ -1636,6 +1662,8 @@ class PixelArtGenerator {
                 }
             }
             this.colorConvertPickMode = null;
+            this.pickSourceColorBtn.classList.remove('color-pick-active');
+            this.pickTargetColorBtn.classList.remove('color-pick-active');
             return;
         }
         

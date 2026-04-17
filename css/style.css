@@ -549,6 +549,13 @@ input[type="range"]::-moz-range-thumb {
     color: #000000;
 }
 
+.btn-secondary.color-pick-active {
+    border-width: 4px;
+    border-style: double;
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
 .btn-danger {
     background: #ffffff;
     color: #dc3545;
