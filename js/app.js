@@ -1648,18 +1648,37 @@ class PixelArtGenerator {
         const legendWidth = columns * columnWidth + 20;
         const legendHeight = 60 + itemsPerColumn * rowHeight;
         
+        const fontSizeScale = cellSize / 30;
+        
+        const legendTitleSize = Math.max(10, Math.floor(13 * fontSizeScale));
+        const totalSize = Math.max(9, Math.floor(12 * fontSizeScale));
+        const colorNameSize = Math.max(5, Math.floor(7 * fontSizeScale));
+        const countSize = Math.max(7, Math.floor(10 * fontSizeScale));
+        const colorBlockSize = Math.max(12, Math.floor(18 * fontSizeScale));
+        const legendYOffset1 = Math.max(14, Math.floor(18 * fontSizeScale));
+        const legendYOffset2 = Math.max(28, Math.floor(36 * fontSizeScale));
+        const legendStartY = Math.max(39, Math.floor(50 * fontSizeScale));
+        const colorBlockYOffset = Math.max(5, Math.floor(6 * fontSizeScale));
+        const colorNameYOffset = Math.max(2, Math.floor(2 * fontSizeScale));
+        const countYOffset = Math.max(2, Math.floor(3 * fontSizeScale));
+        const colorNameXOffset = Math.max(7, Math.floor(9 * fontSizeScale));
+        const countXOffset = Math.max(18, Math.floor(23 * fontSizeScale));
+        const legendXGap = Math.max(6, Math.floor(8 * fontSizeScale));
+        const columnWidthScaled = Math.max(64, Math.floor(columnWidth * fontSizeScale));
+        const rowHeightScaled = Math.max(16, Math.floor(rowHeight * fontSizeScale));
+        
         let canvasWidth, canvasHeight, legendX, legendY;
         
         if (position === 'right') {
-            canvasWidth = chartWidth + Math.max(legendWidth, 150) + 40;
-            canvasHeight = Math.max(chartHeight, legendHeight);
-            legendX = chartWidth + 20;
+            canvasWidth = chartWidth + Math.max(legendWidth * fontSizeScale, 150 * fontSizeScale) + 40 * fontSizeScale;
+            canvasHeight = Math.max(chartHeight, legendHeight * fontSizeScale);
+            legendX = chartWidth + 20 * fontSizeScale;
             legendY = 0;
         } else {
-            canvasWidth = Math.max(chartWidth, legendWidth);
-            canvasHeight = chartHeight + legendHeight + 40;
+            canvasWidth = Math.max(chartWidth, legendWidth * fontSizeScale);
+            canvasHeight = chartHeight + legendHeight * fontSizeScale + 40 * fontSizeScale;
             legendX = 0;
-            legendY = chartHeight + 20;
+            legendY = chartHeight + 20 * fontSizeScale;
         }
         
         const scale = parseFloat(this.exportScaleSlider.value);
@@ -1708,14 +1727,14 @@ class PixelArtGenerator {
         
         downloadCtx.drawImage(tempChartCanvas, 0, 0);
         
-        downloadCtx.font = 'bold 13px sans-serif';
+        downloadCtx.font = `bold ${legendTitleSize}px sans-serif`;
         downloadCtx.fillStyle = '#667eea';
         downloadCtx.textAlign = 'left';
-        downloadCtx.fillText(getI18nText('colorLegend'), legendX + 8, legendY + 18);
+        downloadCtx.fillText(getI18nText('colorLegend'), legendX + legendXGap, legendY + legendYOffset1);
         
-        downloadCtx.font = 'bold 12px sans-serif';
+        downloadCtx.font = `bold ${totalSize}px sans-serif`;
         downloadCtx.fillStyle = '#333';
-        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')} · ${getI18nText('colorTypes')}: ${colorTypes}`, legendX + 8, legendY + 36);
+        downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')} · ${getI18nText('colorTypes')}: ${colorTypes}`, legendX + legendXGap, legendY + legendYOffset2);
         
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
@@ -1726,27 +1745,27 @@ class PixelArtGenerator {
             const count = this.colorCounts[name];
             const color = colorSet.find(c => c.name === name);
             
-            const x = legendX + 8 + col * columnWidth;
-            const y = legendY + 50 + row * rowHeight;
+            const x = legendX + legendXGap + col * columnWidthScaled;
+            const y = legendY + legendStartY + row * rowHeightScaled;
             
             if (color) {
                 downloadCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                downloadCtx.fillRect(x, y - 6, 18, 18);
+                downloadCtx.fillRect(x, y - colorBlockYOffset, colorBlockSize, colorBlockSize);
                 downloadCtx.strokeStyle = '#999';
-                downloadCtx.strokeRect(x, y - 6, 18, 18);
+                downloadCtx.strokeRect(x, y - colorBlockYOffset, colorBlockSize, colorBlockSize);
                 
                 downloadCtx.fillStyle = getContrastTextColor(color.rgb);
-                downloadCtx.font = 'bold 7px sans-serif';
+                downloadCtx.font = `bold ${colorNameSize}px sans-serif`;
                 downloadCtx.textAlign = 'center';
                 downloadCtx.textBaseline = 'middle';
-                downloadCtx.fillText(name, x + 9, y + 2);
+                downloadCtx.fillText(name, x + colorNameXOffset, y + colorNameYOffset);
                 downloadCtx.textAlign = 'left';
                 downloadCtx.textBaseline = 'alphabetic';
             }
             
             downloadCtx.fillStyle = '#333';
-            downloadCtx.font = '10px sans-serif';
-            downloadCtx.fillText(`×${count}`, x + 23, y + 3);
+            downloadCtx.font = `${countSize}px sans-serif`;
+            downloadCtx.fillText(`×${count}`, x + countXOffset, y + countYOffset);
             
             row++;
             if (row >= itemsPerColumn) {
