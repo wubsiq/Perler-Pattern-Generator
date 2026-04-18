@@ -48,6 +48,8 @@ class PixelArtGenerator {
         this.beadShape = document.getElementById('beadShape');
         this.beadSizeSlider = document.getElementById('beadSizeSlider');
         this.beadSizeValue = document.getElementById('beadSizeValue');
+        this.exportBeadSizeSlider = document.getElementById('exportBeadSizeSlider');
+        this.exportBeadSizeValue = document.getElementById('exportBeadSizeValue');
         this.showGridLines = document.getElementById('showGridLines');
         this.showCoordNumbers = document.getElementById('showCoordNumbers');
         this.coordLineColor = document.getElementById('coordLineColor');
@@ -156,6 +158,7 @@ class PixelArtGenerator {
         
         this.exportScaleSlider = document.getElementById('exportScaleSlider');
         this.exportScaleValue = document.getElementById('exportScaleValue');
+        this.exportScaleInput = document.getElementById('exportScaleInput');
         
         this.colorSuggestions = [];
         this.acceptedSuggestions = new Set();
@@ -164,6 +167,12 @@ class PixelArtGenerator {
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
+        
+        const displaySize = parseInt(this.beadSizeSlider.value);
+        let exportSize = displaySize * 2;
+        exportSize = Math.max(30, Math.min(96, exportSize));
+        this.exportBeadSizeSlider.value = exportSize;
+        this.exportBeadSizeValue.textContent = exportSize + 'px';
         
         this.quantizedPixelControls.style.display = this.pixelMethod.value === 'quantized' ? 'block' : 'none';
     }
@@ -250,7 +259,17 @@ class PixelArtGenerator {
         });
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
         this.beadSizeSlider.addEventListener('input', () => {
-            this.beadSizeValue.textContent = this.beadSizeSlider.value + 'px';
+            const displaySize = parseInt(this.beadSizeSlider.value);
+            this.beadSizeValue.textContent = displaySize + 'px';
+            
+            let exportSize = displaySize * 2;
+            exportSize = Math.max(30, Math.min(96, exportSize));
+            this.exportBeadSizeSlider.value = exportSize;
+            this.exportBeadSizeValue.textContent = exportSize + 'px';
+        });
+        
+        this.exportBeadSizeSlider.addEventListener('input', () => {
+            this.exportBeadSizeValue.textContent = this.exportBeadSizeSlider.value + 'px';
         });
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
@@ -309,7 +328,18 @@ class PixelArtGenerator {
         this.downloadPerlerBtn.addEventListener('click', () => this.downloadPerlerChart());
         
         this.exportScaleSlider.addEventListener('input', () => {
-            this.exportScaleValue.textContent = this.exportScaleSlider.value + '×';
+            const value = parseFloat(this.exportScaleSlider.value);
+            this.exportScaleValue.textContent = value + '×';
+            this.exportScaleInput.value = value;
+        });
+        
+        this.exportScaleInput.addEventListener('input', () => {
+            let value = parseFloat(this.exportScaleInput.value);
+            if (isNaN(value)) value = 1;
+            value = Math.max(1, Math.min(16, value));
+            this.exportScaleInput.value = value;
+            this.exportScaleSlider.value = value;
+            this.exportScaleValue.textContent = value + '×';
         });
         
         document.querySelectorAll('.sort-btn').forEach(btn => {
@@ -805,12 +835,6 @@ class PixelArtGenerator {
         const cellSize = parseInt(this.beadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
-        const chartStyle = this.chartStyle.value;
-        const beadShape = this.beadShape.value;
-        const showGrid = this.showGridLines.checked;
-        const showCoords = this.showCoordNumbers.checked;
-        const coordColor = this.coordLineColor.value;
-        const coordNumColor = this.coordNumberColor.value;
         
         this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
         this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
@@ -828,14 +852,172 @@ class PixelArtGenerator {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, this.perlerCanvas.width, this.perlerCanvas.height);
         
+        this.drawPerlerChartAsync(perlerColors, perlerWidth, perlerHeight, colorSetName);
+    }
+    
+    drawPerlerChartToCanvas(ctx, perlerColors, perlerWidth, perlerHeight, cellSize, colorSetName) {
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const footerSize = 25;
+        const chartStyle = this.chartStyle.value;
+        const beadShape = this.beadShape.value;
+        const showGrid = this.showGridLines.checked;
+        const showCoords = this.showCoordNumbers.checked;
+        const coordColor = this.coordLineColor.value;
+        const coordNumColor = this.coordNumberColor.value;
+        
+        const canvasWidth = coordSize + perlerWidth * cellSize;
+        const canvasHeight = coordSize + perlerHeight * cellSize + footerSize;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
         const drawFooter = () => {
             ctx.font = '11px sans-serif';
             ctx.fillStyle = '#999';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
-            ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
+            ctx.fillText(this.watermarkText.value, canvasWidth / 2, footerY);
         };
+        
+        const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
+        ctx.font = `${fontSizeCoord}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (showCoords) {
+            ctx.fillStyle = coordNumColor;
+            
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
+            }
+            
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
+        }
+        
+        if (showGrid) {
+            ctx.strokeStyle = coordColor;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            
+            for (let x = 0; x <= perlerWidth; x++) {
+                ctx.moveTo(coordSize + x * cellSize, coordSize);
+                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+            }
+            
+            for (let y = 0; y <= perlerHeight; y++) {
+                ctx.moveTo(coordSize, coordSize + y * cellSize);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+            }
+            
+            ctx.stroke();
+        }
+        
+        for (let y = 0; y < perlerHeight; y++) {
+            for (let x = 0; x < perlerWidth; x++) {
+                const color = perlerColors[y][x];
+                const px = coordSize + x * cellSize;
+                const py = coordSize + y * cellSize;
+                
+                if (color.isTransparent) {
+                    ctx.fillStyle = '#ffffff';
+                    if (beadShape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                    }
+                    continue;
+                }
+                
+                const nameLen = color.name.length;
+                let fontSizeBase = Math.max(6, Math.floor(cellSize * 0.45));
+                let fontSize = fontSizeBase;
+                if (nameLen === 1) {
+                    fontSize = Math.floor(fontSizeBase * 1.1);
+                } else if (nameLen === 2) {
+                    fontSize = fontSizeBase;
+                } else if (nameLen === 3) {
+                    fontSize = Math.floor(fontSizeBase * 0.85);
+                } else {
+                    fontSize = Math.floor(fontSizeBase * 0.7);
+                }
+                
+                if (beadShape === 'circle') {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.clip();
+                    
+                    if (chartStyle === 'color') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                    } else if (chartStyle === 'color-with-code') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.fillStyle = getContrastTextColor(color.rgb);
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                        ctx.strokeStyle = '#999';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        ctx.fillStyle = '#333';
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    }
+                    
+                    ctx.restore();
+                    
+                    ctx.beginPath();
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                } else {
+                    if (chartStyle === 'color') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                    } else if (chartStyle === 'color-with-code') {
+                        ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.fillStyle = getContrastTextColor(color.rgb);
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    } else {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.strokeStyle = '#999';
+                        ctx.strokeRect(px, py, cellSize - 1, cellSize - 1);
+                        ctx.fillStyle = '#333';
+                        ctx.font = `${fontSize}px sans-serif`;
+                        ctx.fillText(color.name, px + cellSize / 2, py + cellSize / 2);
+                    }
+                }
+            }
+        }
+        
+        drawFooter();
+    }
+    
+    drawPerlerChartAsync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const footerSize = 25;
+        const chartStyle = this.chartStyle.value;
+        const beadShape = this.beadShape.value;
+        const showGrid = this.showGridLines.checked;
+        const showCoords = this.showCoordNumbers.checked;
+        const coordColor = this.coordLineColor.value;
+        const coordNumColor = this.coordNumberColor.value;
+        const ctx = this.perlerCtx;
         
         const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
         ctx.font = `${fontSizeCoord}px sans-serif`;
@@ -879,6 +1061,15 @@ class PixelArtGenerator {
         let currentBlockY = 0;
         
         this.drawColorLegend();
+        
+        const drawFooter = () => {
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
+        };
         
         const drawBlock = () => {
             const startX = currentBlockX * blockSize;
@@ -1427,7 +1618,7 @@ class PixelArtGenerator {
         const perlerWidth = Math.ceil(parseInt(this.widthInput.value) / parseInt(this.pixelSizeSlider.value));
         const perlerHeight = Math.ceil(parseInt(this.heightInput.value) / parseInt(this.pixelSizeSlider.value));
         
-        const cellSize = parseInt(this.beadSizeSlider.value);
+        const cellSize = parseInt(this.exportBeadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
         const colorNames = Object.keys(this.colorCounts).sort();
@@ -1473,17 +1664,49 @@ class PixelArtGenerator {
         
         const scale = parseFloat(this.exportScaleSlider.value);
         
+        const finalWidth = canvasWidth * scale;
+        const finalHeight = canvasHeight * scale;
+        
+        const MAX_CANVAS_SIZE = 32767;
+        const MAX_CANVAS_AREA = 268435456;
+        
+        if (finalWidth > MAX_CANVAS_SIZE || finalHeight > MAX_CANVAS_SIZE) {
+            alert(`导出尺寸过大！最大支持 ${MAX_CANVAS_SIZE}px 边长。\n当前尺寸：${Math.round(finalWidth)} × ${Math.round(finalHeight)}\n请降低缩放倍数。`);
+            return;
+        }
+        
+        if (finalWidth * finalHeight > MAX_CANVAS_AREA) {
+            alert(`导出图片像素过多！最大支持 ${(MAX_CANVAS_AREA / 1000000).toFixed(1)} 百万像素。\n当前：${((finalWidth * finalHeight) / 1000000).toFixed(1)} 百万像素\n请降低缩放倍数。`);
+            return;
+        }
+        
+        const tempChartCanvas = document.createElement('canvas');
+        const tempChartCtx = tempChartCanvas.getContext('2d');
+        tempChartCanvas.width = chartWidth;
+        tempChartCanvas.height = chartHeight;
+        tempChartCtx.fillStyle = '#ffffff';
+        tempChartCtx.fillRect(0, 0, chartWidth, chartHeight);
+        
+        this.drawPerlerChartToCanvas(
+            tempChartCtx,
+            this.perlerColors,
+            perlerWidth,
+            perlerHeight,
+            cellSize,
+            this.colorSetSelect.value
+        );
+        
         const downloadCanvas = document.createElement('canvas');
         const downloadCtx = downloadCanvas.getContext('2d');
-        downloadCanvas.width = canvasWidth * scale;
-        downloadCanvas.height = canvasHeight * scale;
+        downloadCanvas.width = finalWidth;
+        downloadCanvas.height = finalHeight;
         
         downloadCtx.scale(scale, scale);
         
         downloadCtx.fillStyle = '#ffffff';
         downloadCtx.fillRect(0, 0, canvasWidth, canvasHeight);
         
-        downloadCtx.drawImage(this.perlerCanvas, 0, 0);
+        downloadCtx.drawImage(tempChartCanvas, 0, 0);
         
         downloadCtx.font = 'bold 13px sans-serif';
         downloadCtx.fillStyle = '#667eea';

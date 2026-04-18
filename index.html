@@ -313,10 +313,17 @@
                         </div>
                         <div class="control-group">
                             <label>
-                                <span data-i18n="beadSize">拼豆大小：</span>
+                                <span data-i18n="beadSize">拼豆大小（显示）：</span>
                                 <span id="beadSizeValue">30px</span>
                             </label>
                             <input type="range" id="beadSizeSlider" min="12" max="48" step="2" value="30">
+                        </div>
+                        <div class="control-group advanced-only">
+                            <label>
+                                <span>拼豆大小（导出）：</span>
+                                <span id="exportBeadSizeValue">60px</span>
+                            </label>
+                            <input type="range" id="exportBeadSizeSlider" min="30" max="96" step="2" value="60">
                         </div>
                         <div class="control-group advanced-only">
                             <label class="checkbox-label">
@@ -353,7 +360,10 @@
                                 <span>导出高清缩放：</span>
                                 <span id="exportScaleValue">1×</span>
                             </label>
-                            <input type="range" id="exportScaleSlider" min="1" max="4" step="0.5" value="1">
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="range" id="exportScaleSlider" min="1" max="16" step="0.5" value="1" style="flex: 1;">
+                                <input type="number" id="exportScaleInput" min="1" max="16" step="0.5" value="1" style="width: 70px;">
+                            </div>
                         </div>
                         <div class="action-buttons">
                             <button id="downloadPerlerBtn" class="btn btn-primary" data-i18n="downloadPerler">下载拼豆图纸</button>
