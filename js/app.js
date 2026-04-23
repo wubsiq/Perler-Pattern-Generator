@@ -170,7 +170,7 @@ class PixelArtGenerator {
         
         const displaySize = parseInt(this.beadSizeSlider.value);
         let exportSize = displaySize * 2;
-        exportSize = Math.max(30, Math.min(96, exportSize));
+        exportSize = Math.max(12, Math.min(96, exportSize));
         this.exportBeadSizeSlider.value = exportSize;
         this.exportBeadSizeValue.textContent = exportSize + 'px';
         
@@ -258,12 +258,17 @@ class PixelArtGenerator {
             }
         });
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
+        this.beadShape.addEventListener('change', () => {
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.refreshPerlerChartDisplay();
+            }
+        });
         this.beadSizeSlider.addEventListener('input', () => {
             const displaySize = parseInt(this.beadSizeSlider.value);
             this.beadSizeValue.textContent = displaySize + 'px';
             
             let exportSize = displaySize * 2;
-            exportSize = Math.max(30, Math.min(96, exportSize));
+            exportSize = Math.max(12, Math.min(96, exportSize));
             this.exportBeadSizeSlider.value = exportSize;
             this.exportBeadSizeValue.textContent = exportSize + 'px';
         });

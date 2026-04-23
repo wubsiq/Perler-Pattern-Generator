@@ -590,13 +590,28 @@ function regionSegmentation(imageData) {
 
 function adjustContrast(imageData, factor) {
     const data = imageData.data;
-    const width = imageData.width;
-    const height = imageData.height;
+    const amount = (factor - 1) * 0.8;
     
     for (let i = 0; i < data.length; i += 4) {
-        data[i] = Math.min(255, Math.max(0, ((data[i] / 255 - 0.5) * factor + 0.5) * 255));
-        data[i + 1] = Math.min(255, Math.max(0, ((data[i + 1] / 255 - 0.5) * factor + 0.5) * 255));
-        data[i + 2] = Math.min(255, Math.max(0, ((data[i + 2] / 255 - 0.5) * factor + 0.5) * 255));
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        
+        const adjustedLuminance = luminance + (luminance - 128) * amount;
+        const clampedLum = Math.min(255, Math.max(0, adjustedLuminance));
+        
+        if (luminance > 0) {
+            const ratio = clampedLum / luminance;
+            data[i] = Math.min(255, Math.max(0, r * ratio));
+            data[i + 1] = Math.min(255, Math.max(0, g * ratio));
+            data[i + 2] = Math.min(255, Math.max(0, b * ratio));
+        } else {
+            data[i] = clampedLum;
+            data[i + 1] = clampedLum;
+            data[i + 2] = clampedLum;
+        }
     }
     
     return imageData;
