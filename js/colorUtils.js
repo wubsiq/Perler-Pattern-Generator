@@ -440,6 +440,56 @@ function pixelate(imageData, blockSize) {
     return newData;
 }
 
+function pixelateMajority(imageData, blockSize) {
+    const width = imageData.width;
+    const height = imageData.height;
+    const newData = new ImageData(width, height);
+
+    for (let y = 0; y < height; y += blockSize) {
+        for (let x = 0; x < width; x += blockSize) {
+            const colorCounts = {};
+            let maxCount = 0;
+            let dominantColor = { r: 0, g: 0, b: 0, a: 255 };
+
+            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
+                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
+                    const index = ((y + dy) * width + (x + dx)) * 4;
+                    const r = imageData.data[index];
+                    const g = imageData.data[index + 1];
+                    const b = imageData.data[index + 2];
+                    const a = imageData.data[index + 3];
+
+                    // 使用RGB字符串作为键
+                    const key = `${r},${g},${b},${a}`;
+                    if (!colorCounts[key]) {
+                        colorCounts[key] = { count: 0, r, g, b, a };
+                    }
+                    colorCounts[key].count++;
+
+                    // 更新主要颜色
+                    if (colorCounts[key].count > maxCount) {
+                        maxCount = colorCounts[key].count;
+                        dominantColor = colorCounts[key];
+                    }
+                }
+            }
+
+            // 填充整个块为主要颜色
+            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
+                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
+                    const index = ((y + dy) * width + (x + dx)) * 4;
+                    newData.data[index] = dominantColor.r;
+                    newData.data[index + 1] = dominantColor.g;
+                    newData.data[index + 2] = dominantColor.b;
+                    newData.data[index + 3] = dominantColor.a;
+                }
+            }
+        }
+    }
+
+    return newData;
+}
+
 function pixelArtPixelate(imageData, blockSize) {
     const width = imageData.width;
     const height = imageData.height;

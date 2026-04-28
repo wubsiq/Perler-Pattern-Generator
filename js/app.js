@@ -8,6 +8,7 @@ class PixelArtGenerator {
         this.pixelColorStats = [];
         this.currentSort = 'count-desc';
         this.excludedColors = new Set();
+        this.pixelatedData = null;
         
         this.initElements();
         this.initEventListeners();
@@ -22,12 +23,27 @@ class PixelArtGenerator {
         
         this.originalCanvas = document.getElementById('originalCanvas');
         this.originalCtx = this.originalCanvas.getContext('2d', { willReadFrequently: true });
+        // 禁用所有 Canvas 的平滑插值
+        this.originalCtx.imageSmoothingEnabled = false;
+        this.originalCtx.mozImageSmoothingEnabled = false;
+        this.originalCtx.webkitImageSmoothingEnabled = false;
+        this.originalCtx.msImageSmoothingEnabled = false;
         
         this.pixelatedCanvas = document.getElementById('pixelatedCanvas');
         this.pixelatedCtx = this.pixelatedCanvas.getContext('2d', { willReadFrequently: true });
+        // 禁用所有 Canvas 的平滑插值
+        this.pixelatedCtx.imageSmoothingEnabled = false;
+        this.pixelatedCtx.mozImageSmoothingEnabled = false;
+        this.pixelatedCtx.webkitImageSmoothingEnabled = false;
+        this.pixelatedCtx.msImageSmoothingEnabled = false;
         
         this.perlerCanvas = document.getElementById('perlerCanvas');
         this.perlerCtx = this.perlerCanvas.getContext('2d', { willReadFrequently: true });
+        // 禁用所有 Canvas 的平滑插值
+        this.perlerCtx.imageSmoothingEnabled = false;
+        this.perlerCtx.mozImageSmoothingEnabled = false;
+        this.perlerCtx.webkitImageSmoothingEnabled = false;
+        this.perlerCtx.msImageSmoothingEnabled = false;
         
         this.originalSize = document.getElementById('originalSize');
         this.pixelatedSize = document.getElementById('pixelatedSize');
@@ -581,6 +597,13 @@ class PixelArtGenerator {
         const tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = targetWidth;
         tempCanvas.height = targetHeight;
+        
+        // 禁用平滑插值，使用最近邻，避免颜色模糊扩散
+        tempCtx.imageSmoothingEnabled = false;
+        tempCtx.mozImageSmoothingEnabled = false;
+        tempCtx.webkitImageSmoothingEnabled = false;
+        tempCtx.msImageSmoothingEnabled = false;
+        
         tempCtx.drawImage(this.originalImage, 0, 0, targetWidth, targetHeight);
         
         const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
@@ -593,6 +616,8 @@ class PixelArtGenerator {
         } else if (method === 'quantized') {
             const targetColorCount = parseInt(this.targetColorCountSlider.value);
             pixelatedData = quantizedPixelate(imageData, pixelSize, targetColorCount);
+        } else if (method === 'majority') {
+            pixelatedData = pixelateMajority(imageData, pixelSize);
         } else {
             pixelatedData = pixelate(imageData, pixelSize);
         }
@@ -627,6 +652,9 @@ class PixelArtGenerator {
         this.pixelatedCanvas.width = targetWidth;
         this.pixelatedCanvas.height = targetHeight;
         this.pixelatedCtx.putImageData(pixelatedData, 0, 0);
+        
+        // 保存像素化结果，用于拼豆化
+        this.pixelatedData = pixelatedData;
         
         this.pixelatedSize.textContent = `像素化尺寸: ${targetWidth} × ${targetHeight} px`;
         
@@ -773,13 +801,43 @@ class PixelArtGenerator {
         const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
         
-        const smallCanvas = document.createElement('canvas');
-        const smallCtx = smallCanvas.getContext('2d');
-        smallCanvas.width = perlerWidth;
-        smallCanvas.height = perlerHeight;
-        smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
-        
-        const processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
+        // 直接使用保存的像素化结果，避免Canvas缩放丢失
+        let processedData;
+        if (!this.pixelatedData) {
+            // 回退方案
+            const smallCanvas = document.createElement('canvas');
+            const smallCtx = smallCanvas.getContext('2d');
+            smallCanvas.width = perlerWidth;
+            smallCanvas.height = perlerHeight;
+            
+            // 禁用平滑插值，使用最近邻，避免颜色模糊扩散
+            smallCtx.imageSmoothingEnabled = false;
+            smallCtx.mozImageSmoothingEnabled = false;
+            smallCtx.webkitImageSmoothingEnabled = false;
+            smallCtx.msImageSmoothingEnabled = false;
+            
+            smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
+            
+            processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
+        } else {
+            // 直接从pixelatedData计算，更准确
+            processedData = new ImageData(perlerWidth, perlerHeight);
+            const pixelSize = parseInt(this.pixelSizeSlider.value);
+            
+            for (let y = 0; y < perlerHeight; y++) {
+                for (let x = 0; x < perlerWidth; x++) {
+                    const srcX = Math.min(Math.floor(x * pixelSize), this.pixelatedData.width - 1);
+                    const srcY = Math.min(Math.floor(y * pixelSize), this.pixelatedData.height - 1);
+                    const srcIndex = (srcY * this.pixelatedData.width + srcX) * 4;
+                    const dstIndex = (y * perlerWidth + x) * 4;
+                    
+                    processedData.data[dstIndex] = this.pixelatedData.data[srcIndex];
+                    processedData.data[dstIndex + 1] = this.pixelatedData.data[srcIndex + 1];
+                    processedData.data[dstIndex + 2] = this.pixelatedData.data[srcIndex + 2];
+                    processedData.data[dstIndex + 3] = this.pixelatedData.data[srcIndex + 3];
+                }
+            }
+        }
         
         this.colorCounts = {};
         this.perlerColors = [];
