@@ -9,6 +9,13 @@ class PixelArtGenerator {
         this.currentSort = 'count-desc';
         this.excludedColors = new Set();
         this.pixelatedData = null;
+        this.unifiedSnapshots = [];
+        
+        // 导出计数器
+        this.exportCounter = {
+            pixelated: 0,
+            perler: 0
+        };
         
         this.initElements();
         this.initEventListeners();
@@ -126,9 +133,13 @@ class PixelArtGenerator {
         this.snapshotsList = document.getElementById('snapshotsList');
         this.snapshotsContainer = document.getElementById('snapshotsContainer');
         
+        // 悬浮快照按钮和面板
+        this.snapshotFloatBtn = document.getElementById('snapshotFloatBtn');
+        this.snapshotPanel = document.getElementById('snapshotPanel');
+        this.closeSnapshotPanel = document.getElementById('closeSnapshotPanel');
+        
         this.customEditData = null;
         this.customEditHistory = [];
-        this.customEditSnapshots = [];
         this.lastPerlerSignature = null;
         this.currentEditTool = 'brush';
         this.isDrawing = false;
@@ -438,7 +449,26 @@ class PixelArtGenerator {
         
         this.applyCustomEditBtn.addEventListener('click', () => this.applyCustomEdit());
         this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
-        this.saveSnapshotBtn.addEventListener('click', () => this.saveCustomEditSnapshot());
+        this.saveSnapshotBtn.addEventListener('click', () => this.saveUnifiedSnapshot('custom'));
+        
+        // 悬浮快照面板事件
+        this.snapshotFloatBtn.addEventListener('click', () => {
+            this.toggleSnapshotPanel();
+        });
+        
+        this.closeSnapshotPanel.addEventListener('click', () => {
+            this.closePanel();
+        });
+        
+        // 点击面板外部关闭
+        document.addEventListener('click', (e) => {
+            if (this.snapshotPanel.classList.contains('show') && 
+                !this.snapshotPanel.contains(e.target) && 
+                e.target !== this.snapshotFloatBtn && 
+                !this.snapshotFloatBtn.contains(e.target)) {
+                this.closePanel();
+            }
+        });
         
         this.colorConvertSourceColor.addEventListener('input', () => {
             this.colorConvertSourceColorValue.textContent = this.colorConvertSourceColor.value;
@@ -580,7 +610,14 @@ class PixelArtGenerator {
         this.beadSizeValue.textContent = '24px';
         
         this.lastPerlerSignature = null;
-        this.customEditSnapshots = [];
+        this.unifiedSnapshots = [];
+        
+        // 重置导出计数器
+        this.exportCounter = {
+            pixelated: 0,
+            perler: 0
+        };
+        
         if (this.snapshotsContainer) {
             this.snapshotsContainer.innerHTML = '';
         }
@@ -1630,7 +1667,7 @@ class PixelArtGenerator {
         this.pixelColorStats = [];
         this.excludedColors.clear();
         this.lastPerlerSignature = null;
-        this.customEditSnapshots = [];
+        this.unifiedSnapshots = [];
         this.customEditData = null;
         this.customEditHistory = [];
         if (this.snapshotsContainer) {
@@ -1671,8 +1708,43 @@ class PixelArtGenerator {
     }
 
     downloadImage() {
+        this.exportCounter.pixelated++;
+        
+        let fileName = 'pixelated-image';
+        if (this.exportCounter.pixelated > 1) {
+            fileName += `_(${this.exportCounter.pixelated})`;
+        }
+        
+        // 添加处理信息到文件名
+        const pixelSize = this.pixelSizeSlider.value;
+        const method = this.pixelMethod.value;
+        const methodMap = {
+            'average': 'avg',
+            'majority': 'major',
+            'pixel-art': 'pixel-art',
+            'quantized': 'quant'
+        };
+        const methodName = methodMap[method] || method;
+        
+        fileName += `_${methodName}_px${pixelSize}`;
+        
+        if (this.enableContrast.checked) {
+            const contrast = parseFloat(this.contrastSlider.value).toFixed(1);
+            fileName += `_c${contrast}`;
+        }
+        if (this.enableSharpen.checked) {
+            const sharpen = parseFloat(this.sharpenSlider.value).toFixed(1);
+            fileName += `_s${sharpen}`;
+        }
+        if (this.enableColorQuantize.checked) {
+            const colorCount = this.colorCountSlider.value;
+            fileName += `_q${colorCount}`;
+        }
+        
+        fileName += '.png';
+        
         const link = document.createElement('a');
-        link.download = 'pixelated-image.png';
+        link.download = fileName;
         link.href = this.pixelatedCanvas.toDataURL('image/png');
         link.click();
     }
@@ -1839,16 +1911,26 @@ class PixelArtGenerator {
         
         const link = document.createElement('a');
         
+        // 增加导出计数器
+        this.exportCounter.perler++;
+        
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
         
         const i18nFileName = i18n[getCurrentLang()].fileName;
         let fileName = `${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
+        
+        // 添加导出编号
+        if (this.exportCounter.perler > 1) {
+            fileName += `_(${this.exportCounter.perler})`;
+        }
+        
         if (chartStyle === 'bw') fileName += `_${i18nFileName.bw}`;
         if (chartStyle === 'color-with-code') fileName += `_${i18nFileName.withCode}`;
         if (beadShape === 'circle') fileName += `_${i18nFileName.circle}`;
         if (position === 'right') fileName += `_${i18nFileName.legendRight}`;
         if (scale !== 1) fileName += `_${scale}x`;
+        
         fileName += '.png';
         
         link.download = fileName;
@@ -2251,7 +2333,7 @@ class PixelArtGenerator {
             }
         }
         
-        this.saveCustomEditSnapshot();
+        this.saveUnifiedSnapshot('custom');
         
         this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
         this.drawColorLegend();
@@ -2764,71 +2846,228 @@ class PixelArtGenerator {
     }
 
     confirmOptimization() {
+        const acceptedCount = this.acceptedSuggestions.size;
+        const description = acceptedCount > 0 
+            ? `替换了 ${acceptedCount} 个颜色` 
+            : '未做任何修改';
+        
+        this.saveUnifiedSnapshot('smart', description);
         this.closeSmartOptimizeModal(false);
     }
     
-    saveCustomEditSnapshot() {
-        if (!this.customEditData) return;
+    saveUnifiedSnapshot(type, description = '') {
+        let perlerColors;
+        if (type === 'custom' && this.customEditData) {
+            perlerColors = this.customEditData;
+        } else if (this.perlerColors) {
+            perlerColors = this.perlerColors;
+        } else {
+            return;
+        }
+
+        // 检查和上一个同类型快照是否一致，如果一致就不保存
+        const lastSnapshotOfType = this.unifiedSnapshots
+            .slice()
+            .reverse()
+            .find(s => s.type === type);
         
-        const snapshotId = Date.now();
-        const timestamp = new Date().toLocaleTimeString();
-        this.customEditSnapshots.push({
-            id: snapshotId,
-            timestamp,
-            data: this.customEditData.map(row => [...row])
-        });
-        
-        if (this.customEditSnapshots.length > 20) {
-            this.customEditSnapshots.shift();
+        if (lastSnapshotOfType) {
+            let isEqual = true;
+            // 比较颜色矩阵是否完全一致
+            for (let y = 0; y < perlerColors.length; y++) {
+                for (let x = 0; x < perlerColors[y].length; x++) {
+                    const c1 = perlerColors[y][x];
+                    const c2 = lastSnapshotOfType.data[y][x];
+                    
+                    if ((c1.isTransparent !== c2.isTransparent) ||
+                        (c1.name !== c2.name) ||
+                        (JSON.stringify(c1.rgb) !== JSON.stringify(c2.rgb))) {
+                        isEqual = false;
+                        break;
+                    }
+                }
+                if (!isEqual) break;
+            }
+            
+            if (isEqual) {
+                // 数据一致，不保存新快照
+                return;
+            }
         }
         
-        this.renderSnapshotsList();
-        this.snapshotsList.style.display = 'block';
+        const snapshotId = Date.now();
+        const timestamp = new Date().toLocaleString();
+        
+        // 计算颜色数量和总拼豆数
+        const colorCounts = {};
+        let totalBeans = 0;
+        perlerColors.forEach(row => {
+            row.forEach(color => {
+                if (!color.isTransparent) {
+                    const name = color.name || 'unknown';
+                    colorCounts[name] = (colorCounts[name] || 0) + 1;
+                    totalBeans++;
+                }
+            });
+        });
+        const colorCount = Object.keys(colorCounts).length;
+        
+        // 计算与上一个快照的变化量
+        let colorChange = null;
+        let beansChange = null;
+        if (this.unifiedSnapshots.length > 0) {
+            const lastSnapshot = this.unifiedSnapshots[this.unifiedSnapshots.length - 1];
+            colorChange = colorCount - lastSnapshot.colorCount;
+            beansChange = totalBeans - lastSnapshot.totalBeans;
+        }
+        
+        this.unifiedSnapshots.push({
+            id: snapshotId,
+            type,
+            timestamp,
+            colorCount,
+            totalBeans,
+            colorChange,
+            beansChange,
+            description,
+            data: perlerColors.map(row => [...row])
+        });
+        
+        if (this.unifiedSnapshots.length > 50) {
+            this.unifiedSnapshots.shift();
+        }
+        
+        this.renderUnifiedSnapshotsList();
+        if (this.snapshotsList) {
+            this.snapshotsList.style.display = 'block';
+        }
     }
     
-    renderSnapshotsList() {
+    renderUnifiedSnapshotsList() {
+        if (!this.snapshotsContainer) return;
+        
         this.snapshotsContainer.innerHTML = '';
         
-        this.customEditSnapshots.forEach((snapshot, index) => {
+        if (this.unifiedSnapshots.length === 0) {
+            this.snapshotsContainer.innerHTML = `
+                <div style="text-align: center; color: #999; padding: 40px 20px;">
+                    暂无操作历史
+                </div>
+            `;
+            return;
+        }
+        
+        // 按倒序显示（最新的在最上面）
+        const reversedSnapshots = [...this.unifiedSnapshots].reverse();
+        
+        reversedSnapshots.forEach((snapshot, index) => {
+            const realIndex = this.unifiedSnapshots.length - 1 - index;
             const item = document.createElement('div');
-            item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; margin-bottom: 4px; background: white; border-radius: 4px; border: 1px solid #ddd; cursor: pointer;';
+            item.className = 'snapshot-item';
+            
+            const typeIcon = snapshot.type === 'custom' ? '🎨' : '🔧';
+            const typeText = snapshot.type === 'custom' ? '自定义' : '智能优化';
+            
+            const colorChangeClass = snapshot.colorChange > 0 ? 'change-negative' : 'change-positive';
+            const beansChangeClass = snapshot.beansChange > 0 ? 'change-negative' : 'change-positive';
+            
+            const colorChangeText = snapshot.colorChange !== null 
+                ? `<span class="${colorChangeClass}">${snapshot.colorChange > 0 ? `+${snapshot.colorChange}` : snapshot.colorChange}</span>` 
+                : '';
+            const beansChangeText = snapshot.beansChange !== null 
+                ? `<span class="${beansChangeClass}">${snapshot.beansChange > 0 ? `+${snapshot.beansChange}` : snapshot.beansChange}</span>` 
+                : '';
+            
+            const descText = snapshot.description ? `<div class="snapshot-item-desc">${snapshot.description}</div>` : '';
+            
             item.innerHTML = `
-                <span style="color: #333;">快照 ${index + 1} (${snapshot.timestamp})</span>
-                <div>
-                    <button class="btn btn-primary" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" data-snapshot-id="${snapshot.id}" data-action="restore">恢复</button>
-                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" data-snapshot-id="${snapshot.id}" data-action="delete">删除</button>
+                <div class="snapshot-item-info">
+                    <div class="snapshot-item-title">
+                        ${typeIcon} ${typeText} ${realIndex + 1}
+                    </div>
+                    <div class="snapshot-item-meta">
+                        ${snapshot.timestamp}
+                    </div>
+                    <div class="snapshot-item-meta">
+                        颜色: ${snapshot.colorCount}${colorChangeText ? ` (${colorChangeText})` : ''} | 
+                        拼豆: ${snapshot.totalBeans}${beansChangeText ? ` (${beansChangeText})` : ''}
+                    </div>
+                    ${descText}
+                </div>
+                <div class="snapshot-item-actions">
+                    <button class="btn btn-primary" data-snapshot-id="${snapshot.id}" data-action="restore">恢复</button>
+                    <button class="btn btn-secondary" data-snapshot-id="${snapshot.id}" data-action="delete">删除</button>
                 </div>
             `;
             
             item.querySelector('[data-action="restore"]').addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.restoreCustomEditSnapshot(snapshot.id);
+                this.restoreUnifiedSnapshot(snapshot.id);
             });
             
             item.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.deleteCustomEditSnapshot(snapshot.id);
+                this.deleteUnifiedSnapshot(snapshot.id);
             });
             
             this.snapshotsContainer.appendChild(item);
         });
     }
     
-    restoreCustomEditSnapshot(snapshotId) {
-        const snapshot = this.customEditSnapshots.find(s => s.id === snapshotId);
-        if (snapshot) {
-            this.customEditData = snapshot.data.map(row => [...row]);
-            this.customEditHistory = [this.customEditData.map(row => [...row])];
+    toggleSnapshotPanel() {
+        if (this.snapshotPanel.classList.contains('show')) {
+            this.closePanel();
+        } else {
+            this.snapshotPanel.classList.add('show');
+            this.renderUnifiedSnapshotsList();
+        }
+    }
+    
+    closePanel() {
+        this.snapshotPanel.classList.remove('show');
+    }
+    
+    restoreUnifiedSnapshot(snapshotId) {
+        const snapshot = this.unifiedSnapshots.find(s => s.id === snapshotId);
+        if (!snapshot) return;
+        
+        // 恢复拼豆颜色
+        this.perlerColors = snapshot.data.map(row => [...row]);
+        
+        // 无论是否在拼豆模式，都同步更新 customEditData 和 customEditHistory
+        this.customEditData = this.perlerColors.map(row => [...row]);
+        this.customEditHistory = [this.customEditData.map(row => [...row])];
+        
+        // 重新计算 colorCounts
+        this.colorCounts = {};
+        this.perlerColors.forEach(row => {
+            row.forEach(color => {
+                if (!color.isTransparent && color.name) {
+                    if (this.colorCounts[color.name]) {
+                        this.colorCounts[color.name]++;
+                    } else {
+                        this.colorCounts[color.name] = 1;
+                    }
+                }
+            });
+        });
+        
+        // 重新绘制
+        this.refreshPerlerChartDisplay();
+        this.updateColorUsageList();
+        
+        // 绘制自定义画布
+        if (this.customEditCanvas) {
             this.drawCustomEditCanvas();
         }
     }
     
-    deleteCustomEditSnapshot(snapshotId) {
-        this.customEditSnapshots = this.customEditSnapshots.filter(s => s.id !== snapshotId);
-        if (this.customEditSnapshots.length === 0) {
+    deleteUnifiedSnapshot(snapshotId) {
+        this.unifiedSnapshots = this.unifiedSnapshots.filter(s => s.id !== snapshotId);
+        if (this.unifiedSnapshots.length === 0 && this.snapshotsList) {
             this.snapshotsList.style.display = 'none';
         }
-        this.renderSnapshotsList();
+        this.renderUnifiedSnapshotsList();
     }
 }
 
