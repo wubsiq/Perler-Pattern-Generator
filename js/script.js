@@ -963,10 +963,12 @@ class PixelArtGenerator {
         
         const columns = Math.min(4, Math.ceil(colorNames.length / 15));
         const itemsPerColumn = Math.ceil(colorNames.length / columns);
-        const columnWidth = 180;
+        const columnWidth = 200;
+        const rectWidth = 150;
+        const rectHeight = 28;
         
         legendCanvas.width = columns * columnWidth + 20;
-        legendCanvas.height = 70 + itemsPerColumn * 25;
+        legendCanvas.height = 70 + itemsPerColumn * (rectHeight + 5);
         legendCtx.fillStyle = '#ffffff';
         legendCtx.fillRect(0, 0, legendCanvas.width, legendCanvas.height);
         
@@ -978,7 +980,6 @@ class PixelArtGenerator {
         legendCtx.fillStyle = '#667eea';
         legendCtx.fillText(`总计: ${totalBeans} 颗拼豆`, 10, 45);
         
-        legendCtx.font = '12px sans-serif';
         let col = 0, row = 0;
         
         for (const name of colorNames) {
@@ -988,17 +989,24 @@ class PixelArtGenerator {
             const color = colorSet.find(c => c.name === name);
             
             const x = 10 + col * columnWidth;
-            const y = 65 + row * 25;
+            const y = 65 + row * (rectHeight + 5);
             
             if (color) {
                 legendCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
-                legendCtx.fillRect(x, y - 10, 20, 20);
+                legendCtx.fillRect(x, y, rectWidth, rectHeight);
                 legendCtx.strokeStyle = '#999';
-                legendCtx.strokeRect(x, y - 10, 20, 20);
+                legendCtx.strokeRect(x, y, rectWidth, rectHeight);
+                
+                const r = color.rgb[0], g = color.rgb[1], b = color.rgb[2];
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                legendCtx.fillStyle = luminance > 0.5 ? '#000' : '#fff';
+                legendCtx.font = 'bold 12px sans-serif';
+                legendCtx.textAlign = 'center';
+                legendCtx.textBaseline = 'middle';
+                legendCtx.fillText(`${name} x ${count}`, x + rectWidth / 2, y + rectHeight / 2);
+                legendCtx.textAlign = 'left';
+                legendCtx.textBaseline = 'alphabetic';
             }
-            
-            legendCtx.fillStyle = '#333';
-            legendCtx.fillText(`${name} (${count})`, x + 30, y);
             
             row++;
             if (row >= itemsPerColumn) {
