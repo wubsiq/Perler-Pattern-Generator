@@ -520,10 +520,23 @@
                     </div>
                     <div class="control-group">
                         <label>
-                            <span>融合相似度：</span>
+                            <span>近似色融合相似度：</span>
                             <span id="colorMergeThresholdValue">90%</span>
                         </label>
                         <input type="range" id="colorMergeThresholdSlider" min="50" max="100" value="90">
+                    </div>
+                    <div class="control-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableEdgeColorMerge" checked>
+                            <span>边缘色融合</span>
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <label>
+                            <span>边缘色融合相似度：</span>
+                            <span id="edgeColorThresholdValue">85%</span>
+                        </label>
+                        <input type="range" id="edgeColorThresholdSlider" min="50" max="100" value="85">
                     </div>
                 </div>
                 <div class="smart-optimize-container">

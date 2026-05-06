@@ -157,6 +157,10 @@ class PixelArtGenerator {
         this.enableColorMerge = document.getElementById('enableColorMerge');
         this.colorMergeThresholdSlider = document.getElementById('colorMergeThresholdSlider');
         this.colorMergeThresholdValue = document.getElementById('colorMergeThresholdValue');
+        this.enableEdgeColorMerge = document.getElementById('enableEdgeColorMerge');
+        this.edgeColorThresholdSlider = document.getElementById('edgeColorThresholdSlider');
+        this.edgeColorThresholdValue = document.getElementById('edgeColorThresholdValue');
+        this.regenerateDebounceTimer = null;
         
         this.pixelatedZoomSlider = document.getElementById('pixelatedZoomSlider');
         this.pixelatedZoomValue = document.getElementById('pixelatedZoomValue');
@@ -510,11 +514,16 @@ class PixelArtGenerator {
         this.applyAllBtn.addEventListener('click', () => this.acceptAllSuggestions());
         this.confirmBtn.addEventListener('click', () => this.confirmOptimization());
         
-        this.enableColorMerge.addEventListener('change', () => this.regenerateSuggestions());
+        this.enableColorMerge.addEventListener('change', () => this.debouncedRegenerateSuggestions());
         this.colorMergeThresholdSlider.addEventListener('input', () => {
             this.colorMergeThresholdValue.textContent = this.colorMergeThresholdSlider.value + '%';
+            this.debouncedRegenerateSuggestions();
         });
-        this.colorMergeThresholdSlider.addEventListener('change', () => this.regenerateSuggestions());
+        this.enableEdgeColorMerge.addEventListener('change', () => this.debouncedRegenerateSuggestions());
+        this.edgeColorThresholdSlider.addEventListener('input', () => {
+            this.edgeColorThresholdValue.textContent = this.edgeColorThresholdSlider.value + '%';
+            this.debouncedRegenerateSuggestions();
+        });
         
         this.pixelatedZoomSlider.addEventListener('input', () => {
             const zoom = this.pixelatedZoomSlider.value;
@@ -2364,6 +2373,9 @@ class PixelArtGenerator {
     }
     
     regenerateSuggestions() {
+        // 先恢复原始颜色
+        this.perlerColors = this.originalPerlerColors.map(row => [...row]);
+        
         this.colorSuggestions = this.generateColorSuggestions();
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
@@ -2378,6 +2390,15 @@ class PixelArtGenerator {
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
         this.drawOptimizationPreview();
+    }
+    
+    debouncedRegenerateSuggestions() {
+        if (this.regenerateDebounceTimer) {
+            clearTimeout(this.regenerateDebounceTimer);
+        }
+        this.regenerateDebounceTimer = setTimeout(() => {
+            this.regenerateSuggestions();
+        }, 300); // 300ms 防抖延迟
     }
     
     drawOptimizationPreview() {
@@ -2448,15 +2469,17 @@ class PixelArtGenerator {
         const suggestions = [];
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
-        const mappingMethod = this.colorMappingMethod.value;
         const enableMerge = this.enableColorMerge.checked;
         const mergeThreshold = parseInt(this.colorMergeThresholdSlider.value);
+        const enableEdgeColorMerge = this.enableEdgeColorMerge.checked;
+        const edgeColorThreshold = parseInt(this.edgeColorThresholdSlider.value);
         
         console.log('[智能优化] 开始生成建议');
         console.log('[智能优化] 颜色集:', colorSetName);
-        console.log('[智能优化] 映射方法:', mappingMethod);
         console.log('[智能优化] 近似色融合:', enableMerge);
-        console.log('[智能优化] 融合相似度:', mergeThreshold);
+        console.log('[智能优化] 近似色融合相似度:', mergeThreshold);
+        console.log('[智能优化] 边缘色融合:', enableEdgeColorMerge);
+        console.log('[智能优化] 边缘色融合相似度:', edgeColorThreshold);
         
         const colorUsage = new Map();
         for (let y = 0; y < this.perlerHeight; y++) {
@@ -2491,6 +2514,14 @@ class PixelArtGenerator {
         
         const processedColors = new Set(suggestions.map(s => s.originalColor.name));
         
+        // 计算边缘色阈值 - 使用和近似色融合相同的计算方式
+        // 范围：0-约441，50% -> 220.5，100% -> 0
+        const edgeEffectiveThreshold = ((100 - edgeColorThreshold) / 100) * (255 * 3);
+        // 非边缘色使用固定阈值，对应大约 85% 的相似度
+        const normalEffectiveThreshold = ((100 - 85) / 100) * (255 * 3);
+        
+        console.log('[智能优化] 边缘色融合阈值:', edgeEffectiveThreshold, ', 非边缘色阈值:', normalEffectiveThreshold);
+        
         for (const [colorName, count] of colorsByUsage) {
             if (processedColors.has(colorName)) continue;
             
@@ -2508,24 +2539,31 @@ class PixelArtGenerator {
             
             const isEdgeColor = this.isColorOnEdge(colorName);
             
+            // 如果是边缘色但禁用了边缘色融合，则跳过
+            if (isEdgeColor && !enableEdgeColorMerge) {
+                console.log(`[智能优化] 跳过 ${colorName}: 是边缘色但边缘色融合被禁用`);
+                continue;
+            }
+            
             let bestReplacement = null;
             let minDistance = Infinity;
             
             for (const candidate of highUsageColors) {
                 if (candidate.name === colorName) continue;
                 
-                const distance = calculateColorDistance(originalColor.rgb, candidate.rgb, mappingMethod);
+                // 使用和近似色融合一样的距离计算方式
+                const distance = this.getRgbDistance(originalColor.rgb, candidate.rgb);
                 if (distance < minDistance) {
                     minDistance = distance;
                     bestReplacement = candidate;
                 }
             }
             
-            const effectiveThreshold = 80;
+            const effectiveThreshold = isEdgeColor ? edgeEffectiveThreshold : normalEffectiveThreshold;
             
-            console.log(`[智能优化] ${colorName} -> 最佳替换: ${bestReplacement ? bestReplacement.name : '无'}, 距离: ${minDistance}, 阈值: ${effectiveThreshold}`);
+            console.log(`[智能优化] ${colorName} -> 最佳替换: ${bestReplacement ? bestReplacement.name : '无'}, 距离: ${minDistance}, 阈值: ${effectiveThreshold}, 边缘色: ${isEdgeColor}`);
             
-            if (bestReplacement && minDistance < effectiveThreshold) {
+            if (bestReplacement && minDistance <= effectiveThreshold) {
                 suggestions.push({
                     id: suggestions.length,
                     originalColor,
