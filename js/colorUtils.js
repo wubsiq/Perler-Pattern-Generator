@@ -400,38 +400,47 @@ function calculateColorDistance(rgb1, rgb2, method = 'cie2000') {
     }
 }
 
-function pixelate(imageData, blockSize) {
+function pixelate(imageData, blockSize, offsetX = 0, offsetY = 0) {
     const width = imageData.width;
     const height = imageData.height;
     const newData = new ImageData(width, height);
 
-    for (let y = 0; y < height; y += blockSize) {
-        for (let x = 0; x < width; x += blockSize) {
+    const startX = -offsetX;
+    const startY = -offsetY;
+
+    for (let y = startY; y < height; y += blockSize) {
+        for (let x = startX; x < width; x += blockSize) {
             let r = 0, g = 0, b = 0, a = 0, count = 0;
 
             for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
                 for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    const index = ((y + dy) * width + (x + dx)) * 4;
-                    r += imageData.data[index];
-                    g += imageData.data[index + 1];
-                    b += imageData.data[index + 2];
-                    a += imageData.data[index + 3];
-                    count++;
+                    if (y + dy >= 0 && x + dx >= 0) {
+                        const index = ((y + dy) * width + (x + dx)) * 4;
+                        r += imageData.data[index];
+                        g += imageData.data[index + 1];
+                        b += imageData.data[index + 2];
+                        a += imageData.data[index + 3];
+                        count++;
+                    }
                 }
             }
 
-            r = Math.round(r / count);
-            g = Math.round(g / count);
-            b = Math.round(b / count);
-            a = Math.round(a / count);
+            if (count > 0) {
+                r = Math.round(r / count);
+                g = Math.round(g / count);
+                b = Math.round(b / count);
+                a = Math.round(a / count);
 
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    const index = ((y + dy) * width + (x + dx)) * 4;
-                    newData.data[index] = r;
-                    newData.data[index + 1] = g;
-                    newData.data[index + 2] = b;
-                    newData.data[index + 3] = a;
+                for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
+                    for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
+                        if (y + dy >= 0 && x + dx >= 0) {
+                            const index = ((y + dy) * width + (x + dx)) * 4;
+                            newData.data[index] = r;
+                            newData.data[index + 1] = g;
+                            newData.data[index + 2] = b;
+                            newData.data[index + 3] = a;
+                        }
+                    }
                 }
             }
         }
@@ -440,48 +449,57 @@ function pixelate(imageData, blockSize) {
     return newData;
 }
 
-function pixelateMajority(imageData, blockSize) {
+function pixelateMajority(imageData, blockSize, offsetX = 0, offsetY = 0) {
     const width = imageData.width;
     const height = imageData.height;
     const newData = new ImageData(width, height);
 
-    for (let y = 0; y < height; y += blockSize) {
-        for (let x = 0; x < width; x += blockSize) {
+    const startX = -offsetX;
+    const startY = -offsetY;
+
+    for (let y = startY; y < height; y += blockSize) {
+        for (let x = startX; x < width; x += blockSize) {
             const colorCounts = {};
             let maxCount = 0;
             let dominantColor = { r: 0, g: 0, b: 0, a: 255 };
 
             for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
                 for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    const index = ((y + dy) * width + (x + dx)) * 4;
-                    const r = imageData.data[index];
-                    const g = imageData.data[index + 1];
-                    const b = imageData.data[index + 2];
-                    const a = imageData.data[index + 3];
+                    if (y + dy >= 0 && x + dx >= 0) {
+                        const index = ((y + dy) * width + (x + dx)) * 4;
+                        const r = imageData.data[index];
+                        const g = imageData.data[index + 1];
+                        const b = imageData.data[index + 2];
+                        const a = imageData.data[index + 3];
 
-                    // 使用RGB字符串作为键
-                    const key = `${r},${g},${b},${a}`;
-                    if (!colorCounts[key]) {
-                        colorCounts[key] = { count: 0, r, g, b, a };
-                    }
-                    colorCounts[key].count++;
+                        // 使用RGB字符串作为键
+                        const key = `${r},${g},${b},${a}`;
+                        if (!colorCounts[key]) {
+                            colorCounts[key] = { count: 0, r, g, b, a };
+                        }
+                        colorCounts[key].count++;
 
-                    // 更新主要颜色
-                    if (colorCounts[key].count > maxCount) {
-                        maxCount = colorCounts[key].count;
-                        dominantColor = colorCounts[key];
+                        // 更新主要颜色
+                        if (colorCounts[key].count > maxCount) {
+                            maxCount = colorCounts[key].count;
+                            dominantColor = colorCounts[key];
+                        }
                     }
                 }
             }
 
-            // 填充整个块为主要颜色
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    const index = ((y + dy) * width + (x + dx)) * 4;
-                    newData.data[index] = dominantColor.r;
-                    newData.data[index + 1] = dominantColor.g;
-                    newData.data[index + 2] = dominantColor.b;
-                    newData.data[index + 3] = dominantColor.a;
+            if (maxCount > 0) {
+                // 填充整个块为主要颜色
+                for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
+                    for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
+                        if (y + dy >= 0 && x + dx >= 0) {
+                            const index = ((y + dy) * width + (x + dx)) * 4;
+                            newData.data[index] = dominantColor.r;
+                            newData.data[index + 1] = dominantColor.g;
+                            newData.data[index + 2] = dominantColor.b;
+                            newData.data[index + 3] = dominantColor.a;
+                        }
+                    }
                 }
             }
         }
@@ -490,24 +508,28 @@ function pixelateMajority(imageData, blockSize) {
     return newData;
 }
 
-function pixelArtPixelate(imageData, blockSize) {
+function pixelArtPixelate(imageData, blockSize, offsetX = 0, offsetY = 0) {
     const width = imageData.width;
     const height = imageData.height;
     
-    const smallWidth = Math.ceil(width / blockSize);
-    const smallHeight = Math.ceil(height / blockSize);
+    const startX = -offsetX;
+    const startY = -offsetY;
     
-    const smallData = new ImageData(smallWidth, smallHeight);
+    // 先计算需要多少个小块
+    const blocksX = Math.ceil((width + offsetX) / blockSize);
+    const blocksY = Math.ceil((height + offsetY) / blockSize);
     
-    for (let y = 0; y < smallHeight; y++) {
-        for (let x = 0; x < smallWidth; x++) {
+    const smallData = new ImageData(blocksX, blocksY);
+    
+    for (let y = 0; y < blocksY; y++) {
+        for (let x = 0; x < blocksX; x++) {
             let r = 0, g = 0, b = 0, a = 0, count = 0;
             
             for (let dy = 0; dy < blockSize; dy++) {
                 for (let dx = 0; dx < blockSize; dx++) {
-                    const srcX = x * blockSize + dx;
-                    const srcY = y * blockSize + dy;
-                    if (srcX < width && srcY < height) {
+                    const srcX = startX + x * blockSize + dx;
+                    const srcY = startY + y * blockSize + dy;
+                    if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
                         const index = (srcY * width + srcX) * 4;
                         r += imageData.data[index];
                         g += imageData.data[index + 1];
@@ -518,11 +540,13 @@ function pixelArtPixelate(imageData, blockSize) {
                 }
             }
             
-            const dstIndex = (y * smallWidth + x) * 4;
-            smallData.data[dstIndex] = Math.round(r / count);
-            smallData.data[dstIndex + 1] = Math.round(g / count);
-            smallData.data[dstIndex + 2] = Math.round(b / count);
-            smallData.data[dstIndex + 3] = Math.round(a / count);
+            if (count > 0) {
+                const dstIndex = (y * blocksX + x) * 4;
+                smallData.data[dstIndex] = Math.round(r / count);
+                smallData.data[dstIndex + 1] = Math.round(g / count);
+                smallData.data[dstIndex + 2] = Math.round(b / count);
+                smallData.data[dstIndex + 3] = Math.round(a / count);
+            }
         }
     }
     
@@ -531,14 +555,17 @@ function pixelArtPixelate(imageData, blockSize) {
     const resultData = new ImageData(width, height);
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const smallX = Math.floor(x / blockSize);
-            const smallY = Math.floor(y / blockSize);
-            const srcIndex = (smallY * smallWidth + smallX) * 4;
-            const dstIndex = (y * width + x) * 4;
-            resultData.data[dstIndex] = segmentedData.data[srcIndex];
-            resultData.data[dstIndex + 1] = segmentedData.data[srcIndex + 1];
-            resultData.data[dstIndex + 2] = segmentedData.data[srcIndex + 2];
-            resultData.data[dstIndex + 3] = segmentedData.data[srcIndex + 3];
+            // 计算当前像素属于哪个小块
+            const blockX = Math.floor((x + offsetX) / blockSize);
+            const blockY = Math.floor((y + offsetY) / blockSize);
+            if (blockX >= 0 && blockX < blocksX && blockY >= 0 && blockY < blocksY) {
+                const srcIndex = (blockY * blocksX + blockX) * 4;
+                const dstIndex = (y * width + x) * 4;
+                resultData.data[dstIndex] = segmentedData.data[srcIndex];
+                resultData.data[dstIndex + 1] = segmentedData.data[srcIndex + 1];
+                resultData.data[dstIndex + 2] = segmentedData.data[srcIndex + 2];
+                resultData.data[dstIndex + 3] = segmentedData.data[srcIndex + 3];
+            }
         }
     }
     
@@ -849,8 +876,8 @@ function findClosestInPalette(rgb, palette) {
     return closest;
 }
 
-function quantizedPixelate(imageData, blockSize, maxColors) {
-    let tempData = pixelate(imageData, blockSize);
+function quantizedPixelate(imageData, blockSize, maxColors, offsetX = 0, offsetY = 0) {
+    let tempData = pixelate(imageData, blockSize, offsetX, offsetY);
     
     const colors = [];
     const colorMap = new Map();

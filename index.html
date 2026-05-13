@@ -177,6 +177,32 @@
                             </label>
                             <input type="range" id="pixelSizeSlider" min="2" max="64" value="16">
                         </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showPixelGrid" checked>
+                                <span>显示像素划分线</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>像素划分线颜色：</span>
+                            </label>
+                            <input type="color" id="pixelGridColor" value="#ff0000">
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>X轴偏移：</span>
+                                <span id="pixelGridOffsetXValue">0px</span>
+                            </label>
+                            <input type="range" id="pixelGridOffsetX" min="0" max="63" value="0">
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>Y轴偏移：</span>
+                                <span id="pixelGridOffsetYValue">0px</span>
+                            </label>
+                            <input type="range" id="pixelGridOffsetY" min="0" max="63" value="0">
+                        </div>
                         <div class="control-group advanced-only" id="quantizedPixelControls">
                             <label>
                                 <span>目标颜色数量：</span>

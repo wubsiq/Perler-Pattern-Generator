@@ -113,6 +113,12 @@ class PixelArtGenerator {
         this.targetColorCountInput = document.getElementById('targetColorCountInput');
         this.quantizedPixelControls = document.getElementById('quantizedPixelControls');
         this.enableNeighborSmooth = document.getElementById('enableNeighborSmooth');
+        this.showPixelGrid = document.getElementById('showPixelGrid');
+        this.pixelGridColor = document.getElementById('pixelGridColor');
+        this.pixelGridOffsetX = document.getElementById('pixelGridOffsetX');
+        this.pixelGridOffsetY = document.getElementById('pixelGridOffsetY');
+        this.pixelGridOffsetXValue = document.getElementById('pixelGridOffsetXValue');
+        this.pixelGridOffsetYValue = document.getElementById('pixelGridOffsetYValue');
         
         this.customEditCanvas = document.getElementById('customEditCanvas');
         this.customEditCtx = this.customEditCanvas.getContext('2d', { willReadFrequently: true });
@@ -415,6 +421,36 @@ class PixelArtGenerator {
             }
         });
         
+        this.showPixelGrid.addEventListener('change', () => this.updatePixelatedImage());
+        
+        // 优化：直接修改网格线颜色，不需要重新计算像素化
+        this.pixelGridColor.addEventListener('input', () => this.updatePixelGridColor());
+        
+        // 像素划分线偏移调整 - 需要重新计算像素化
+        this.pixelGridOffsetX.addEventListener('input', () => {
+            this.pixelGridOffsetXValue.textContent = this.pixelGridOffsetX.value + 'px';
+            this.updatePixelatedImage();
+        });
+        this.pixelGridOffsetY.addEventListener('input', () => {
+            this.pixelGridOffsetYValue.textContent = this.pixelGridOffsetY.value + 'px';
+            this.updatePixelatedImage();
+        });
+        
+        // 像素块大小变化时，调整偏移滑块的最大值
+        this.pixelSizeSlider.addEventListener('input', () => {
+            const pixelSize = parseInt(this.pixelSizeSlider.value);
+            this.pixelGridOffsetX.max = pixelSize - 1;
+            this.pixelGridOffsetY.max = pixelSize - 1;
+            if (parseInt(this.pixelGridOffsetX.value) >= pixelSize) {
+                this.pixelGridOffsetX.value = 0;
+                this.pixelGridOffsetXValue.textContent = '0px';
+            }
+            if (parseInt(this.pixelGridOffsetY.value) >= pixelSize) {
+                this.pixelGridOffsetY.value = 0;
+                this.pixelGridOffsetYValue.textContent = '0px';
+            }
+        });
+        
         document.querySelectorAll('.edit-tool-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
@@ -617,6 +653,14 @@ class PixelArtGenerator {
         this.colorCountInput.value = 8;
         this.beadSizeSlider.value = 24;
         this.beadSizeValue.textContent = '24px';
+        this.showPixelGrid.checked = true;
+        this.pixelGridColor.value = '#ff0000';
+        this.pixelGridOffsetX.value = 0;
+        this.pixelGridOffsetY.value = 0;
+        this.pixelGridOffsetXValue.textContent = '0px';
+        this.pixelGridOffsetYValue.textContent = '0px';
+        this.pixelGridOffsetX.max = 15; // 16-1
+        this.pixelGridOffsetY.max = 15; // 16-1
         
         this.lastPerlerSignature = null;
         this.unifiedSnapshots = [];
@@ -655,17 +699,19 @@ class PixelArtGenerator {
         const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
         const pixelSize = parseInt(this.pixelSizeSlider.value);
         const method = this.pixelMethod.value;
+        const offsetX = parseInt(this.pixelGridOffsetX.value);
+        const offsetY = parseInt(this.pixelGridOffsetY.value);
         
         let pixelatedData;
         if (method === 'pixel-art') {
-            pixelatedData = pixelArtPixelate(imageData, pixelSize);
+            pixelatedData = pixelArtPixelate(imageData, pixelSize, offsetX, offsetY);
         } else if (method === 'quantized') {
             const targetColorCount = parseInt(this.targetColorCountSlider.value);
-            pixelatedData = quantizedPixelate(imageData, pixelSize, targetColorCount);
+            pixelatedData = quantizedPixelate(imageData, pixelSize, targetColorCount, offsetX, offsetY);
         } else if (method === 'majority') {
-            pixelatedData = pixelateMajority(imageData, pixelSize);
+            pixelatedData = pixelateMajority(imageData, pixelSize, offsetX, offsetY);
         } else {
-            pixelatedData = pixelate(imageData, pixelSize);
+            pixelatedData = pixelate(imageData, pixelSize, offsetX, offsetY);
         }
         
         if (this.enableContrast.checked) {
@@ -699,6 +745,34 @@ class PixelArtGenerator {
         this.pixelatedCanvas.height = targetHeight;
         this.pixelatedCtx.putImageData(pixelatedData, 0, 0);
         
+        // 绘制像素划分线
+        if (this.showPixelGrid.checked) {
+            const pixelSize = parseInt(this.pixelSizeSlider.value);
+            const offsetX = parseInt(this.pixelGridOffsetX.value);
+            const offsetY = parseInt(this.pixelGridOffsetY.value);
+            this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
+            this.pixelatedCtx.lineWidth = 1;
+            this.pixelatedCtx.beginPath();
+            
+            // 绘制垂直线
+            for (let x = offsetX; x < targetWidth; x += pixelSize) {
+                if (x > 0) { // 不画边界线
+                    this.pixelatedCtx.moveTo(x - 0.5, 0);
+                    this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+                }
+            }
+            
+            // 绘制水平线
+            for (let y = offsetY; y < targetHeight; y += pixelSize) {
+                if (y > 0) { // 不画边界线
+                    this.pixelatedCtx.moveTo(0, y - 0.5);
+                    this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+                }
+            }
+            
+            this.pixelatedCtx.stroke();
+        }
+        
         // 保存像素化结果，用于拼豆化
         this.pixelatedData = pixelatedData;
         
@@ -722,6 +796,49 @@ class PixelArtGenerator {
         this.pixelatedZoomValue.textContent = '100%';
         
         this.showPerlerPlaceholder();
+    }
+    
+    updatePixelGridColor() {
+        if (!this.pixelatedData) {
+            return;
+        }
+        
+        const targetWidth = this.pixelatedCanvasNaturalWidth;
+        const targetHeight = this.pixelatedCanvasNaturalHeight;
+        const pixelSize = parseInt(this.pixelSizeSlider.value);
+        const offsetX = parseInt(this.pixelGridOffsetX.value);
+        const offsetY = parseInt(this.pixelGridOffsetY.value);
+        
+        // 先恢复原始像素化数据
+        this.pixelatedCtx.putImageData(this.pixelatedData, 0, 0);
+        
+        // 如果不显示网格线，直接返回
+        if (!this.showPixelGrid.checked) {
+            return;
+        }
+        
+        // 再绘制新颜色的网格线
+        this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
+        this.pixelatedCtx.lineWidth = 1;
+        this.pixelatedCtx.beginPath();
+        
+        // 绘制垂直线
+        for (let x = offsetX; x < targetWidth; x += pixelSize) {
+            if (x > 0) { // 不画边界线
+                this.pixelatedCtx.moveTo(x - 0.5, 0);
+                this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+            }
+        }
+        
+        // 绘制水平线
+        for (let y = offsetY; y < targetHeight; y += pixelSize) {
+            if (y > 0) { // 不画边界线
+                this.pixelatedCtx.moveTo(0, y - 0.5);
+                this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+            }
+        }
+        
+        this.pixelatedCtx.stroke();
     }
 
     resetPerlerZoom() {
@@ -1757,9 +1874,16 @@ class PixelArtGenerator {
         
         fileName += '.png';
         
+        // 创建一个临时画布来下载不带网格线的图片
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = this.pixelatedCanvasNaturalWidth;
+        tempCanvas.height = this.pixelatedCanvasNaturalHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.putImageData(this.pixelatedData, 0, 0);
+        
         const link = document.createElement('a');
         link.download = fileName;
-        link.href = this.pixelatedCanvas.toDataURL('image/png');
+        link.href = tempCanvas.toDataURL('image/png');
         link.click();
     }
 
