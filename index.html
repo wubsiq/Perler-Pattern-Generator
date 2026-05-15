@@ -536,43 +536,78 @@
                 <h2 data-i18n="smartOptimizeTitle">🧠 智能颜色优化</h2>
                 <button id="closeModalBtn" class="close-btn">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="optimization-summary" id="optimizationSummary"></div>
-                <div class="optimization-settings">
-                    <div class="control-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="enableColorMerge" checked>
-                            <span>近似色融合</span>
-                        </label>
+            <div class="modal-body smart-optimize-three-column">
+                <!-- 左侧：设置和画笔工具 -->
+                <div class="left-panel">
+                    <div class="optimization-summary" id="optimizationSummary"></div>
+                    <div class="optimization-settings">
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableColorMerge" checked>
+                                <span>近似色融合</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>近似色融合相似度：</span>
+                                <span id="colorMergeThresholdValue">90%</span>
+                            </label>
+                            <input type="range" id="colorMergeThresholdSlider" min="50" max="100" value="90">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableEdgeColorMerge" checked>
+                                <span>边缘色融合</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>边缘色融合相似度：</span>
+                                <span id="edgeColorThresholdValue">85%</span>
+                            </label>
+                            <input type="range" id="edgeColorThresholdSlider" min="50" max="100" value="85">
+                        </div>
                     </div>
-                    <div class="control-group">
-                        <label>
-                            <span>近似色融合相似度：</span>
-                            <span id="colorMergeThresholdValue">90%</span>
-                        </label>
-                        <input type="range" id="colorMergeThresholdSlider" min="50" max="100" value="90">
-                    </div>
-                    <div class="control-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="enableEdgeColorMerge" checked>
-                            <span>边缘色融合</span>
-                        </label>
-                    </div>
-                    <div class="control-group">
-                        <label>
-                            <span>边缘色融合相似度：</span>
-                            <span id="edgeColorThresholdValue">85%</span>
-                        </label>
-                        <input type="range" id="edgeColorThresholdSlider" min="50" max="100" value="85">
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+                    <div class="brush-tool-panel">
+                        <h3>🖌️ 取消优化画笔</h3>
+                        <div class="control-group">
+                            <label>
+                                <span>画笔大小：</span>
+                                <span id="brushSizeValue">1</span>
+                            </label>
+                            <input type="range" id="brushSizeSlider" min="1" max="10" value="1">
+                        </div>
+                        <div class="control-group">
+                            <div class="brush-mode-buttons">
+                                <button id="brushModeErase" class="btn btn-primary active" style="flex: 1; margin-right: 5px;">擦除</button>
+                                <button id="brushModeRestore" class="btn btn-secondary" style="flex: 1; margin-left: 5px;">恢复</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <button id="clearErasedBlocks" class="btn btn-secondary" style="width: 100%;">清除所有标记</button>
+                        </div>
+                        <div class="control-group">
+                            <p style="font-size: 12px; color: #666; margin: 0;">
+                                <span style="color: #ff0000; font-weight: bold;">红色</span> = 将要优化<br>
+                                <span style="color: #00aa00; font-weight: bold;">绿色</span> = 取消优化
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <div class="smart-optimize-container">
-                    <div class="optimization-preview">
+                
+                <!-- 中间：预览图 -->
+                <div class="center-panel">
+                    <div class="optimization-preview-large">
                         <h3>预览效果</h3>
-                        <div class="preview-canvas-wrapper">
+                        <div class="preview-canvas-wrapper-large">
                             <canvas id="optimizationPreviewCanvas"></canvas>
                         </div>
                     </div>
+                </div>
+                
+                <!-- 右侧：优化列表 -->
+                <div class="right-panel">
                     <div class="suggestions-list" id="suggestionsList"></div>
                 </div>
             </div>

@@ -202,6 +202,19 @@ class PixelArtGenerator {
         this.rejectedSuggestions = new Set();
         this.originalPerlerColors = null;
         
+        // 画笔工具相关
+        this.brushSizeSlider = document.getElementById('brushSizeSlider');
+        this.brushSizeValue = document.getElementById('brushSizeValue');
+        this.brushModeErase = document.getElementById('brushModeErase');
+        this.brushModeRestore = document.getElementById('brushModeRestore');
+        this.clearErasedBlocksBtn = document.getElementById('clearErasedBlocks');
+        this.brushMode = 'erase'; // 'erase' 或 'restore'
+        this.erasedBlocks = new Set(); // 存储被取消优化的方块，格式 "x,y"
+        this.isDrawing = false;
+        this.optimizationCellSize = 0; // 预览图中每个格子的大小
+        this.optimizationCanvasWidth = 0;
+        this.optimizationCanvasHeight = 0;
+        
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
         
@@ -560,6 +573,31 @@ class PixelArtGenerator {
             this.edgeColorThresholdValue.textContent = this.edgeColorThresholdSlider.value + '%';
             this.debouncedRegenerateSuggestions();
         });
+        
+        // 画笔工具事件
+        this.brushSizeSlider.addEventListener('input', () => {
+            this.brushSizeValue.textContent = this.brushSizeSlider.value;
+        });
+        
+        this.brushModeErase.addEventListener('click', () => {
+            this.brushMode = 'erase';
+            this.brushModeErase.classList.add('active');
+            this.brushModeRestore.classList.remove('active');
+        });
+        
+        this.brushModeRestore.addEventListener('click', () => {
+            this.brushMode = 'restore';
+            this.brushModeRestore.classList.add('active');
+            this.brushModeErase.classList.remove('active');
+        });
+        
+        this.clearErasedBlocksBtn.addEventListener('click', () => {
+            this.erasedBlocks.clear();
+            this.drawOptimizationPreview();
+        });
+        
+        // 优化预览画布的鼠标事件
+        this.initOptimizationPreviewCanvasEvents();
         
         this.pixelatedZoomSlider.addEventListener('input', () => {
             const zoom = this.pixelatedZoomSlider.value;
@@ -2565,6 +2603,7 @@ class PixelArtGenerator {
         this.colorSuggestions = this.generateColorSuggestions();
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
+        this.erasedBlocks = new Set(); // 重置取消优化的方块
         
         for (let i = 0; i < this.colorSuggestions.length; i++) {
             if (this.colorSuggestions[i].isMerge) {
@@ -2579,6 +2618,92 @@ class PixelArtGenerator {
         this.smartOptimizeModal.style.display = 'flex';
     }
     
+    // 初始化优化预览画布的鼠标事件
+    initOptimizationPreviewCanvasEvents() {
+        const canvas = this.optimizationPreviewCanvas;
+        
+        // 鼠标按下
+        canvas.addEventListener('mousedown', (e) => {
+            this.isDrawing = true;
+            this.handleOptimizationDraw(e);
+        });
+        
+        // 鼠标移动
+        canvas.addEventListener('mousemove', (e) => {
+            if (this.isDrawing) {
+                this.handleOptimizationDraw(e);
+            }
+        });
+        
+        // 鼠标释放
+        canvas.addEventListener('mouseup', () => {
+            this.isDrawing = false;
+        });
+        
+        // 鼠标离开画布
+        canvas.addEventListener('mouseleave', () => {
+            this.isDrawing = false;
+        });
+        
+        // 触摸开始
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.isDrawing = true;
+            const touch = e.touches[0];
+            this.handleOptimizationDraw(touch);
+        });
+        
+        // 触摸移动
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (this.isDrawing) {
+                const touch = e.touches[0];
+                this.handleOptimizationDraw(touch);
+            }
+        });
+        
+        // 触摸结束
+        canvas.addEventListener('touchend', () => {
+            this.isDrawing = false;
+        });
+    }
+    
+    // 处理涂抹操作
+    handleOptimizationDraw(e) {
+        const rect = this.optimizationPreviewCanvas.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        const gridX = Math.floor(x / this.optimizationCellSize);
+        const gridY = Math.floor(y / this.optimizationCellSize);
+        
+        const brushSize = parseInt(this.brushSizeSlider.value);
+        
+        // 以点击位置为中心，涂抹周围的方块
+        for (let dy = -brushSize + 1; dy < brushSize; dy++) {
+            for (let dx = -brushSize + 1; dx < brushSize; dx++) {
+                const bx = gridX + dx;
+                const by = gridY + dy;
+                
+                if (bx >= 0 && bx < this.perlerWidth && by >= 0 && by < this.perlerHeight) {
+                    const key = `${bx},${by}`;
+                    
+                    if (this.brushMode === 'erase') {
+                        this.erasedBlocks.add(key);
+                    } else {
+                        this.erasedBlocks.delete(key);
+                    }
+                }
+            }
+        }
+        
+        this.drawOptimizationPreview();
+        this.renderSuggestionsList(); // 同步更新优化列表
+    }
+    
     regenerateSuggestions() {
         // 先恢复原始颜色
         this.perlerColors = this.originalPerlerColors.map(row => [...row]);
@@ -2586,6 +2711,7 @@ class PixelArtGenerator {
         this.colorSuggestions = this.generateColorSuggestions();
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
+        this.erasedBlocks.clear();
         
         for (let i = 0; i < this.colorSuggestions.length; i++) {
             if (this.colorSuggestions[i].isMerge) {
@@ -2609,9 +2735,10 @@ class PixelArtGenerator {
     }
     
     drawOptimizationPreview() {
+        // 更大的预览图，充分利用空间
         const cellSize = Math.min(
-            Math.floor(400 / Math.max(this.perlerWidth, this.perlerHeight)),
-            25
+            Math.floor(600 / Math.max(this.perlerWidth, this.perlerHeight)),
+            35
         );
         const canvasWidth = this.perlerWidth * cellSize;
         const canvasHeight = this.perlerHeight * cellSize;
@@ -2619,10 +2746,15 @@ class PixelArtGenerator {
         this.optimizationPreviewCanvas.width = canvasWidth;
         this.optimizationPreviewCanvas.height = canvasHeight;
         
+        this.optimizationCanvasWidth = canvasWidth;
+        this.optimizationCanvasHeight = canvasHeight;
+        this.optimizationCellSize = cellSize;
+        
         const ctx = this.optimizationPreviewCtx;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         
+        // 先确定哪些颜色会被替换
         const colorsToReplace = new Set();
         for (const idx of this.acceptedSuggestions) {
             const suggestion = this.colorSuggestions[idx];
@@ -2634,15 +2766,25 @@ class PixelArtGenerator {
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
                 const originalColor = this.originalPerlerColors[y][x];
-                let displayColor = originalColor;
+                const key = `${x},${y}`;
+                const isErased = this.erasedBlocks.has(key);
+                
+                let displayColor;
                 let willBeReplaced = false;
                 
-                for (const idx of this.acceptedSuggestions) {
-                    const suggestion = this.colorSuggestions[idx];
-                    if (suggestion && originalColor.name === suggestion.originalColor.name) {
-                        displayColor = suggestion.replacementColor;
-                        willBeReplaced = true;
-                        break;
+                if (isErased) {
+                    // 被取消优化的，显示原始颜色
+                    displayColor = originalColor;
+                } else {
+                    // 正常的优化逻辑
+                    displayColor = originalColor;
+                    for (const idx of this.acceptedSuggestions) {
+                        const suggestion = this.colorSuggestions[idx];
+                        if (suggestion && originalColor.name === suggestion.originalColor.name) {
+                            displayColor = suggestion.replacementColor;
+                            willBeReplaced = true;
+                            break;
+                        }
                     }
                 }
                 
@@ -2653,7 +2795,14 @@ class PixelArtGenerator {
                 }
                 ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
                 
-                if (willBeReplaced) {
+                // 根据状态显示边框
+                if (isErased) {
+                    // 绿色 = 取消优化
+                    ctx.strokeStyle = '#27ae60';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x * cellSize + 1, y * cellSize + 1, cellSize - 3, cellSize - 3);
+                } else if (willBeReplaced) {
+                    // 红色 = 要优化
                     ctx.strokeStyle = '#ff0000';
                     ctx.lineWidth = 2;
                     ctx.strokeRect(x * cellSize + 1, y * cellSize + 1, cellSize - 3, cellSize - 3);
@@ -2926,6 +3075,18 @@ class PixelArtGenerator {
         `;
     }
 
+    // 计算某个颜色被取消优化的方块数量
+    getErasedCountForColor(colorName) {
+        let count = 0;
+        for (const key of this.erasedBlocks) {
+            const [x, y] = key.split(',').map(Number);
+            if (this.originalPerlerColors[y][x].name === colorName) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
     renderSuggestionsList() {
         if (this.colorSuggestions.length === 0) {
             this.suggestionsList.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">没有可优化的建议</p>';
@@ -2937,6 +3098,8 @@ class PixelArtGenerator {
                              this.rejectedSuggestions.has(index) ? 'rejected' : '';
             const edgeIndicator = suggestion.isEdgeColor ? '🔍 边缘色' : '';
             const mergeIndicator = suggestion.isMerge ? '🔄 近似色融合' : '';
+            const erasedCount = this.getErasedCountForColor(suggestion.originalColor.name);
+            const erasedIndicator = erasedCount > 0 ? `<span style="margin-left: 10px; font-size: 0.85em; color: #27ae60;">🟢 ${erasedCount}个取消优化</span>` : '';
             
             return `
                 <div class="suggestion-item ${statusClass} ${suggestion.isMerge ? 'merge-suggestion' : ''}" data-index="${index}">
@@ -2949,9 +3112,11 @@ class PixelArtGenerator {
                             <span>${suggestion.replacementColor.name}</span>
                             ${mergeIndicator ? `<span style="margin-left: 10px; font-size: 0.85em; color: #667eea;">${mergeIndicator}</span>` : ''}
                             ${edgeIndicator ? `<span style="margin-left: 10px; font-size: 0.85em; color: #ff6b00;">${edgeIndicator}</span>` : ''}
+                            ${erasedIndicator}
                         </div>
                         <div class="suggestion-beans">
                             ${getI18nText('beansAffected')}: ${suggestion.beanCount} ${getI18nText('beans')}
+                            ${erasedCount > 0 ? ` <span style="color: #27ae60;">(其中${erasedCount}个已取消优化)</span>` : ''}
                         </div>
                     </div>
                     <div class="suggestion-actions">
@@ -3091,9 +3256,19 @@ class PixelArtGenerator {
     }
 
     confirmOptimization() {
+        // 恢复被取消优化的方块到原始颜色
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const key = `${x},${y}`;
+                if (this.erasedBlocks.has(key)) {
+                    this.perlerColors[y][x] = this.originalPerlerColors[y][x];
+                }
+            }
+        }
+        
         const acceptedCount = this.acceptedSuggestions.size;
         const description = acceptedCount > 0 
-            ? `替换了 ${acceptedCount} 个颜色` 
+            ? `替换了 ${acceptedCount} 个颜色（${this.erasedBlocks.size} 个方块保留原样）` 
             : '未做任何修改';
         
         this.saveUnifiedSnapshot('smart', description);
