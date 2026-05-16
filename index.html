@@ -288,7 +288,7 @@
                         <div id="perlerContent">
                             <div id="perlerChartArea">
                                 <div class="perler-chart-wrapper">
-                                    <div class="canvas-wrapper">
+                                    <div class="canvas-wrapper perler-canvas-wrapper">
                                         <canvas id="perlerCanvas"></canvas>
                                     </div>
                                     <p id="perlerSize" class="size-info"></p>
@@ -421,8 +421,11 @@
                 <div class="preview-left">
                     <div class="preview-panel">
                         <h3 data-i18n="customEdit">自定义编辑</h3>
-                        <div class="canvas-wrapper">
-                            <canvas id="customEditCanvas"></canvas>
+                        <div class="canvas-wrapper perler-canvas-wrapper">
+                            <div class="canvas-container" style="position: relative; display: inline-block;">
+                                <canvas id="customEditCanvas"></canvas>
+                                <div id="customEditBrushCursor" class="brush-cursor"></div>
+                            </div>
                         </div>
                         <p id="customEditInfo" class="size-info"></p>
                     </div>
@@ -534,7 +537,10 @@
         <div class="modal-content smart-optimize-modal">
             <div class="modal-header">
                 <h2 data-i18n="smartOptimizeTitle">🧠 智能颜色优化</h2>
-                <button id="closeModalBtn" class="close-btn">&times;</button>
+                <div class="header-actions">
+                    <button id="toggleFullscreenBtn" class="close-btn" title="全屏切换">🔍</button>
+                    <button id="closeModalBtn" class="close-btn">&times;</button>
+                </div>
             </div>
             <div class="modal-body smart-optimize-three-column">
                 <!-- 左侧：设置和画笔工具 -->
@@ -574,24 +580,28 @@
                         <div class="control-group">
                             <label>
                                 <span>画笔大小：</span>
-                                <span id="brushSizeValue">1</span>
+                                <span id="optimizeBrushSizeValue">1</span>
                             </label>
-                            <input type="range" id="brushSizeSlider" min="1" max="10" value="1">
+                            <input type="range" id="optimizeBrushSizeSlider" min="1" max="10" value="1">
                         </div>
                         <div class="control-group">
                             <div class="brush-mode-buttons">
-                                <button id="brushModeErase" class="btn btn-primary active" style="flex: 1; margin-right: 5px;">擦除</button>
-                                <button id="brushModeRestore" class="btn btn-secondary" style="flex: 1; margin-left: 5px;">恢复</button>
+                                <button id="brushModeErase" class="btn btn-primary active" style="flex: 1;">擦除</button>
+                                <button id="brushModeRestore" class="btn btn-secondary" style="flex: 1;">恢复</button>
+                                <button id="clearErasedBlocks" class="btn btn-secondary" style="flex: 1;">清除</button>
                             </div>
                         </div>
                         <div class="control-group">
-                            <button id="clearErasedBlocks" class="btn btn-secondary" style="width: 100%;">清除所有标记</button>
+                            <label>
+                                <span>将要优化颜色：</span>
+                                <input type="color" id="optimizeHighlightColor" value="#ff0000" style="width: 40px; height: 30px; vertical-align: middle;">
+                            </label>
                         </div>
                         <div class="control-group">
-                            <p style="font-size: 12px; color: #666; margin: 0;">
-                                <span style="color: #ff0000; font-weight: bold;">红色</span> = 将要优化<br>
-                                <span style="color: #00aa00; font-weight: bold;">绿色</span> = 取消优化
-                            </p>
+                            <label>
+                                <span>取消优化颜色：</span>
+                                <input type="color" id="optimizeErasedColor" value="#27ae60" style="width: 40px; height: 30px; vertical-align: middle;">
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -601,7 +611,10 @@
                     <div class="optimization-preview-large">
                         <h3>预览效果</h3>
                         <div class="preview-canvas-wrapper-large">
-                            <canvas id="optimizationPreviewCanvas"></canvas>
+                            <div class="canvas-container" style="position: relative; display: inline-block;">
+                                <canvas id="optimizationPreviewCanvas"></canvas>
+                                <div id="brushCursor" class="brush-cursor"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

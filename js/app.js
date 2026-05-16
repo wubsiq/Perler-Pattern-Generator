@@ -153,6 +153,8 @@ class PixelArtGenerator {
         this.smartOptimizeBtn = document.getElementById('smartOptimizeBtn');
         this.smartOptimizeModal = document.getElementById('smartOptimizeModal');
         this.closeModalBtn = document.getElementById('closeModalBtn');
+        this.toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+        this.isFullscreen = false;
         this.optimizationSummary = document.getElementById('optimizationSummary');
         this.suggestionsList = document.getElementById('suggestionsList');
         this.rejectAllBtn = document.getElementById('rejectAllBtn');
@@ -203,8 +205,8 @@ class PixelArtGenerator {
         this.originalPerlerColors = null;
         
         // 画笔工具相关
-        this.brushSizeSlider = document.getElementById('brushSizeSlider');
-        this.brushSizeValue = document.getElementById('brushSizeValue');
+        this.optimizeBrushSizeSlider = document.getElementById('optimizeBrushSizeSlider');
+        this.optimizeBrushSizeValue = document.getElementById('optimizeBrushSizeValue');
         this.brushModeErase = document.getElementById('brushModeErase');
         this.brushModeRestore = document.getElementById('brushModeRestore');
         this.clearErasedBlocksBtn = document.getElementById('clearErasedBlocks');
@@ -214,6 +216,11 @@ class PixelArtGenerator {
         this.optimizationCellSize = 0; // 预览图中每个格子的大小
         this.optimizationCanvasWidth = 0;
         this.optimizationCanvasHeight = 0;
+        this.brushCursor = document.getElementById('brushCursor');
+        this.customEditBrushCursor = document.getElementById('customEditBrushCursor');
+        this.customEditCellSize = 0;
+        this.optimizeHighlightColor = document.getElementById('optimizeHighlightColor');
+        this.optimizeErasedColor = document.getElementById('optimizeErasedColor');
         
         const savedLang = localStorage.getItem('beadMasterLang') || 'zh';
         setLanguage(savedLang);
@@ -478,6 +485,9 @@ class PixelArtGenerator {
                 } else {
                     this.colorConvertControls.style.display = 'none';
                 }
+                
+                // 更新画笔光标
+                this.updateCustomEditBrushCursorSize();
             });
         });
         
@@ -496,6 +506,7 @@ class PixelArtGenerator {
         
         this.customEditBrushSize.addEventListener('input', () => {
             this.brushSizeValue.textContent = this.customEditBrushSize.value;
+            this.updateCustomEditBrushCursorSize();
         });
         
         this.showCustomEditGrid.addEventListener('change', () => this.drawCustomEditCanvas());
@@ -559,6 +570,7 @@ class PixelArtGenerator {
         
         this.smartOptimizeBtn.addEventListener('click', () => this.openSmartOptimizeModal());
         this.closeModalBtn.addEventListener('click', () => this.closeSmartOptimizeModal());
+        this.toggleFullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
         this.rejectAllBtn.addEventListener('click', () => this.rejectAllSuggestions());
         this.applyAllBtn.addEventListener('click', () => this.acceptAllSuggestions());
         this.confirmBtn.addEventListener('click', () => this.confirmOptimization());
@@ -575,8 +587,9 @@ class PixelArtGenerator {
         });
         
         // 画笔工具事件
-        this.brushSizeSlider.addEventListener('input', () => {
-            this.brushSizeValue.textContent = this.brushSizeSlider.value;
+        this.optimizeBrushSizeSlider.addEventListener('input', () => {
+            this.optimizeBrushSizeValue.textContent = this.optimizeBrushSizeSlider.value;
+            this.updateBrushCursorSize();
         });
         
         this.brushModeErase.addEventListener('click', () => {
@@ -593,6 +606,15 @@ class PixelArtGenerator {
         
         this.clearErasedBlocksBtn.addEventListener('click', () => {
             this.erasedBlocks.clear();
+            this.drawOptimizationPreview();
+        });
+        
+        // 颜色选择器事件
+        this.optimizeHighlightColor.addEventListener('input', () => {
+            this.drawOptimizationPreview();
+        });
+        
+        this.optimizeErasedColor.addEventListener('input', () => {
             this.drawOptimizationPreview();
         });
         
@@ -670,10 +692,30 @@ class PixelArtGenerator {
     }
 
     drawOriginalImage() {
+        // 设置画布的实际像素尺寸为原始尺寸
         this.originalCanvas.width = this.originalWidth;
         this.originalCanvas.height = this.originalHeight;
         this.originalCtx.drawImage(this.originalImage, 0, 0);
         this.originalSize.textContent = `原始尺寸: ${this.originalWidth} × ${this.originalHeight} px`;
+        
+        // 计算画布的显示尺寸，限制高度为400px，保持宽高比
+        const maxDisplayHeight = 400;
+        let displayWidth, displayHeight;
+        
+        if (this.originalHeight > maxDisplayHeight) {
+            // 如果原始高度大于最大高度，按比例缩小
+            const scale = maxDisplayHeight / this.originalHeight;
+            displayWidth = this.originalWidth * scale;
+            displayHeight = maxDisplayHeight;
+        } else {
+            // 否则使用原始尺寸
+            displayWidth = this.originalWidth;
+            displayHeight = this.originalHeight;
+        }
+        
+        // 设置画布的显示尺寸
+        this.originalCanvas.style.width = displayWidth + 'px';
+        this.originalCanvas.style.height = displayHeight + 'px';
     }
 
     resetInputs() {
@@ -2193,10 +2235,27 @@ class PixelArtGenerator {
     }
 
     initCustomEditCanvasEvents() {
-        this.customEditCanvas.addEventListener('mousedown', (e) => this.handleCustomEditMouseDown(e));
-        this.customEditCanvas.addEventListener('mousemove', (e) => this.handleCustomEditMouseMove(e));
-        this.customEditCanvas.addEventListener('mouseup', () => this.handleCustomEditMouseUp());
-        this.customEditCanvas.addEventListener('mouseleave', () => this.handleCustomEditMouseUp());
+        const canvas = this.customEditCanvas;
+        
+        canvas.addEventListener('mouseenter', (e) => {
+            this.customEditBrushCursor.style.display = 'block';
+            this.updateCustomEditBrushCursorSize();
+            this.updateCustomEditBrushCursorPosition(e);
+        });
+        
+        canvas.addEventListener('mouseleave', (e) => {
+            this.handleCustomEditMouseUp();
+            this.customEditBrushCursor.style.display = 'none';
+        });
+        
+        canvas.addEventListener('mousedown', (e) => this.handleCustomEditMouseDown(e));
+        
+        canvas.addEventListener('mousemove', (e) => {
+            this.updateCustomEditBrushCursorPosition(e);
+            this.handleCustomEditMouseMove(e);
+        });
+        
+        canvas.addEventListener('mouseup', () => this.handleCustomEditMouseUp());
     }
 
     getPerlerSignature() {
@@ -2240,6 +2299,12 @@ class PixelArtGenerator {
         
         this.customEditCanvas.width = this.perlerWidth * cellSize;
         this.customEditCanvas.height = this.perlerHeight * cellSize;
+        
+        // 保存单元格大小用于画笔光标
+        this.customEditCellSize = cellSize;
+        
+        // 更新画笔光标大小
+        this.updateCustomEditBrushCursorSize();
         
         const ctx = this.customEditCtx;
         ctx.fillStyle = '#ffffff';
@@ -2600,6 +2665,7 @@ class PixelArtGenerator {
         }
         
         this.originalPerlerColors = this.perlerColors.map(row => [...row]);
+        this.previewPerlerColors = this.perlerColors.map(row => [...row]); // 预览用的临时颜色矩阵
         this.colorSuggestions = this.generateColorSuggestions();
         this.acceptedSuggestions = new Set();
         this.rejectedSuggestions = new Set();
@@ -2615,12 +2681,29 @@ class PixelArtGenerator {
         this.renderOptimizationSummary();
         this.renderSuggestionsList();
         this.drawOptimizationPreview();
+        
+        // 初始化画笔大小显示
+        this.optimizeBrushSizeValue.textContent = this.optimizeBrushSizeSlider.value;
+        
         this.smartOptimizeModal.style.display = 'flex';
     }
     
     // 初始化优化预览画布的鼠标事件
     initOptimizationPreviewCanvasEvents() {
         const canvas = this.optimizationPreviewCanvas;
+        
+        // 鼠标进入画布
+        canvas.addEventListener('mouseenter', (e) => {
+            this.brushCursor.style.display = 'block';
+            this.updateBrushCursorSize();
+            this.updateBrushCursorPosition(e);
+        });
+        
+        // 鼠标离开画布
+        canvas.addEventListener('mouseleave', (e) => {
+            this.isDrawing = false;
+            this.brushCursor.style.display = 'none';
+        });
         
         // 鼠标按下
         canvas.addEventListener('mousedown', (e) => {
@@ -2630,6 +2713,7 @@ class PixelArtGenerator {
         
         // 鼠标移动
         canvas.addEventListener('mousemove', (e) => {
+            this.updateBrushCursorPosition(e);
             if (this.isDrawing) {
                 this.handleOptimizationDraw(e);
             }
@@ -2637,11 +2721,6 @@ class PixelArtGenerator {
         
         // 鼠标释放
         canvas.addEventListener('mouseup', () => {
-            this.isDrawing = false;
-        });
-        
-        // 鼠标离开画布
-        canvas.addEventListener('mouseleave', () => {
             this.isDrawing = false;
         });
         
@@ -2680,7 +2759,7 @@ class PixelArtGenerator {
         const gridX = Math.floor(x / this.optimizationCellSize);
         const gridY = Math.floor(y / this.optimizationCellSize);
         
-        const brushSize = parseInt(this.brushSizeSlider.value);
+        const brushSize = parseInt(this.optimizeBrushSizeSlider.value);
         
         // 以点击位置为中心，涂抹周围的方块
         for (let dy = -brushSize + 1; dy < brushSize; dy++) {
@@ -2693,8 +2772,18 @@ class PixelArtGenerator {
                     
                     if (this.brushMode === 'erase') {
                         this.erasedBlocks.add(key);
+                        // 擦除模式：恢复到原始颜色
+                        this.previewPerlerColors[by][bx] = this.originalPerlerColors[by][bx];
                     } else {
                         this.erasedBlocks.delete(key);
+                        // 恢复模式：重新应用所有已接受的建议
+                        this.previewPerlerColors[by][bx] = this.originalPerlerColors[by][bx];
+                        for (const idx of this.acceptedSuggestions) {
+                            const suggestion = this.colorSuggestions[idx];
+                            if (suggestion && this.originalPerlerColors[by][bx].name === suggestion.originalColor.name) {
+                                this.previewPerlerColors[by][bx] = suggestion.replacementColor;
+                            }
+                        }
                     }
                 }
             }
@@ -2705,8 +2794,8 @@ class PixelArtGenerator {
     }
     
     regenerateSuggestions() {
-        // 先恢复原始颜色
-        this.perlerColors = this.originalPerlerColors.map(row => [...row]);
+        // 先恢复预览颜色到原始
+        this.previewPerlerColors = this.originalPerlerColors.map(row => [...row]);
         
         this.colorSuggestions = this.generateColorSuggestions();
         this.acceptedSuggestions = new Set();
@@ -2735,13 +2824,28 @@ class PixelArtGenerator {
     }
     
     drawOptimizationPreview() {
-        // 更大的预览图，充分利用空间
-        const cellSize = Math.min(
+        // 限制最大尺寸，防止图片太大破坏布局
+        const MAX_CANVAS_WIDTH = 600;
+        const MAX_CANVAS_HEIGHT = 600;
+        
+        // 计算基础单元格大小
+        let cellSize = Math.min(
             Math.floor(600 / Math.max(this.perlerWidth, this.perlerHeight)),
             35
         );
-        const canvasWidth = this.perlerWidth * cellSize;
-        const canvasHeight = this.perlerHeight * cellSize;
+        
+        let canvasWidth = this.perlerWidth * cellSize;
+        let canvasHeight = this.perlerHeight * cellSize;
+        
+        // 检查是否超过最大尺寸，如果超过则按比例缩小
+        if (canvasWidth > MAX_CANVAS_WIDTH || canvasHeight > MAX_CANVAS_HEIGHT) {
+            const scaleX = MAX_CANVAS_WIDTH / canvasWidth;
+            const scaleY = MAX_CANVAS_HEIGHT / canvasHeight;
+            const scale = Math.min(scaleX, scaleY);
+            cellSize = Math.max(1, Math.floor(cellSize * scale));
+            canvasWidth = this.perlerWidth * cellSize;
+            canvasHeight = this.perlerHeight * cellSize;
+        }
         
         this.optimizationPreviewCanvas.width = canvasWidth;
         this.optimizationPreviewCanvas.height = canvasHeight;
@@ -2749,6 +2853,9 @@ class PixelArtGenerator {
         this.optimizationCanvasWidth = canvasWidth;
         this.optimizationCanvasHeight = canvasHeight;
         this.optimizationCellSize = cellSize;
+        
+        // 更新画笔光标大小
+        this.updateBrushCursorSize();
         
         const ctx = this.optimizationPreviewCtx;
         ctx.fillStyle = '#ffffff';
@@ -2772,20 +2879,12 @@ class PixelArtGenerator {
                 let displayColor;
                 let willBeReplaced = false;
                 
-                if (isErased) {
-                    // 被取消优化的，显示原始颜色
-                    displayColor = originalColor;
-                } else {
-                    // 正常的优化逻辑
-                    displayColor = originalColor;
-                    for (const idx of this.acceptedSuggestions) {
-                        const suggestion = this.colorSuggestions[idx];
-                        if (suggestion && originalColor.name === suggestion.originalColor.name) {
-                            displayColor = suggestion.replacementColor;
-                            willBeReplaced = true;
-                            break;
-                        }
-                    }
+                // 直接使用预览矩阵中的颜色
+                displayColor = this.previewPerlerColors[y][x];
+                
+                // 判断是否会被替换（用于显示边框）
+                if (!isErased && colorsToReplace.has(originalColor.name)) {
+                    willBeReplaced = true;
                 }
                 
                 if (displayColor.isTransparent) {
@@ -2797,13 +2896,13 @@ class PixelArtGenerator {
                 
                 // 根据状态显示边框
                 if (isErased) {
-                    // 绿色 = 取消优化
-                    ctx.strokeStyle = '#27ae60';
+                    // 自定义取消优化颜色
+                    ctx.strokeStyle = this.optimizeErasedColor.value;
                     ctx.lineWidth = 2;
                     ctx.strokeRect(x * cellSize + 1, y * cellSize + 1, cellSize - 3, cellSize - 3);
                 } else if (willBeReplaced) {
-                    // 红色 = 要优化
-                    ctx.strokeStyle = '#ff0000';
+                    // 自定义将要优化颜色
+                    ctx.strokeStyle = this.optimizeHighlightColor.value;
                     ctx.lineWidth = 2;
                     ctx.strokeRect(x * cellSize + 1, y * cellSize + 1, cellSize - 3, cellSize - 3);
                 }
@@ -2811,8 +2910,107 @@ class PixelArtGenerator {
         }
     }
 
+    toggleFullscreen() {
+        this.isFullscreen = !this.isFullscreen;
+        
+        if (this.isFullscreen) {
+            this.smartOptimizeModal.classList.add('fullscreen');
+            this.toggleFullscreenBtn.textContent = '🗖️';
+            this.toggleFullscreenBtn.title = '退出全屏';
+            // 全屏模式下，确保头部始终可见
+            document.body.style.overflow = 'hidden';
+        } else {
+            this.smartOptimizeModal.classList.remove('fullscreen');
+            this.toggleFullscreenBtn.textContent = '🔍';
+            this.toggleFullscreenBtn.title = '全屏切换';
+            document.body.style.overflow = '';
+        }
+        
+        // 重新绘制预览图以适应新尺寸
+        this.drawOptimizationPreview();
+    }
+    
+    // 更新画笔光标大小
+    updateBrushCursorSize() {
+        if (!this.brushCursor) return;
+        
+        const brushSize = parseInt(this.optimizeBrushSizeSlider.value);
+        const size = brushSize * this.optimizationCellSize;
+        
+        this.brushCursor.style.width = size + 'px';
+        this.brushCursor.style.height = size + 'px';
+    }
+    
+    // 更新画笔光标位置
+    updateBrushCursorPosition(e) {
+        if (!this.brushCursor) return;
+        
+        const rect = this.optimizationPreviewCanvas.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        const brushSize = parseInt(this.optimizeBrushSizeSlider.value);
+        const size = brushSize * this.optimizationCellSize;
+        
+        const x = clientX - rect.left - size / 2;
+        const y = clientY - rect.top - size / 2;
+        
+        this.brushCursor.style.left = x + 'px';
+        this.brushCursor.style.top = y + 'px';
+    }
+    
+    // 更新自定义编辑画笔光标大小
+    updateCustomEditBrushCursorSize() {
+        if (!this.customEditBrushCursor) return;
+        
+        // 连锁剃刀固定为1个格子
+        let brushSize;
+        if (this.currentEditTool === 'chainRazor') {
+            brushSize = 1;
+        } else {
+            brushSize = parseInt(this.customEditBrushSize.value);
+        }
+        
+        const size = brushSize * this.customEditCellSize;
+        
+        this.customEditBrushCursor.style.width = size + 'px';
+        this.customEditBrushCursor.style.height = size + 'px';
+    }
+    
+    // 更新自定义编辑画笔光标位置
+    updateCustomEditBrushCursorPosition(e) {
+        if (!this.customEditBrushCursor) return;
+        
+        const rect = this.customEditCanvas.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        
+        // 连锁剃刀固定为1个格子
+        let brushSize;
+        if (this.currentEditTool === 'chainRazor') {
+            brushSize = 1;
+        } else {
+            brushSize = parseInt(this.customEditBrushSize.value);
+        }
+        
+        const size = brushSize * this.customEditCellSize;
+        
+        const x = clientX - rect.left - size / 2;
+        const y = clientY - rect.top - size / 2;
+        
+        this.customEditBrushCursor.style.left = x + 'px';
+        this.customEditBrushCursor.style.top = y + 'px';
+    }
+    
     closeSmartOptimizeModal(restoreOriginal = true) {
         this.smartOptimizeModal.style.display = 'none';
+        // 退出全屏模式
+        if (this.isFullscreen) {
+            this.isFullscreen = false;
+            this.smartOptimizeModal.classList.remove('fullscreen');
+            this.toggleFullscreenBtn.textContent = '🔍';
+            this.toggleFullscreenBtn.title = '全屏切换';
+        }
         if (this.originalPerlerColors && restoreOriginal) {
             this.perlerColors = this.originalPerlerColors.map(row => [...row]);
             this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
@@ -3202,36 +3400,47 @@ class PixelArtGenerator {
         const suggestion = this.colorSuggestions[index];
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
-                if (this.perlerColors[y][x].name === suggestion.originalColor.name) {
-                    this.perlerColors[y][x] = suggestion.replacementColor;
+                const key = `${x},${y}`;
+                // 跳过被取消优化的方块
+                if (this.erasedBlocks.has(key)) {
+                    continue;
+                }
+                if (this.previewPerlerColors[y][x].name === suggestion.originalColor.name) {
+                    this.previewPerlerColors[y][x] = suggestion.replacementColor;
                 }
             }
         }
-        this.updateColorCounts();
-        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
-        this.drawColorLegend();
+        this.drawOptimizationPreview();
     }
 
     restoreSuggestion(index) {
         const suggestion = this.colorSuggestions[index];
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
+                const key = `${x},${y}`;
+                // 跳过被取消优化的方块
+                if (this.erasedBlocks.has(key)) {
+                    continue;
+                }
                 if (this.originalPerlerColors[y][x].name === suggestion.originalColor.name) {
-                    this.perlerColors[y][x] = this.originalPerlerColors[y][x];
+                    this.previewPerlerColors[y][x] = this.originalPerlerColors[y][x];
                 }
             }
         }
-        this.updateColorCounts();
-        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
-        this.drawColorLegend();
+        this.drawOptimizationPreview();
     }
 
     previewSuggestion(index) {
         const suggestion = this.colorSuggestions[index];
-        const tempColors = this.perlerColors.map(row => [...row]);
+        const tempColors = this.previewPerlerColors.map(row => [...row]);
         
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
+                const key = `${x},${y}`;
+                // 跳过被取消优化的方块
+                if (this.erasedBlocks.has(key)) {
+                    continue;
+                }
                 if (tempColors[y][x].name === suggestion.originalColor.name) {
                     tempColors[y][x] = suggestion.replacementColor;
                 }
@@ -3256,15 +3465,13 @@ class PixelArtGenerator {
     }
 
     confirmOptimization() {
-        // 恢复被取消优化的方块到原始颜色
-        for (let y = 0; y < this.perlerHeight; y++) {
-            for (let x = 0; x < this.perlerWidth; x++) {
-                const key = `${x},${y}`;
-                if (this.erasedBlocks.has(key)) {
-                    this.perlerColors[y][x] = this.originalPerlerColors[y][x];
-                }
-            }
-        }
+        // 把预览矩阵应用到真实数据
+        this.perlerColors = this.previewPerlerColors.map(row => [...row]);
+        
+        // 更新计数和主画布
+        this.updateColorCounts();
+        this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+        this.drawColorLegend();
         
         const acceptedCount = this.acceptedSuggestions.size;
         const description = acceptedCount > 0 
