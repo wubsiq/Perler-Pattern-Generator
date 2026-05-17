@@ -219,6 +219,20 @@ class PixelArtGenerator {
         this.brushCursor = document.getElementById('brushCursor');
         this.customEditBrushCursor = document.getElementById('customEditBrushCursor');
         this.customEditCellSize = 0;
+        
+        // 画布边界调整相关
+        this.canvasBoundsLeftInput = document.getElementById('canvasBoundsLeft');
+        this.canvasBoundsRightInput = document.getElementById('canvasBoundsRight');
+        this.canvasBoundsTopInput = document.getElementById('canvasBoundsTop');
+        this.canvasBoundsBottomInput = document.getElementById('canvasBoundsBottom');
+        this.canvasBoundsCurrentSize = document.getElementById('canvasBoundsCurrentSize');
+        this.canvasBoundsControls = document.getElementById('canvasBoundsControls');
+        this.canvasBoundsHandles = document.getElementById('canvasBoundsHandles');
+        this.resetCanvasBoundsBtn = document.getElementById('resetCanvasBoundsBtn');
+        
+        this.canvasBounds = null;
+        this.isDraggingCanvasBounds = false;
+        this.draggingHandle = null;
         this.optimizeHighlightColor = document.getElementById('optimizeHighlightColor');
         this.optimizeErasedColor = document.getElementById('optimizeErasedColor');
         
@@ -480,10 +494,22 @@ class PixelArtGenerator {
                 this.pickSourceColorBtn.classList.remove('color-pick-active');
                 this.pickTargetColorBtn.classList.remove('color-pick-active');
                 
+                // 显示/隐藏颜色转换控制
                 if (this.currentEditTool === 'colorConvert') {
                     this.colorConvertControls.style.display = 'block';
                 } else {
                     this.colorConvertControls.style.display = 'none';
+                }
+                
+                // 显示/隐藏画布边界控制
+                if (this.currentEditTool === 'canvasBounds') {
+                    this.canvasBoundsControls.style.display = 'block';
+                    this.canvasBoundsHandles.style.display = 'block';
+                    this.customEditBrushCursor.style.display = 'none';
+                    this.updateCanvasBoundsHandlesPosition();
+                } else {
+                    this.canvasBoundsControls.style.display = 'none';
+                    this.canvasBoundsHandles.style.display = 'none';
                 }
                 
                 // 更新画笔光标
@@ -630,6 +656,46 @@ class PixelArtGenerator {
                 this.pixelatedCanvas.style.height = (this.pixelatedCanvasDisplayHeight * scale) + 'px';
             }
         });
+        
+        // 画布边界调整事件
+        this.canvasBoundsLeftInput.addEventListener('input', () => {
+            if (this.canvasBounds) {
+                this.canvasBounds.left = parseInt(this.canvasBoundsLeftInput.value);
+                this.updateCanvasBoundsDisplay();
+                this.drawCustomEditCanvas();
+            }
+        });
+        
+        this.canvasBoundsRightInput.addEventListener('input', () => {
+            if (this.canvasBounds) {
+                this.canvasBounds.right = parseInt(this.canvasBoundsRightInput.value);
+                this.updateCanvasBoundsDisplay();
+                this.drawCustomEditCanvas();
+            }
+        });
+        
+        this.canvasBoundsTopInput.addEventListener('input', () => {
+            if (this.canvasBounds) {
+                this.canvasBounds.top = parseInt(this.canvasBoundsTopInput.value);
+                this.updateCanvasBoundsDisplay();
+                this.drawCustomEditCanvas();
+            }
+        });
+        
+        this.canvasBoundsBottomInput.addEventListener('input', () => {
+            if (this.canvasBounds) {
+                this.canvasBounds.bottom = parseInt(this.canvasBoundsBottomInput.value);
+                this.updateCanvasBoundsDisplay();
+                this.drawCustomEditCanvas();
+            }
+        });
+        
+        this.resetCanvasBoundsBtn.addEventListener('click', () => {
+            this.resetCanvasBounds();
+        });
+        
+        // 初始化画布边界拖拽事件
+        this.initCanvasBoundsDragEvents();
         
         this.perlerZoomSlider.addEventListener('input', () => {
             const zoom = this.perlerZoomSlider.value;
@@ -2288,6 +2354,18 @@ class PixelArtGenerator {
         this.customEditData = this.perlerColors.map(row => [...row]);
         this.customEditHistory = [this.customEditData.map(row => [...row])];
         
+        // 初始化画布边界
+        this.canvasBounds = {
+            originalWidth: this.perlerWidth,
+            originalHeight: this.perlerHeight,
+            left: 0,
+            right: this.perlerWidth,
+            top: 0,
+            bottom: this.perlerHeight
+        };
+        this.updateCanvasBoundsInputs();
+        this.updateCanvasBoundsDisplay();
+        
         this.drawCustomEditCanvas();
     }
 
@@ -2310,8 +2388,40 @@ class PixelArtGenerator {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, this.customEditCanvas.width, this.customEditCanvas.height);
         
-        for (let y = 0; y < this.perlerHeight; y++) {
-            for (let x = 0; x < this.perlerWidth; x++) {
+        // 确定显示范围
+        let displayLeft = 0, displayRight = this.perlerWidth;
+        let displayTop = 0, displayBottom = this.perlerHeight;
+        if (this.canvasBounds) {
+            displayLeft = this.canvasBounds.left;
+            displayRight = this.canvasBounds.right;
+            displayTop = this.canvasBounds.top;
+            displayBottom = this.canvasBounds.bottom;
+        }
+        
+        // 绘制隐藏区域的遮罩（半透明灰色）
+        if (this.canvasBounds && this.currentEditTool === 'canvasBounds') {
+            ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
+            // 左边
+            if (displayLeft > 0) {
+                ctx.fillRect(0, 0, displayLeft * cellSize, this.perlerHeight * cellSize);
+            }
+            // 右边
+            if (displayRight < this.perlerWidth) {
+                ctx.fillRect(displayRight * cellSize, 0, (this.perlerWidth - displayRight) * cellSize, this.perlerHeight * cellSize);
+            }
+            // 上边
+            if (displayTop > 0) {
+                ctx.fillRect(displayLeft * cellSize, 0, (displayRight - displayLeft) * cellSize, displayTop * cellSize);
+            }
+            // 下边
+            if (displayBottom < this.perlerHeight) {
+                ctx.fillRect(displayLeft * cellSize, displayBottom * cellSize, (displayRight - displayLeft) * cellSize, (this.perlerHeight - displayBottom) * cellSize);
+            }
+        }
+        
+        // 只绘制显示范围内的色块
+        for (let y = displayTop; y < displayBottom; y++) {
+            for (let x = displayLeft; x < displayRight; x++) {
                 const color = this.customEditData[y][x];
                 if (color.isTransparent) {
                     ctx.fillStyle = this.razorBgColor.value;
@@ -2325,21 +2435,40 @@ class PixelArtGenerator {
         if (showGrid) {
             ctx.strokeStyle = '#ddd';
             ctx.lineWidth = 1;
-            for (let x = 0; x <= this.perlerWidth; x++) {
+            for (let x = displayLeft; x <= displayRight; x++) {
                 ctx.beginPath();
-                ctx.moveTo(x * cellSize, 0);
-                ctx.lineTo(x * cellSize, this.perlerHeight * cellSize);
+                ctx.moveTo(x * cellSize, displayTop * cellSize);
+                ctx.lineTo(x * cellSize, displayBottom * cellSize);
                 ctx.stroke();
             }
-            for (let y = 0; y <= this.perlerHeight; y++) {
+            for (let y = displayTop; y <= displayBottom; y++) {
                 ctx.beginPath();
-                ctx.moveTo(0, y * cellSize);
-                ctx.lineTo(this.perlerWidth * cellSize, y * cellSize);
+                ctx.moveTo(displayLeft * cellSize, y * cellSize);
+                ctx.lineTo(displayRight * cellSize, y * cellSize);
                 ctx.stroke();
             }
         }
         
-        this.customEditInfo.textContent = `编辑尺寸: ${this.perlerWidth} × ${this.perlerHeight}`;
+        // 绘制边界高亮框
+        if (this.canvasBounds && this.currentEditTool === 'canvasBounds') {
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(displayLeft * cellSize + 1, displayTop * cellSize + 1, (displayRight - displayLeft) * cellSize - 2, (displayBottom - displayTop) * cellSize - 2);
+        }
+        
+        // 更新显示尺寸信息
+        let displayWidth = this.perlerWidth;
+        let displayHeight = this.perlerHeight;
+        if (this.canvasBounds) {
+            displayWidth = this.canvasBounds.right - this.canvasBounds.left;
+            displayHeight = this.canvasBounds.bottom - this.canvasBounds.top;
+        }
+        this.customEditInfo.textContent = `编辑尺寸: ${this.perlerWidth} × ${this.perlerHeight} | 显示: ${displayWidth} × ${displayHeight}`;
+        
+        // 更新手柄位置
+        if (this.currentEditTool === 'canvasBounds') {
+            this.updateCanvasBoundsHandlesPosition();
+        }
     }
 
     getCustomEditCell(e) {
@@ -2636,7 +2765,35 @@ class PixelArtGenerator {
     applyCustomEdit() {
         if (!this.customEditData) return;
         
-        this.perlerColors = this.customEditData.map(row => [...row]);
+        // 根据画布边界裁剪内容
+        let finalData = this.customEditData;
+        let finalWidth = this.perlerWidth;
+        let finalHeight = this.perlerHeight;
+        
+        if (this.canvasBounds) {
+            const left = this.canvasBounds.left;
+            const right = this.canvasBounds.right;
+            const top = this.canvasBounds.top;
+            const bottom = this.canvasBounds.bottom;
+            
+            finalWidth = right - left;
+            finalHeight = bottom - top;
+            finalData = [];
+            
+            for (let y = top; y < bottom; y++) {
+                const newRow = [];
+                for (let x = left; x < right; x++) {
+                    newRow.push(this.customEditData[y][x]);
+                }
+                finalData.push(newRow);
+            }
+            
+            // 更新画布尺寸
+            this.perlerWidth = finalWidth;
+            this.perlerHeight = finalHeight;
+        }
+        
+        this.perlerColors = finalData.map(row => [...row]);
         
         this.colorCounts = {};
         for (let y = 0; y < this.perlerHeight; y++) {
@@ -2656,6 +2813,9 @@ class PixelArtGenerator {
         
         this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
         this.drawColorLegend();
+        
+        // 重新初始化自定义编辑数据（因为尺寸可能改变了）
+        this.initCustomEditData();
     }
 
     openSmartOptimizeModal() {
@@ -3001,6 +3161,172 @@ class PixelArtGenerator {
         this.customEditBrushCursor.style.left = x + 'px';
         this.customEditBrushCursor.style.top = y + 'px';
     }
+    
+    // ==================== 画布边界调整相关方法 ====================
+    
+    updateCanvasBoundsInputs() {
+        if (!this.canvasBounds) return;
+        this.canvasBoundsLeftInput.value = this.canvasBounds.left;
+        this.canvasBoundsRightInput.value = this.canvasBounds.right;
+        this.canvasBoundsTopInput.value = this.canvasBounds.top;
+        this.canvasBoundsBottomInput.value = this.canvasBounds.bottom;
+    }
+    
+    updateCanvasBoundsDisplay() {
+        if (!this.canvasBounds) return;
+        const displayWidth = this.canvasBounds.right - this.canvasBounds.left;
+        const displayHeight = this.canvasBounds.bottom - this.canvasBounds.top;
+        this.canvasBoundsCurrentSize.textContent = `${displayWidth} × ${displayHeight}`;
+    }
+    
+    resetCanvasBounds() {
+        if (!this.canvasBounds) return;
+        this.canvasBounds.left = 0;
+        this.canvasBounds.right = this.canvasBounds.originalWidth;
+        this.canvasBounds.top = 0;
+        this.canvasBounds.bottom = this.canvasBounds.originalHeight;
+        this.updateCanvasBoundsInputs();
+        this.updateCanvasBoundsDisplay();
+        this.drawCustomEditCanvas();
+    }
+    
+    updateCanvasBoundsHandlesPosition() {
+        if (!this.canvasBounds || !this.canvasBoundsHandles) return;
+        
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const left = this.canvasBounds.left * cellSize;
+        const right = this.canvasBounds.right * cellSize;
+        const top = this.canvasBounds.top * cellSize;
+        const bottom = this.canvasBounds.bottom * cellSize;
+        
+        // 更新手柄大小和位置
+        const handles = this.canvasBoundsHandles.querySelectorAll('.canvas-bounds-handle');
+        handles.forEach(handle => {
+            const handleType = handle.dataset.handle;
+            let handleLeft, handleTop;
+            
+            switch (handleType) {
+                case 'tl':
+                    handleLeft = left - 6;
+                    handleTop = top - 6;
+                    break;
+                case 'tr':
+                    handleLeft = right - 6;
+                    handleTop = top - 6;
+                    break;
+                case 'bl':
+                    handleLeft = left - 6;
+                    handleTop = bottom - 6;
+                    break;
+                case 'br':
+                    handleLeft = right - 6;
+                    handleTop = bottom - 6;
+                    break;
+                case 't':
+                    handleLeft = (left + right) / 2 - 6;
+                    handleTop = top - 6;
+                    break;
+                case 'r':
+                    handleLeft = right - 6;
+                    handleTop = (top + bottom) / 2 - 6;
+                    break;
+                case 'b':
+                    handleLeft = (left + right) / 2 - 6;
+                    handleTop = bottom - 6;
+                    break;
+                case 'l':
+                    handleLeft = left - 6;
+                    handleTop = (top + bottom) / 2 - 6;
+                    break;
+            }
+            
+            handle.style.left = handleLeft + 'px';
+            handle.style.top = handleTop + 'px';
+        });
+    }
+    
+    initCanvasBoundsDragEvents() {
+        const handles = this.canvasBoundsHandles.querySelectorAll('.canvas-bounds-handle');
+        
+        handles.forEach(handle => {
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.isDraggingCanvasBounds = true;
+                this.draggingHandle = handle.dataset.handle;
+                
+                // 开始拖拽时保存历史记录
+                this.saveCustomEditHistory();
+            });
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!this.isDraggingCanvasBounds || !this.canvasBounds) return;
+            
+            const rect = this.customEditCanvas.getBoundingClientRect();
+            const cellSize = parseInt(this.beadSizeSlider.value);
+            const clientX = e.clientX - rect.left;
+            const clientY = e.clientY - rect.top;
+            
+            // 计算网格对齐的位置
+            const gridX = Math.max(0, Math.min(this.canvasBounds.originalWidth, Math.round(clientX / cellSize)));
+            const gridY = Math.max(0, Math.min(this.canvasBounds.originalHeight, Math.round(clientY / cellSize)));
+            
+            let newLeft = this.canvasBounds.left;
+            let newRight = this.canvasBounds.right;
+            let newTop = this.canvasBounds.top;
+            let newBottom = this.canvasBounds.bottom;
+            
+            switch (this.draggingHandle) {
+                case 'tl':
+                    newLeft = Math.min(gridX, this.canvasBounds.right - 1);
+                    newTop = Math.min(gridY, this.canvasBounds.bottom - 1);
+                    break;
+                case 'tr':
+                    newRight = Math.max(gridX, this.canvasBounds.left + 1);
+                    newTop = Math.min(gridY, this.canvasBounds.bottom - 1);
+                    break;
+                case 'bl':
+                    newLeft = Math.min(gridX, this.canvasBounds.right - 1);
+                    newBottom = Math.max(gridY, this.canvasBounds.top + 1);
+                    break;
+                case 'br':
+                    newRight = Math.max(gridX, this.canvasBounds.left + 1);
+                    newBottom = Math.max(gridY, this.canvasBounds.top + 1);
+                    break;
+                case 't':
+                    newTop = Math.min(gridY, this.canvasBounds.bottom - 1);
+                    break;
+                case 'r':
+                    newRight = Math.max(gridX, this.canvasBounds.left + 1);
+                    break;
+                case 'b':
+                    newBottom = Math.max(gridY, this.canvasBounds.top + 1);
+                    break;
+                case 'l':
+                    newLeft = Math.min(gridX, this.canvasBounds.right - 1);
+                    break;
+            }
+            
+            this.canvasBounds.left = newLeft;
+            this.canvasBounds.right = newRight;
+            this.canvasBounds.top = newTop;
+            this.canvasBounds.bottom = newBottom;
+            
+            this.updateCanvasBoundsInputs();
+            this.updateCanvasBoundsDisplay();
+            this.drawCustomEditCanvas();
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (this.isDraggingCanvasBounds) {
+                this.isDraggingCanvasBounds = false;
+                this.draggingHandle = null;
+            }
+        });
+    }
+    
+    // ==================== 画布边界调整相关方法结束 ====================
     
     closeSmartOptimizeModal(restoreOriginal = true) {
         this.smartOptimizeModal.style.display = 'none';
