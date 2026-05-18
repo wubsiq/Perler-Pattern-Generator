@@ -310,6 +310,7 @@
                         <div class="control-group advanced-only">
                             <label for="colorSetSelect"><span data-i18n="colorSet">颜色套装：</span></label>
                             <select id="colorSetSelect">
+                                <option value="mard221">Mard 221色</option>
                                 <option value="mard291">Mard 291色 (默认)</option>
                                 <option value="mard291Refined">Mard 291色-精炼 (精简版)</option>
                                 <option value="mard120">Mard 120色</option>
@@ -456,6 +457,13 @@
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
                                 <button class="edit-tool-btn" data-tool="colorConvert">🔄 颜色转换</button>
                                 <button class="edit-tool-btn" data-tool="canvasBounds">📐 画布边界</button>
+                            </div>
+                            <div class="control-group">
+                                <label>图像翻转：</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <button id="flipHorizontalBtn" class="btn btn-secondary">↔️ 左右翻转</button>
+                                    <button id="flipVerticalBtn" class="btn btn-secondary">↕️ 上下翻转</button>
+                                </div>
                             </div>
                         </div>
                         <div class="control-group">

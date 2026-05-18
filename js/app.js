@@ -138,6 +138,8 @@ class PixelArtGenerator {
         this.saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
         this.snapshotsList = document.getElementById('snapshotsList');
         this.snapshotsContainer = document.getElementById('snapshotsContainer');
+        this.flipHorizontalBtn = document.getElementById('flipHorizontalBtn');
+        this.flipVerticalBtn = document.getElementById('flipVerticalBtn');
         
         // 悬浮快照按钮和面板
         this.snapshotFloatBtn = document.getElementById('snapshotFloatBtn');
@@ -540,6 +542,8 @@ class PixelArtGenerator {
         this.applyCustomEditBtn.addEventListener('click', () => this.applyCustomEdit());
         this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
         this.saveSnapshotBtn.addEventListener('click', () => this.saveUnifiedSnapshot('custom'));
+        this.flipHorizontalBtn.addEventListener('click', () => this.flipImageHorizontal());
+        this.flipVerticalBtn.addEventListener('click', () => this.flipImageVertical());
         
         // 悬浮快照面板事件
         this.snapshotFloatBtn.addEventListener('click', () => {
@@ -2034,8 +2038,9 @@ class PixelArtGenerator {
     }
 
     downloadPerlerChart() {
-        const perlerWidth = Math.ceil(parseInt(this.widthInput.value) / parseInt(this.pixelSizeSlider.value));
-        const perlerHeight = Math.ceil(parseInt(this.heightInput.value) / parseInt(this.pixelSizeSlider.value));
+        // 使用当前实际的拼豆图纸尺寸，而不是根据输入重新计算
+        const perlerWidth = this.perlerWidth;
+        const perlerHeight = this.perlerHeight;
         
         const cellSize = parseInt(this.exportBeadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
@@ -2760,6 +2765,30 @@ class PixelArtGenerator {
             this.customEditData = this.customEditHistory[this.customEditHistory.length - 1].map(row => [...row]);
             this.drawCustomEditCanvas();
         }
+    }
+
+    flipImageHorizontal() {
+        if (!this.customEditData) return;
+        
+        // 保存历史记录
+        this.saveCustomEditHistory();
+        
+        // 左右翻转：每行反转
+        this.customEditData = this.customEditData.map(row => [...row].reverse());
+        
+        this.drawCustomEditCanvas();
+    }
+
+    flipImageVertical() {
+        if (!this.customEditData) return;
+        
+        // 保存历史记录
+        this.saveCustomEditHistory();
+        
+        // 上下翻转：数组反转
+        this.customEditData = [...this.customEditData].reverse();
+        
+        this.drawCustomEditCanvas();
     }
 
     applyCustomEdit() {
