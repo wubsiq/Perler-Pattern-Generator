@@ -2838,7 +2838,10 @@ class PixelArtGenerator {
             }
         }
         
-        this.saveUnifiedSnapshot('custom');
+        // 更新拼豆尺寸显示
+        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${this.perlerWidth} × ${this.perlerHeight} ${getI18nText('beans')}`;
+        
+        this.saveUnifiedSnapshot('custom', '', finalData);
         
         this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
         this.drawColorLegend();
@@ -3493,6 +3496,11 @@ class PixelArtGenerator {
         });
     }
     
+    // ==================== 旧算法（保留纪念）====================
+    // 这是原始的贪心算法，按颜色使用量顺序遍历，存在次优配对问题
+    // 问题：h1-h2(99%) 但 h1-h3(85%) 先被遍历到，就会配对 h1-h3 而错过最优配对
+    // 保留日期：2026-05-18
+    /*
     generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold) {
         const suggestions = [];
         const rgbDistanceThreshold = ((100 - mergeThreshold) / 100) * 255 * 3;
@@ -3551,6 +3559,82 @@ class PixelArtGenerator {
         }
         
         console.log('[近似色融合] 融合建议数:', suggestions.length);
+        return suggestions;
+    }
+    */
+
+    // ==================== 新算法（全局最优配对）====================
+    // 改进思路：
+    // 1. 先生成所有满足相似度阈值的候选配对
+    // 2. 按相似度从高到低排序（距离越小，相似度越高）
+    // 3. 贪心选择最优配对：最相似的颜色对优先被配对
+    generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold) {
+        const suggestions = [];
+        const rgbDistanceThreshold = ((100 - mergeThreshold) / 100) * 255 * 3;
+        
+        console.log('[近似色融合][新算法] 开始生成融合建议');
+        console.log('[近似色融合][新算法] RGB距离阈值:', rgbDistanceThreshold);
+        
+        // 1. 生成所有满足阈值的候选配对
+        const candidates = [];
+        for (let i = 0; i < colorsByUsage.length; i++) {
+            const [nameA, countA] = colorsByUsage[i];
+            const colorA = colorSet.find(c => c.name === nameA);
+            if (!colorA) continue;
+            
+            for (let j = i + 1; j < colorsByUsage.length; j++) {
+                const [nameB, countB] = colorsByUsage[j];
+                const colorB = colorSet.find(c => c.name === nameB);
+                if (!colorB) continue;
+                
+                const distance = this.getRgbDistance(colorA.rgb, colorB.rgb);
+                
+                if (distance <= rgbDistanceThreshold) {
+                    candidates.push({
+                        colorA: colorA,
+                        nameA: nameA,
+                        countA: countA,
+                        colorB: colorB,
+                        nameB: nameB,
+                        countB: countB,
+                        distance: distance
+                    });
+                }
+            }
+        }
+        
+        console.log('[近似色融合][新算法] 候选配对数:', candidates.length);
+        
+        // 2. 按相似度从高到低排序（距离越小越靠前）
+        candidates.sort((a, b) => a.distance - b.distance);
+        
+        // 3. 贪心选择最优配对
+        const used = new Set();
+        for (const candidate of candidates) {
+            if (used.has(candidate.nameA) || used.has(candidate.nameB)) continue;
+            
+            // 选择使用量大的颜色作为保留颜色
+            const keepColor = candidate.countA >= candidate.countB ? candidate.colorA : candidate.colorB;
+            const mergeColor = candidate.countA >= candidate.countB ? candidate.colorB : candidate.colorA;
+            const mergeCount = candidate.countA >= candidate.countB ? candidate.countB : candidate.countA;
+            
+            suggestions.push({
+                id: suggestions.length,
+                originalColor: mergeColor,
+                replacementColor: keepColor,
+                beanCount: mergeCount,
+                isEdgeColor: false,
+                accepted: true,
+                isMerge: true
+            });
+            
+            used.add(candidate.nameA);
+            used.add(candidate.nameB);
+            
+            console.log(`[近似色融合][新算法] ${mergeColor.name} -> ${keepColor.name}, 距离: ${candidate.distance.toFixed(1)}`);
+        }
+        
+        console.log('[近似色融合][新算法] 融合建议数:', suggestions.length);
         return suggestions;
     }
     
@@ -3837,9 +3921,11 @@ class PixelArtGenerator {
         this.closeSmartOptimizeModal(false);
     }
     
-    saveUnifiedSnapshot(type, description = '') {
+    saveUnifiedSnapshot(type, description = '', data = null) {
         let perlerColors;
-        if (type === 'custom' && this.customEditData) {
+        if (data) {
+            perlerColors = data;
+        } else if (type === 'custom' && this.customEditData) {
             perlerColors = this.customEditData;
         } else if (this.perlerColors) {
             perlerColors = this.perlerColors;
@@ -4016,6 +4102,10 @@ class PixelArtGenerator {
         // 恢复拼豆颜色
         this.perlerColors = snapshot.data.map(row => [...row]);
         
+        // 重新计算尺寸
+        this.perlerHeight = this.perlerColors.length;
+        this.perlerWidth = this.perlerHeight > 0 ? this.perlerColors[0].length : 0;
+        
         // 无论是否在拼豆模式，都同步更新 customEditData 和 customEditHistory
         this.customEditData = this.perlerColors.map(row => [...row]);
         this.customEditHistory = [this.customEditData.map(row => [...row])];
@@ -4033,6 +4123,9 @@ class PixelArtGenerator {
                 }
             });
         });
+        
+        // 更新拼豆尺寸显示
+        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${this.perlerWidth} × ${this.perlerHeight} ${getI18nText('beans')}`;
         
         // 重新绘制
         this.refreshPerlerChartDisplay();
