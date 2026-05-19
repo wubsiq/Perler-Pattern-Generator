@@ -146,6 +146,10 @@
                 <div class="preview-left">
                     <div class="preview-panel">
                         <h3 data-i18n="pixelatedPreview">像素化预览</h3>
+                        <div class="pixel-mode-switch">
+                            <button id="pixelModeBtn" class="mode-btn active">批量像素化</button>
+                            <button id="carveModeBtn" class="mode-btn">雕刻分裂</button>
+                        </div>
                         <div class="canvas-wrapper">
                             <canvas id="pixelatedCanvas"></canvas>
                         </div>
@@ -276,6 +280,43 @@
                         </div>
                         <div class="action-buttons">
                             <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
+                        </div>
+                    </div>
+                    
+                    <div id="carveControls" class="controls-section" style="display: none;">
+                        <div class="control-group">
+                            <label>
+                                <span>初始块大小：</span>
+                                <span id="initialBlockSizeValue">200px</span>
+                            </label>
+                            <input type="range" id="initialBlockSizeSlider" min="50" max="400" step="20" value="200">
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>最小块大小：</span>
+                                <span id="minBlockSizeValue">40px</span>
+                            </label>
+                            <input type="range" id="minBlockSizeSlider" min="10" max="100" value="40">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showCarveGrid" checked>
+                                <span>显示分裂网格</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons" style="margin-bottom: 10px;">
+                                <button id="resetCarveBtn" class="btn btn-secondary">重置雕刻</button>
+                                <button id="splitAllBtn" class="btn btn-secondary">分裂全部</button>
+                            </div>
+                            <div class="action-buttons">
+                                <button id="mergeSelectedBtn" class="btn btn-secondary">合并选中</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>提示：点击色块进行分裂</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -512,6 +553,15 @@
                         </div>
                         <div class="control-group">
                             <button id="saveSnapshotBtn" class="btn btn-secondary">💾 保存快照</button>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportTransparentBackground">
+                                <span>导出透明背景</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <button id="exportPixelImageBtn" class="btn btn-primary">📥 导出像素图</button>
                         </div>
                         <div class="control-group" id="colorConvertControls" style="display: none;">
                             <label>颜色转换设置：</label>
