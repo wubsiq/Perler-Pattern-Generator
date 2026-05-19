@@ -1272,8 +1272,8 @@ class PixelArtGenerator {
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
         
-        this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
-        this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
+        this.perlerCanvas.width = coordSize * 2 + perlerWidth * cellSize;
+        this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
         this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
         this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
         this.perlerCanvas.style.width = 'auto';
@@ -1301,8 +1301,8 @@ class PixelArtGenerator {
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
         
-        const canvasWidth = coordSize + perlerWidth * cellSize;
-        const canvasHeight = coordSize + perlerHeight * cellSize + footerSize;
+        const canvasWidth = coordSize * 2 + perlerWidth * cellSize;
+        const canvasHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
         
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -1312,7 +1312,7 @@ class PixelArtGenerator {
             ctx.fillStyle = '#999';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
             ctx.fillText(this.watermarkText.value, canvasWidth / 2, footerY);
         };
         
@@ -1324,12 +1324,26 @@ class PixelArtGenerator {
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
             
+            // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
             }
             
+            // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
                 ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 右边编号
+            const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 下面编号
+            const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }
         
@@ -1463,12 +1477,26 @@ class PixelArtGenerator {
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
             
+            // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
             }
             
+            // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
                 ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 右边编号
+            const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 下面编号
+            const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }
         
@@ -1503,7 +1531,7 @@ class PixelArtGenerator {
             ctx.fillStyle = '#999';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
             ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
         };
         
@@ -2105,6 +2133,7 @@ class PixelArtGenerator {
 
         const useTransparent = this.exportTransparentBackground.checked;
         const beadSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(beadSize * 1.4));
         
         let displayLeft = 0, displayRight = this.perlerWidth;
         let displayTop = 0, displayBottom = this.perlerHeight;
@@ -2115,8 +2144,8 @@ class PixelArtGenerator {
             displayBottom = this.canvasBounds.bottom;
         }
 
-        const exportWidth = (displayRight - displayLeft) * beadSize;
-        const exportHeight = (displayBottom - displayTop) * beadSize;
+        const exportWidth = coordSize * 2 + (displayRight - displayLeft) * beadSize;
+        const exportHeight = coordSize * 2 + (displayBottom - displayTop) * beadSize;
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
@@ -2128,11 +2157,41 @@ class PixelArtGenerator {
             tempCtx.fillRect(0, 0, exportWidth, exportHeight);
         }
 
+        // 绘制编号
+        const fontSizeCoord = Math.max(9, Math.floor(beadSize * 0.45));
+        tempCtx.font = `${fontSizeCoord}px sans-serif`;
+        tempCtx.textAlign = 'center';
+        tempCtx.textBaseline = 'middle';
+        tempCtx.fillStyle = '#333';
+        
+        // 上面编号
+        for (let x = displayLeft; x < displayRight; x++) {
+            tempCtx.fillText(x + 1, coordSize + (x - displayLeft) * beadSize + beadSize / 2, coordSize / 2);
+        }
+        
+        // 左边编号
+        for (let y = displayTop; y < displayBottom; y++) {
+            tempCtx.fillText(y + 1, coordSize / 2, coordSize + (y - displayTop) * beadSize + beadSize / 2);
+        }
+        
+        // 右边编号
+        const rightCoordX = coordSize + (displayRight - displayLeft) * beadSize + coordSize / 2;
+        for (let y = displayTop; y < displayBottom; y++) {
+            tempCtx.fillText(y + 1, rightCoordX, coordSize + (y - displayTop) * beadSize + beadSize / 2);
+        }
+        
+        // 下面编号
+        const bottomCoordY = coordSize + (displayBottom - displayTop) * beadSize + coordSize / 2;
+        for (let x = displayLeft; x < displayRight; x++) {
+            tempCtx.fillText(x + 1, coordSize + (x - displayLeft) * beadSize + beadSize / 2, bottomCoordY);
+        }
+
+        // 绘制色块
         for (let y = displayTop; y < displayBottom; y++) {
             for (let x = displayLeft; x < displayRight; x++) {
                 const color = this.customEditData[y][x];
-                const px = (x - displayLeft) * beadSize;
-                const py = (y - displayTop) * beadSize;
+                const px = coordSize + (x - displayLeft) * beadSize;
+                const py = coordSize + (y - displayTop) * beadSize;
 
                 if (!color.isTransparent) {
                     tempCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -2166,8 +2225,8 @@ class PixelArtGenerator {
         const colorTypes = colorNames.length;
         
         const position = this.legendPosition.value;
-        const chartWidth = coordSize + perlerWidth * cellSize;
-        const chartHeight = coordSize + perlerHeight * cellSize + footerSize;
+        const chartWidth = coordSize * 2 + perlerWidth * cellSize;
+        const chartHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
         const colorSetName = this.colorSetSelect.value;
         
         let canvasWidth, canvasHeight;
@@ -2495,9 +2554,10 @@ class PixelArtGenerator {
         
         const cellSize = parseInt(this.beadSizeSlider.value);
         const showGrid = this.showCustomEditGrid.checked;
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         
-        this.customEditCanvas.width = this.perlerWidth * cellSize;
-        this.customEditCanvas.height = this.perlerHeight * cellSize;
+        this.customEditCanvas.width = coordSize * 2 + this.perlerWidth * cellSize;
+        this.customEditCanvas.height = coordSize * 2 + this.perlerHeight * cellSize;
         
         // 保存单元格大小用于画笔光标
         this.customEditCellSize = cellSize;
@@ -2524,19 +2584,19 @@ class PixelArtGenerator {
             ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
             // 左边
             if (displayLeft > 0) {
-                ctx.fillRect(0, 0, displayLeft * cellSize, this.perlerHeight * cellSize);
+                ctx.fillRect(coordSize, coordSize, displayLeft * cellSize, this.perlerHeight * cellSize);
             }
             // 右边
             if (displayRight < this.perlerWidth) {
-                ctx.fillRect(displayRight * cellSize, 0, (this.perlerWidth - displayRight) * cellSize, this.perlerHeight * cellSize);
+                ctx.fillRect(coordSize + displayRight * cellSize, coordSize, (this.perlerWidth - displayRight) * cellSize, this.perlerHeight * cellSize);
             }
             // 上边
             if (displayTop > 0) {
-                ctx.fillRect(displayLeft * cellSize, 0, (displayRight - displayLeft) * cellSize, displayTop * cellSize);
+                ctx.fillRect(coordSize + displayLeft * cellSize, coordSize, (displayRight - displayLeft) * cellSize, displayTop * cellSize);
             }
             // 下边
             if (displayBottom < this.perlerHeight) {
-                ctx.fillRect(displayLeft * cellSize, displayBottom * cellSize, (displayRight - displayLeft) * cellSize, (this.perlerHeight - displayBottom) * cellSize);
+                ctx.fillRect(coordSize + displayLeft * cellSize, coordSize + displayBottom * cellSize, (displayRight - displayLeft) * cellSize, (this.perlerHeight - displayBottom) * cellSize);
             }
         }
         
@@ -2549,7 +2609,7 @@ class PixelArtGenerator {
                 } else {
                     ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                 }
-                ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+                ctx.fillRect(coordSize + x * cellSize, coordSize + y * cellSize, cellSize - 1, cellSize - 1);
             }
         }
         
@@ -2558,14 +2618,14 @@ class PixelArtGenerator {
             ctx.lineWidth = 1;
             for (let x = displayLeft; x <= displayRight; x++) {
                 ctx.beginPath();
-                ctx.moveTo(x * cellSize, displayTop * cellSize);
-                ctx.lineTo(x * cellSize, displayBottom * cellSize);
+                ctx.moveTo(coordSize + x * cellSize, coordSize + displayTop * cellSize);
+                ctx.lineTo(coordSize + x * cellSize, coordSize + displayBottom * cellSize);
                 ctx.stroke();
             }
             for (let y = displayTop; y <= displayBottom; y++) {
                 ctx.beginPath();
-                ctx.moveTo(displayLeft * cellSize, y * cellSize);
-                ctx.lineTo(displayRight * cellSize, y * cellSize);
+                ctx.moveTo(coordSize + displayLeft * cellSize, coordSize + y * cellSize);
+                ctx.lineTo(coordSize + displayRight * cellSize, coordSize + y * cellSize);
                 ctx.stroke();
             }
         }
@@ -2574,7 +2634,36 @@ class PixelArtGenerator {
         if (this.canvasBounds && this.currentEditTool === 'canvasBounds') {
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
-            ctx.strokeRect(displayLeft * cellSize + 1, displayTop * cellSize + 1, (displayRight - displayLeft) * cellSize - 2, (displayBottom - displayTop) * cellSize - 2);
+            ctx.strokeRect(coordSize + displayLeft * cellSize + 1, coordSize + displayTop * cellSize + 1, (displayRight - displayLeft) * cellSize - 2, (displayBottom - displayTop) * cellSize - 2);
+        }
+        
+        // 绘制编号
+        const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
+        ctx.font = `${fontSizeCoord}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#333';
+        
+        // 上面编号
+        for (let x = displayLeft; x < displayRight; x++) {
+            ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
+        }
+        
+        // 左边编号
+        for (let y = displayTop; y < displayBottom; y++) {
+            ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+        }
+        
+        // 右边编号
+        const rightCoordX = coordSize + this.perlerWidth * cellSize + coordSize / 2;
+        for (let y = displayTop; y < displayBottom; y++) {
+            ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
+        }
+        
+        // 下面编号
+        const bottomCoordY = coordSize + this.perlerHeight * cellSize + coordSize / 2;
+        for (let x = displayLeft; x < displayRight; x++) {
+            ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
         }
         
         // 更新显示尺寸信息
@@ -2595,15 +2684,23 @@ class PixelArtGenerator {
     getCustomEditCell(e) {
         const rect = this.customEditCanvas.getBoundingClientRect();
         const cellSize = parseInt(this.beadSizeSlider.value);
-        const x = Math.floor((e.clientX - rect.left) / cellSize);
-        const y = Math.floor((e.clientY - rect.top) / cellSize);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const x = Math.floor((e.clientX - rect.left - coordSize) / cellSize);
+        const y = Math.floor((e.clientY - rect.top - coordSize) / cellSize);
         return { x, y };
     }
 
     handleCustomEditMouseDown(e) {
-        if (!this.customEditData) return;
+        console.log('[handleCustomEditMouseDown] 鼠标按下！');
+        console.log('[handleCustomEditMouseDown] 当前工具:', this.currentEditTool);
+        
+        if (!this.customEditData) {
+            console.log('[handleCustomEditMouseDown] 没有 customEditData，返回');
+            return;
+        }
         
         const { x, y } = this.getCustomEditCell(e);
+        console.log('[handleCustomEditMouseDown] 点击位置:', x, y);
         
         if (this.colorConvertPickMode) {
             const color = this.customEditData[y][x];
@@ -2624,10 +2721,15 @@ class PixelArtGenerator {
         }
         
         if (this.currentEditTool === 'chainRazor') {
+            console.log('[handleCustomEditMouseDown] 调用 chainRazor');
             this.applyChainRazor(x, y);
             this.isDrawing = true;
             this.saveCustomEditHistory();
+        } else if (this.currentEditTool === 'fill') {
+            console.log('[handleCustomEditMouseDown] 调用 fill 工具（不设置 isDrawing）');
+            this.applyEditToCell(x, y);
         } else {
+            console.log('[handleCustomEditMouseDown] 调用 applyEditToCell');
             this.isDrawing = true;
             this.applyEditToCell(x, y);
         }
@@ -2682,17 +2784,28 @@ class PixelArtGenerator {
             this.customEditData[y][x] = transparentColor;
             count++;
             
-            stack.push({x: x + 1, y});
-            stack.push({x: x - 1, y});
-            stack.push({x, y: y + 1});
-            stack.push({x, y: y - 1});
+            // 八爪鱼方向：上下左右 + 四个对角线
+            stack.push({x: x + 1, y});       // 右
+            stack.push({x: x - 1, y});       // 左
+            stack.push({x, y: y + 1});       // 下
+            stack.push({x, y: y - 1});       // 上
+            stack.push({x: x + 1, y: y + 1}); // 右下
+            stack.push({x: x + 1, y: y - 1}); // 右上
+            stack.push({x: x - 1, y: y + 1}); // 左下
+            stack.push({x: x - 1, y: y - 1}); // 左上
         }
         
         this.drawCustomEditCanvas();
     }
 
     applyEditToCell(x, y) {
-        if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) return;
+        console.log('[applyEditToCell] 开始！');
+        console.log('[applyEditToCell] 当前工具:', this.currentEditTool);
+        
+        if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) {
+            console.log('[applyEditToCell] 位置无效');
+            return;
+        }
         
         const brushSize = parseInt(this.customEditBrushSize.value);
         const halfBrush = Math.floor(brushSize / 2);
@@ -2752,6 +2865,11 @@ class PixelArtGenerator {
                 
             case 'fill':
                 if (!this.isDrawing) {
+                    console.log('[applySingleEdit] 填充工具触发');
+                    console.log('[applySingleEdit] 点击位置:', x, y);
+                    console.log('[applySingleEdit] 选中颜色:', this.customEditColor.value);
+                    
+                    this.saveCustomEditHistory();
                     const targetColor = this.customEditData[y][x];
                     const hexFill = this.customEditColor.value;
                     const fr = parseInt(hexFill.slice(1, 3), 16);
@@ -2763,6 +2881,7 @@ class PixelArtGenerator {
                     const mm = this.colorMappingMethod.value;
                     const fillColor = findClosestColor([fr, fg, fb], cs, mm);
                     
+                    console.log('[applySingleEdit] 准备调用 floodFill');
                     this.floodFill(x, y, targetColor, fillColor);
                 }
                 break;
@@ -2778,14 +2897,26 @@ class PixelArtGenerator {
     }
 
     floodFill(startX, startY, targetColor, fillColor) {
+        console.log('[floodFill] 开始填充');
+        console.log('[floodFill] 开始位置:', startX, startY);
+        console.log('[floodFill] 目标颜色:', targetColor);
+        console.log('[floodFill] 填充颜色:', fillColor);
+        
+        // 判断是否需要填充
         const targetIsTransparent = targetColor.isTransparent;
         const fillIsTransparent = fillColor.isTransparent;
-        
-        if (!targetIsTransparent && !fillIsTransparent && targetColor.name === fillColor.name) return;
-        if (targetIsTransparent && fillIsTransparent) return;
+        if (!targetIsTransparent && !fillIsTransparent && targetColor.name === fillColor.name) {
+            console.log('[floodFill] 目标颜色与填充颜色相同，跳过');
+            return;
+        }
+        if (targetIsTransparent && fillIsTransparent) {
+            console.log('[floodFill] 都是透明色，跳过');
+            return;
+        }
         
         const visited = new Set();
         const stack = [{x: startX, y: startY}];
+        let fillCount = 0;
         
         while (stack.length > 0) {
             const {x, y} = stack.pop();
@@ -2797,18 +2928,35 @@ class PixelArtGenerator {
             const currentColor = this.customEditData[y][x];
             const currentIsTransparent = currentColor.isTransparent;
             
-            if (targetIsTransparent && !currentIsTransparent) continue;
-            if (!targetIsTransparent && currentIsTransparent) continue;
-            if (!targetIsTransparent && !currentIsTransparent && currentColor.name !== targetColor.name) continue;
+            // 检查当前颜色是否等于目标颜色
+            let isMatch = false;
+            if (targetIsTransparent) {
+                isMatch = currentIsTransparent;
+            } else {
+                isMatch = !currentIsTransparent && currentColor.name === targetColor.name;
+            }
+            
+            if (!isMatch) continue;
             
             visited.add(key);
             this.customEditData[y][x] = fillColor;
+            fillCount++;
             
+            // 八爪鱼方向
             stack.push({x: x + 1, y});
             stack.push({x: x - 1, y});
             stack.push({x, y: y + 1});
             stack.push({x, y: y - 1});
+            stack.push({x: x + 1, y: y + 1});
+            stack.push({x: x + 1, y: y - 1});
+            stack.push({x: x - 1, y: y + 1});
+            stack.push({x: x - 1, y: y - 1});
         }
+        
+        console.log('[floodFill] 填充完成，共填充', fillCount, '个格子');
+        
+        // 重绘画布
+        this.drawCustomEditCanvas();
     }
 
     saveCustomEditHistory() {
@@ -3342,10 +3490,11 @@ class PixelArtGenerator {
         if (!this.canvasBounds || !this.canvasBoundsHandles) return;
         
         const cellSize = parseInt(this.beadSizeSlider.value);
-        const left = this.canvasBounds.left * cellSize;
-        const right = this.canvasBounds.right * cellSize;
-        const top = this.canvasBounds.top * cellSize;
-        const bottom = this.canvasBounds.bottom * cellSize;
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        const left = coordSize + this.canvasBounds.left * cellSize;
+        const right = coordSize + this.canvasBounds.right * cellSize;
+        const top = coordSize + this.canvasBounds.top * cellSize;
+        const bottom = coordSize + this.canvasBounds.bottom * cellSize;
         
         // 更新手柄大小和位置
         const handles = this.canvasBoundsHandles.querySelectorAll('.canvas-bounds-handle');
@@ -3413,8 +3562,9 @@ class PixelArtGenerator {
             
             const rect = this.customEditCanvas.getBoundingClientRect();
             const cellSize = parseInt(this.beadSizeSlider.value);
-            const clientX = e.clientX - rect.left;
-            const clientY = e.clientY - rect.top;
+            const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+            const clientX = e.clientX - rect.left - coordSize;
+            const clientY = e.clientY - rect.top - coordSize;
             
             // 计算网格对齐的位置
             const gridX = Math.max(0, Math.min(this.canvasBounds.originalWidth, Math.round(clientX / cellSize)));
