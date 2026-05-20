@@ -64,6 +64,7 @@ class PixelArtGenerator {
         
         this.originalSize = document.getElementById('originalSize');
         this.pixelatedSize = document.getElementById('pixelatedSize');
+        this.pixelatedGridCount = document.getElementById('pixelatedGridCount');
         this.perlerSize = document.getElementById('perlerSize');
         
         this.pixelSizeSlider = document.getElementById('pixelSizeSlider');
@@ -176,6 +177,7 @@ class PixelArtGenerator {
         this.lastPerlerSignature = null;
         this.currentEditTool = 'brush';
         this.isDrawing = false;
+        this.savedBrushSize = 1; // 保存原始的画笔大小
         
         this.smartOptimizeBtn = document.getElementById('smartOptimizeBtn');
         this.smartOptimizeModal = document.getElementById('smartOptimizeModal');
@@ -548,9 +550,24 @@ class PixelArtGenerator {
         
         document.querySelectorAll('.edit-tool-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                const newTool = btn.dataset.tool;
+                
+                // 如果之前是取色器，恢复原始的画笔大小
+                if (this.currentEditTool === 'picker' && newTool !== 'picker') {
+                    this.customEditBrushSize.value = this.savedBrushSize;
+                    this.brushSizeValue.textContent = this.savedBrushSize;
+                }
+                
+                // 如果新工具是取色器，保存当前的画笔大小，然后设置为1
+                if (newTool === 'picker' && this.currentEditTool !== 'picker') {
+                    this.savedBrushSize = this.customEditBrushSize.value;
+                    this.customEditBrushSize.value = 1;
+                    this.brushSizeValue.textContent = '1';
+                }
+                
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.currentEditTool = btn.dataset.tool;
+                this.currentEditTool = newTool;
                 this.colorConvertPickMode = null;
                 this.pickSourceColorBtn.classList.remove('color-pick-active');
                 this.pickTargetColorBtn.classList.remove('color-pick-active');
@@ -987,6 +1004,10 @@ class PixelArtGenerator {
         this.pixelatedData = pixelatedData;
         
         this.pixelatedSize.textContent = `像素化尺寸: ${targetWidth} × ${targetHeight} px`;
+        // 计算格子数，向上取整
+        const gridWidth = Math.ceil(targetWidth / pixelSize);
+        const gridHeight = Math.ceil(targetHeight / pixelSize);
+        this.pixelatedGridCount.textContent = `长宽格子比: ${gridWidth} × ${gridHeight}`;
         
         if (this.enableColorQuantize.checked) {
             this.updateColorUsageList();
@@ -2174,7 +2195,6 @@ class PixelArtGenerator {
 
         const useTransparent = this.exportTransparentBackground.checked;
         const beadSize = parseInt(this.beadSizeSlider.value);
-        const coordSize = Math.max(30, Math.floor(beadSize * 1.4));
         
         let displayLeft = 0, displayRight = this.perlerWidth;
         let displayTop = 0, displayBottom = this.perlerHeight;
@@ -2185,8 +2205,8 @@ class PixelArtGenerator {
             displayBottom = this.canvasBounds.bottom;
         }
 
-        const exportWidth = coordSize * 2 + (displayRight - displayLeft) * beadSize;
-        const exportHeight = coordSize * 2 + (displayBottom - displayTop) * beadSize;
+        const exportWidth = (displayRight - displayLeft) * beadSize;
+        const exportHeight = (displayBottom - displayTop) * beadSize;
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
@@ -2198,41 +2218,12 @@ class PixelArtGenerator {
             tempCtx.fillRect(0, 0, exportWidth, exportHeight);
         }
 
-        // 绘制编号
-        const fontSizeCoord = Math.max(9, Math.floor(beadSize * 0.45));
-        tempCtx.font = `${fontSizeCoord}px sans-serif`;
-        tempCtx.textAlign = 'center';
-        tempCtx.textBaseline = 'middle';
-        tempCtx.fillStyle = '#333';
-        
-        // 上面编号
-        for (let x = displayLeft; x < displayRight; x++) {
-            tempCtx.fillText(x + 1, coordSize + (x - displayLeft) * beadSize + beadSize / 2, coordSize / 2);
-        }
-        
-        // 左边编号
-        for (let y = displayTop; y < displayBottom; y++) {
-            tempCtx.fillText(y + 1, coordSize / 2, coordSize + (y - displayTop) * beadSize + beadSize / 2);
-        }
-        
-        // 右边编号
-        const rightCoordX = coordSize + (displayRight - displayLeft) * beadSize + coordSize / 2;
-        for (let y = displayTop; y < displayBottom; y++) {
-            tempCtx.fillText(y + 1, rightCoordX, coordSize + (y - displayTop) * beadSize + beadSize / 2);
-        }
-        
-        // 下面编号
-        const bottomCoordY = coordSize + (displayBottom - displayTop) * beadSize + coordSize / 2;
-        for (let x = displayLeft; x < displayRight; x++) {
-            tempCtx.fillText(x + 1, coordSize + (x - displayLeft) * beadSize + beadSize / 2, bottomCoordY);
-        }
-
-        // 绘制色块
+        // 绘制色块（不带编号）
         for (let y = displayTop; y < displayBottom; y++) {
             for (let x = displayLeft; x < displayRight; x++) {
                 const color = this.customEditData[y][x];
-                const px = coordSize + (x - displayLeft) * beadSize;
-                const py = coordSize + (y - displayTop) * beadSize;
+                const px = (x - displayLeft) * beadSize;
+                const py = (y - displayTop) * beadSize;
 
                 if (!color.isTransparent) {
                     tempCtx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -2983,15 +2974,11 @@ class PixelArtGenerator {
             this.customEditData[y][x] = fillColor;
             fillCount++;
             
-            // 八爪鱼方向
+            // 十字方向：只上下左右
             stack.push({x: x + 1, y});
             stack.push({x: x - 1, y});
             stack.push({x, y: y + 1});
             stack.push({x, y: y - 1});
-            stack.push({x: x + 1, y: y + 1});
-            stack.push({x: x + 1, y: y - 1});
-            stack.push({x: x - 1, y: y + 1});
-            stack.push({x: x - 1, y: y - 1});
         }
         
         console.log('[floodFill] 填充完成，共填充', fillCount, '个格子');
