@@ -1291,9 +1291,19 @@ class PixelArtGenerator {
         this.drawPerlerChartAsync(perlerColors, perlerWidth, perlerHeight, colorSetName);
     }
     
+    updatePerlerSummary(perlerWidth, perlerHeight, colorSetName) {
+        const totalBeads = perlerWidth * perlerHeight;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
+        const perlerSummaryElement = document.getElementById('perlerSummary');
+        if (perlerSummaryElement) {
+            perlerSummaryElement.textContent = summaryText;
+        }
+    }
+    
     drawPerlerChartToCanvas(ctx, perlerColors, perlerWidth, perlerHeight, cellSize, colorSetName) {
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
+        const summaryMargin = cellSize * 2 + 20; // 给摘要留出额外空间
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
         const showGrid = this.showGridLines.checked;
@@ -1302,7 +1312,7 @@ class PixelArtGenerator {
         const coordNumColor = this.coordNumberColor.value;
         
         const canvasWidth = coordSize * 2 + perlerWidth * cellSize;
-        const canvasHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
+        const canvasHeight = summaryMargin + coordSize * 2 + perlerHeight * cellSize + footerSize;
         
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -1312,7 +1322,7 @@ class PixelArtGenerator {
             ctx.fillStyle = '#999';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
+            const footerY = summaryMargin + coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
             ctx.fillText(this.watermarkText.value, canvasWidth / 2, footerY);
         };
         
@@ -1326,22 +1336,22 @@ class PixelArtGenerator {
             
             // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
-                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, summaryMargin + coordSize / 2);
             }
             
             // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
-                ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+                ctx.fillText(y + 1, coordSize / 2, summaryMargin + coordSize + y * cellSize + cellSize / 2);
             }
             
             // 右边编号
             const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
             for (let y = 0; y < perlerHeight; y++) {
-                ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
+                ctx.fillText(y + 1, rightCoordX, summaryMargin + coordSize + y * cellSize + cellSize / 2);
             }
             
             // 下面编号
-            const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
+            const bottomCoordY = summaryMargin + coordSize + perlerHeight * cellSize + coordSize / 2;
             for (let x = 0; x < perlerWidth; x++) {
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
@@ -1353,13 +1363,13 @@ class PixelArtGenerator {
             ctx.beginPath();
             
             for (let x = 0; x <= perlerWidth; x++) {
-                ctx.moveTo(coordSize + x * cellSize, coordSize);
-                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+                ctx.moveTo(coordSize + x * cellSize, summaryMargin + coordSize);
+                ctx.lineTo(coordSize + x * cellSize, summaryMargin + coordSize + perlerHeight * cellSize);
             }
             
             for (let y = 0; y <= perlerHeight; y++) {
-                ctx.moveTo(coordSize, coordSize + y * cellSize);
-                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+                ctx.moveTo(coordSize, summaryMargin + coordSize + y * cellSize);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + y * cellSize);
             }
             
             ctx.stroke();
@@ -1369,7 +1379,7 @@ class PixelArtGenerator {
             for (let x = 0; x < perlerWidth; x++) {
                 const color = perlerColors[y][x];
                 const px = coordSize + x * cellSize;
-                const py = coordSize + y * cellSize;
+                const py = summaryMargin + coordSize + y * cellSize;
                 
                 if (color.isTransparent) {
                     ctx.fillStyle = '#ffffff';
@@ -1454,10 +1464,26 @@ class PixelArtGenerator {
             }
         }
         
+        // 在导出的图像上绘制摘要（放在顶部预留空间）
+        const totalBeads = perlerWidth * perlerHeight;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
+        const summaryFontSize = cellSize * 1.3;
+        
+        ctx.font = `bold ${summaryFontSize}px sans-serif`;
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        
+        const summaryX = coordSize + perlerWidth * cellSize;
+        const summaryY = summaryMargin / 2; // 垂直居中放在顶部预留空间
+        
+        ctx.fillText(summaryText, summaryX - 10, summaryY);
+        
         drawFooter();
     }
     
     drawPerlerChartAsync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
+        this.updatePerlerSummary(perlerWidth, perlerHeight, colorSetName);
         const cellSize = parseInt(this.beadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
@@ -1731,6 +1757,7 @@ class PixelArtGenerator {
     }
 
     drawPerlerChartSync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
+        this.updatePerlerSummary(perlerWidth, perlerHeight, colorSetName);
         const cellSize = parseInt(this.beadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
@@ -1741,8 +1768,8 @@ class PixelArtGenerator {
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
         
-        this.perlerCanvas.width = coordSize + perlerWidth * cellSize;
-        this.perlerCanvas.height = coordSize + perlerHeight * cellSize + footerSize;
+        this.perlerCanvas.width = coordSize * 2 + perlerWidth * cellSize;
+        this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
         this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
         this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
         this.perlerCanvas.style.width = 'auto';
@@ -1762,7 +1789,7 @@ class PixelArtGenerator {
             ctx.fillStyle = '#999';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const footerY = coordSize + perlerHeight * cellSize + footerSize / 2;
+            const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
             ctx.fillText(this.watermarkText.value, this.perlerCanvas.width / 2, footerY);
         };
         
@@ -1774,12 +1801,26 @@ class PixelArtGenerator {
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
             
+            // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
             }
             
+            // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
                 ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 右边编号
+            const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
+            for (let y = 0; y < perlerHeight; y++) {
+                ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
+            }
+            
+            // 下面编号
+            const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
+            for (let x = 0; x < perlerWidth; x++) {
+                ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }
         

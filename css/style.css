@@ -1009,13 +1009,12 @@ input[type="color"]:focus {
 
 .suggestion-item.accepted {
     border-color: #28a745;
-    background: #e6f9e9;
+    background: #ffffff;
 }
 
 .suggestion-item.rejected {
     border-color: #dc3545;
-    background: #ffe6e8;
-    opacity: 0.6;
+    background: #ffffff;
 }
 
 .color-swatch-small {
@@ -1121,6 +1120,21 @@ input[type="color"]:focus {
 .perler-chart-wrapper {
     display: flex;
     flex-direction: column;
+}
+
+.perler-summary {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
+    padding: 0 10px;
+    width: 100%;
+}
+
+.perler-chart-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 #colorLegendArea {
