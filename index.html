@@ -192,7 +192,7 @@
                             <label>
                                 <span>像素划分线颜色：</span>
                             </label>
-                            <input type="color" id="pixelGridColor" value="#ff0000">
+                            <input type="color" id="pixelGridColor" value="#000000">
                         </div>
                         <div class="control-group">
                             <label>
@@ -434,6 +434,20 @@
                             <input type="color" id="coordLineColor" value="#000000">
                         </div>
                         <div class="control-group advanced-only">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showLargeGridLines">
+                                <span>显示大格子线</span>
+                            </label>
+                        </div>
+                        <div class="control-group advanced-only">
+                            <label>大格子线颜色：</label>
+                            <input type="color" id="largeGridLineColor" value="#8B4513">
+                        </div>
+                        <div class="control-group advanced-only">
+                            <label>大格子大小（每N个小格子）：</label>
+                            <input type="number" id="largeGridSize" min="0" max="100" value="5" style="width: 80px;">
+                        </div>
+                        <div class="control-group advanced-only">
                             <label><span data-i18n="coordNumberColor">坐标数字颜色：</span></label>
                             <input type="color" id="coordNumberColor" value="#000000">
                         </div>
@@ -542,6 +556,15 @@
                             <div class="current-color-wrapper">
                                 <input type="color" id="razorBgColor" value="#00ff00">
                                 <span id="razorBgColorValue">#00ff00</span>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>颜色剔除：</label>
+                            <div class="current-color-wrapper">
+                                <input type="color" id="removeColorPicker" value="#ff0000">
+                                <span id="removeColorValue">#ff0000</span>
+                                <button id="pickRemoveColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
+                                <button id="removeColorBtn" class="btn btn-danger" style="margin-left: 10px;">剔除选中颜色</button>
                             </div>
                         </div>
                         <div class="control-group">

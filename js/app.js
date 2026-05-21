@@ -88,6 +88,9 @@ class PixelArtGenerator {
         this.showCoordNumbers = document.getElementById('showCoordNumbers');
         this.coordLineColor = document.getElementById('coordLineColor');
         this.coordNumberColor = document.getElementById('coordNumberColor');
+        this.showLargeGridLines = document.getElementById('showLargeGridLines');
+        this.largeGridLineColor = document.getElementById('largeGridLineColor');
+        this.largeGridSize = document.getElementById('largeGridSize');
         this.watermarkText = document.getElementById('watermarkText');
         
         this.simpleModeBtn = document.getElementById('simpleModeBtn');
@@ -159,6 +162,10 @@ class PixelArtGenerator {
         this.razorBgColor = document.getElementById('razorBgColor');
         this.razorBgColorValue = document.getElementById('razorBgColorValue');
         this.chainRazorMax = document.getElementById('chainRazorMax');
+        this.removeColorPicker = document.getElementById('removeColorPicker');
+        this.removeColorValue = document.getElementById('removeColorValue');
+        this.pickRemoveColorBtn = document.getElementById('pickRemoveColorBtn');
+        this.removeColorBtn = document.getElementById('removeColorBtn');
         this.saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
         this.snapshotsList = document.getElementById('snapshotsList');
         this.snapshotsContainer = document.getElementById('snapshotsContainer');
@@ -178,6 +185,7 @@ class PixelArtGenerator {
         this.currentEditTool = 'brush';
         this.isDrawing = false;
         this.savedBrushSize = 1; // 保存原始的画笔大小
+        this.pickRemoveColorMode = false; // 颜色剔除的取色模式
         
         this.smartOptimizeBtn = document.getElementById('smartOptimizeBtn');
         this.smartOptimizeModal = document.getElementById('smartOptimizeModal');
@@ -621,6 +629,24 @@ class PixelArtGenerator {
         this.flipHorizontalBtn.addEventListener('click', () => this.flipImageHorizontal());
         this.flipVerticalBtn.addEventListener('click', () => this.flipImageVertical());
         
+        // 颜色剔除功能
+        this.removeColorPicker.addEventListener('input', () => {
+            this.removeColorValue.textContent = this.removeColorPicker.value;
+        });
+        
+        this.pickRemoveColorBtn.addEventListener('click', () => {
+            // 切换到取色模式
+            this.currentEditTool = 'picker';
+            this.pickRemoveColorMode = true;
+            document.querySelectorAll('.edit-tool-btn').forEach(btn => btn.classList.remove('active'));
+            // 去掉弹窗，改为在控制台显示
+            console.log('请在画布上点击要剔除的颜色');
+        });
+        
+        this.removeColorBtn.addEventListener('click', () => {
+            this.removeSelectedColor();
+        });
+        
         // 悬浮快照面板事件
         this.snapshotFloatBtn.addEventListener('click', () => {
             this.toggleSnapshotPanel();
@@ -875,13 +901,16 @@ class PixelArtGenerator {
         this.showCoordNumbers.checked = true;
         this.coordLineColor.value = '#000000';
         this.coordNumberColor.value = '#000000';
+        this.showLargeGridLines.checked = false;
+        this.largeGridLineColor.value = '#8B4513';
+        this.largeGridSize.value = '5';
         this.colorCountSlider.value = 8;
         this.colorCountValue.textContent = '8';
         this.colorCountInput.value = 8;
         this.beadSizeSlider.value = 24;
         this.beadSizeValue.textContent = '24px';
         this.showPixelGrid.checked = true;
-        this.pixelGridColor.value = '#ff0000';
+        this.pixelGridColor.value = '#000000';
         this.pixelGridOffsetX.value = 0;
         this.pixelGridOffsetY.value = 0;
         this.pixelGridOffsetXValue.textContent = '0px';
@@ -1402,6 +1431,30 @@ class PixelArtGenerator {
             ctx.stroke();
         }
         
+        // 绘制大格子线
+        if (this.showLargeGridLines.checked) {
+            const largeGridSize = parseInt(this.largeGridSize.value);
+            if (largeGridSize > 0) {
+                ctx.strokeStyle = this.largeGridLineColor.value;
+                ctx.lineWidth = 1.5; // 加粗
+                ctx.beginPath();
+                
+                // 绘制垂直大格子线
+                for (let x = 0; x <= perlerWidth; x += largeGridSize) {
+                    ctx.moveTo(coordSize + x * cellSize, summaryMargin + coordSize);
+                    ctx.lineTo(coordSize + x * cellSize, summaryMargin + coordSize + perlerHeight * cellSize);
+                }
+                
+                // 绘制水平大格子线
+                for (let y = 0; y <= perlerHeight; y += largeGridSize) {
+                    ctx.moveTo(coordSize, summaryMargin + coordSize + y * cellSize);
+                    ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + y * cellSize);
+                }
+                
+                ctx.stroke();
+            }
+        }
+        
         for (let y = 0; y < perlerHeight; y++) {
             for (let x = 0; x < perlerWidth; x++) {
                 const color = perlerColors[y][x];
@@ -1578,6 +1631,54 @@ class PixelArtGenerator {
             }
             
             ctx.stroke();
+        }
+        
+        // 绘制大格子线
+        if (this.showLargeGridLines.checked) {
+            const largeGridSize = parseInt(this.largeGridSize.value);
+            if (largeGridSize > 0) {
+                ctx.strokeStyle = this.largeGridLineColor.value;
+                ctx.lineWidth = 1.5; // 加粗
+                ctx.beginPath();
+                
+                // 绘制垂直大格子线
+                for (let x = 0; x <= perlerWidth; x += largeGridSize) {
+                    ctx.moveTo(coordSize + x * cellSize, coordSize);
+                    ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+                }
+                
+                // 绘制水平大格子线
+                for (let y = 0; y <= perlerHeight; y += largeGridSize) {
+                    ctx.moveTo(coordSize, coordSize + y * cellSize);
+                    ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+                }
+                
+                ctx.stroke();
+            }
+        }
+        
+        // 绘制大格子线
+        if (this.showLargeGridLines.checked) {
+            const largeGridSize = parseInt(this.largeGridSize.value);
+            if (largeGridSize > 0) {
+                ctx.strokeStyle = this.largeGridLineColor.value;
+                ctx.lineWidth = 1.5; // 加粗
+                ctx.beginPath();
+                
+                // 绘制垂直大格子线
+                for (let x = 0; x <= perlerWidth; x += largeGridSize) {
+                    ctx.moveTo(coordSize + x * cellSize, coordSize);
+                    ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+                }
+                
+                // 绘制水平大格子线
+                for (let y = 0; y <= perlerHeight; y += largeGridSize) {
+                    ctx.moveTo(coordSize, coordSize + y * cellSize);
+                    ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+                }
+                
+                ctx.stroke();
+            }
         }
         
         const blockSize = 10;
@@ -2769,6 +2870,20 @@ class PixelArtGenerator {
             return;
         }
         
+        // 颜色剔除取色模式
+        if (this.pickRemoveColorMode) {
+            const color = this.customEditData[y][x];
+            if (!color.isTransparent) {
+                const hex = this.rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
+                this.removeColorPicker.value = hex;
+                this.removeColorValue.textContent = hex;
+                // 去掉弹窗，改为在控制台显示
+                console.log(`已选择颜色: ${hex}`);
+            }
+            this.pickRemoveColorMode = false;
+            return;
+        }
+        
         if (this.currentEditTool === 'chainRazor') {
             console.log('[handleCustomEditMouseDown] 调用 chainRazor');
             this.applyChainRazor(x, y);
@@ -2845,6 +2960,71 @@ class PixelArtGenerator {
         }
         
         this.drawCustomEditCanvas();
+    }
+
+    removeSelectedColor() {
+        if (!this.customEditData) {
+            alert('请先加载可编辑的像素图！');
+            return;
+        }
+        
+        const hexColor = this.removeColorPicker.value;
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        
+        // 找到最接近的颜色
+        const colorSetName = this.colorSetSelect.value;
+        const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
+        const targetColor = findClosestColor([r, g, b], colorSet, mappingMethod);
+        
+        if (!targetColor || targetColor.isTransparent) {
+            alert('请选择有效的颜色！');
+            return;
+        }
+        
+        // 统计要剔除的颜色数量
+        let count = 0;
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const currentColor = this.customEditData[y][x];
+                if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
+                    count++;
+                }
+            }
+        }
+        
+        if (count === 0) {
+            alert('没有找到要剔除的颜色！');
+            return;
+        }
+        
+        // 去掉确认弹窗，直接执行剔除
+        console.log(`正在剔除所有 ${targetColor.name} 颜色，共 ${count} 个色块...`);
+        
+        // 保存历史记录
+        this.saveCustomEditHistory();
+        
+        // 执行颜色剔除
+        const transparentColor = {
+            name: '',
+            rgb: [255, 255, 255],
+            isTransparent: true
+        };
+        
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const currentColor = this.customEditData[y][x];
+                if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
+                    this.customEditData[y][x] = transparentColor;
+                }
+            }
+        }
+        
+        this.drawCustomEditCanvas();
+        // 去掉弹窗，改为在控制台显示
+        console.log(`已成功剔除 ${count} 个 ${targetColor.name} 颜色！`);
     }
 
     applyEditToCell(x, y) {
