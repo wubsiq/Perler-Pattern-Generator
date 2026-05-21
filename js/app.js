@@ -1319,6 +1319,12 @@ class PixelArtGenerator {
         if (perlerSummaryElement) {
             perlerSummaryElement.textContent = summaryText;
         }
+        
+        // 更新水印
+        const perlerWatermarkElement = document.getElementById('perlerWatermark');
+        if (perlerWatermarkElement) {
+            perlerWatermarkElement.textContent = this.watermarkText.value;
+        }
     }
     
     drawPerlerChartToCanvas(ctx, perlerColors, perlerWidth, perlerHeight, cellSize, colorSetName) {
@@ -1490,17 +1496,26 @@ class PixelArtGenerator {
         const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
         const summaryFontSize = cellSize * 1.3;
         
+        // 绘制水印（靠左）
+        const watermarkFontSize = cellSize * 0.8;
+        ctx.font = `${watermarkFontSize}px sans-serif`;
+        ctx.fillStyle = '#666'; // 黑灰色
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        
+        const summaryY = summaryMargin / 2; // 垂直居中放在顶部预留空间
+        ctx.fillText(this.watermarkText.value, coordSize + 10, summaryY);
+        
+        // 绘制摘要（靠右）
         ctx.font = `bold ${summaryFontSize}px sans-serif`;
         ctx.fillStyle = '#333';
         ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
         
         const summaryX = coordSize + perlerWidth * cellSize;
-        const summaryY = summaryMargin / 2; // 垂直居中放在顶部预留空间
-        
         ctx.fillText(summaryText, summaryX - 10, summaryY);
         
-        drawFooter();
+        // 不再绘制底部水印
+        // drawFooter();
     }
     
     drawPerlerChartAsync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
@@ -1773,7 +1788,8 @@ class PixelArtGenerator {
             }
         }
         this.drawColorLegend();
-        drawFooter();
+        // 不再绘制底部水印，改为在顶部显示
+        // drawFooter();
         this.resetPerlerZoom();
     }
 
@@ -1953,7 +1969,8 @@ class PixelArtGenerator {
         }
         
         this.drawColorLegend();
-        drawFooter();
+        // 不再绘制底部水印，改为在顶部显示
+        // drawFooter();
         this.resetPerlerZoom();
     }
 

@@ -1122,13 +1122,25 @@ input[type="color"]:focus {
     flex-direction: column;
 }
 
+.perler-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 10px;
+    width: 100%;
+}
+
+.perler-watermark {
+    font-size: 12px;
+    color: #666;
+    text-align: left;
+}
+
 .perler-summary {
     font-weight: bold;
     color: #333;
-    margin-bottom: 10px;
-    text-align: center;
-    padding: 0 10px;
-    width: 100%;
+    text-align: right;
 }
 
 .perler-chart-wrapper {
