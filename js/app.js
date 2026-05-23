@@ -91,6 +91,7 @@ class PixelArtGenerator {
         this.showLargeGridLines = document.getElementById('showLargeGridLines');
         this.largeGridLineColor = document.getElementById('largeGridLineColor');
         this.largeGridSize = document.getElementById('largeGridSize');
+        this.largeGridLineWidth = document.getElementById('largeGridLineWidth');
         this.watermarkText = document.getElementById('watermarkText');
         
         this.simpleModeBtn = document.getElementById('simpleModeBtn');
@@ -904,6 +905,7 @@ class PixelArtGenerator {
         this.showLargeGridLines.checked = false;
         this.largeGridLineColor.value = '#8B4513';
         this.largeGridSize.value = '5';
+        this.largeGridLineWidth.value = '2';
         this.colorCountSlider.value = 8;
         this.colorCountValue.textContent = '8';
         this.colorCountInput.value = 8;
@@ -994,7 +996,8 @@ class PixelArtGenerator {
         
         if (this.enableColorQuantize.checked) {
             const colorCount = parseInt(this.colorCountSlider.value);
-            pixelatedData = quantizeColors(pixelatedData, colorCount, this.excludedColors);
+            // 使用层级替换策略
+            pixelatedData = quantizeColors(pixelatedData, colorCount, this.excludedColors, 'layered');
         }
         
         this.pixelatedCanvas.width = targetWidth;
@@ -1436,7 +1439,7 @@ class PixelArtGenerator {
             const largeGridSize = parseInt(this.largeGridSize.value);
             if (largeGridSize > 0) {
                 ctx.strokeStyle = this.largeGridLineColor.value;
-                ctx.lineWidth = 1.5; // 加粗
+                ctx.lineWidth = parseFloat(this.largeGridLineWidth.value); // 自定义粗度
                 ctx.beginPath();
                 
                 // 绘制垂直大格子线
@@ -1638,7 +1641,7 @@ class PixelArtGenerator {
             const largeGridSize = parseInt(this.largeGridSize.value);
             if (largeGridSize > 0) {
                 ctx.strokeStyle = this.largeGridLineColor.value;
-                ctx.lineWidth = 1.5; // 加粗
+                ctx.lineWidth = parseFloat(this.largeGridLineWidth.value); // 自定义粗度
                 ctx.beginPath();
                 
                 // 绘制垂直大格子线
@@ -1662,7 +1665,7 @@ class PixelArtGenerator {
             const largeGridSize = parseInt(this.largeGridSize.value);
             if (largeGridSize > 0) {
                 ctx.strokeStyle = this.largeGridLineColor.value;
-                ctx.lineWidth = 1.5; // 加粗
+                ctx.lineWidth = parseFloat(this.largeGridLineWidth.value); // 自定义粗度
                 ctx.beginPath();
                 
                 // 绘制垂直大格子线
