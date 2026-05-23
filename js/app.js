@@ -1371,7 +1371,8 @@ class PixelArtGenerator {
         const coordNumColor = this.coordNumberColor.value;
         
         const canvasWidth = coordSize * 2 + perlerWidth * cellSize;
-        const canvasHeight = summaryMargin + coordSize * 2 + perlerHeight * cellSize + footerSize;
+        // 增加coordSize/2的空间，确保下面的编号和大格子线能够完全显示
+        const canvasHeight = summaryMargin + coordSize * 2 + perlerHeight * cellSize + coordSize / 2 + footerSize;
         
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -1452,6 +1453,12 @@ class PixelArtGenerator {
                 for (let y = 0; y <= perlerHeight; y += largeGridSize) {
                     ctx.moveTo(coordSize, summaryMargin + coordSize + y * cellSize);
                     ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + y * cellSize);
+                }
+                
+                // 绘制最底部的水平大格子线（如果需要）
+                if (largeGridSize <= perlerHeight) {
+                    ctx.moveTo(coordSize, summaryMargin + coordSize + perlerHeight * cellSize);
+                    ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + perlerHeight * cellSize);
                 }
                 
                 ctx.stroke();
@@ -2373,13 +2380,15 @@ class PixelArtGenerator {
         const cellSize = parseInt(this.exportBeadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
+        const summaryMargin = cellSize * 2 + 20; // 给摘要留出额外空间
         const colorNames = Object.keys(this.colorCounts).sort();
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
         const colorTypes = colorNames.length;
         
         const position = this.legendPosition.value;
         const chartWidth = coordSize * 2 + perlerWidth * cellSize;
-        const chartHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
+        // 增加summaryMargin和coordSize/2的空间，确保摘要和下面的编号能够完全显示
+        const chartHeight = summaryMargin + coordSize * 2 + perlerHeight * cellSize + coordSize / 2 + footerSize;
         const colorSetName = this.colorSetSelect.value;
         
         let canvasWidth, canvasHeight;
@@ -2389,51 +2398,55 @@ class PixelArtGenerator {
             canvasWidth = chartWidth;
             canvasHeight = chartHeight;
         } else {
-            let columns, itemsPerColumn, columnWidth;
+            const fontSizeScale = cellSize / 30;
             const rectWidth = 120;
             const rectHeight = 28;
             const rowHeight = rectHeight + 5;
             
-            if (position === 'right') {
-                columnWidth = rectWidth + 10;
-                const availableHeight = chartHeight - 60;
-                const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeight));
-                columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
-            } else {
-                const maxWidth = chartWidth - 20;
-                columnWidth = rectWidth + 10;
-                columns = Math.max(1, Math.min(Math.floor(maxWidth / columnWidth), Math.ceil(colorNames.length / 1)));
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
-            }
-            
-            const legendWidth = columns * columnWidth + 20;
-            const legendHeight = 60 + itemsPerColumn * rowHeight;
-            
-            const fontSizeScale = cellSize / 30;
-            
+            // 先应用缩放
+            const rectWidthScaled = Math.max(80, Math.floor(rectWidth * fontSizeScale));
+            const rectHeightScaled = Math.max(19, Math.floor(rectHeight * fontSizeScale));
+            const rowHeightScaled = Math.max(20, Math.floor(rowHeight * fontSizeScale));
+            const columnWidthScaled = Math.max(90, Math.floor((rectWidth + 10) * fontSizeScale));
             const legendTitleSize = Math.max(10, Math.floor(13 * fontSizeScale));
             const totalSize = Math.max(9, Math.floor(12 * fontSizeScale));
             const colorNameSize = Math.max(8, Math.floor(11 * fontSizeScale));
             const legendYOffset1 = Math.max(14, Math.floor(18 * fontSizeScale));
             const legendYOffset2 = Math.max(28, Math.floor(36 * fontSizeScale));
             const legendStartY = Math.max(39, Math.floor(50 * fontSizeScale));
-            const rectWidthScaled = Math.max(80, Math.floor(rectWidth * fontSizeScale));
-            const rectHeightScaled = Math.max(19, Math.floor(rectHeight * fontSizeScale));
             const legendXGap = Math.max(6, Math.floor(8 * fontSizeScale));
-            const columnWidthScaled = Math.max(90, Math.floor(columnWidth * fontSizeScale));
-            const rowHeightScaled = Math.max(20, Math.floor(rowHeight * fontSizeScale));
+            
+            let columns, itemsPerColumn;
+            const legendHeaderHeight = 60 * fontSizeScale;
+            
+            if (position === 'right') {
+                // 右侧模式：先计算能放多少行，再计算列数
+                const availableHeight = chartHeight - legendHeaderHeight;
+                const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeightScaled));
+                columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
+                itemsPerColumn = Math.ceil(colorNames.length / columns);
+            } else {
+                // 底部模式：先计算能放多少列，再计算行数
+                const maxWidth = chartWidth - 20;
+                const maxColumns = Math.max(1, Math.floor(maxWidth / columnWidthScaled));
+                columns = Math.min(maxColumns, colorNames.length);
+                itemsPerColumn = Math.ceil(colorNames.length / columns);
+            }
+            
+            // 再计算图例的整体尺寸
+            const legendWidth = columns * columnWidthScaled + 20 * fontSizeScale;
+            const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
             
             let legendX, legendY;
             
             if (position === 'right') {
-                canvasWidth = chartWidth + Math.max(legendWidth * fontSizeScale, 200 * fontSizeScale) + 40 * fontSizeScale;
-                canvasHeight = Math.max(chartHeight, legendHeight * fontSizeScale);
+                canvasWidth = chartWidth + Math.max(legendWidth, 200 * fontSizeScale) + 40 * fontSizeScale;
+                canvasHeight = Math.max(chartHeight, legendHeight);
                 legendX = chartWidth + 20 * fontSizeScale;
                 legendY = 0;
             } else {
-                canvasWidth = Math.max(chartWidth, legendWidth * fontSizeScale);
-                canvasHeight = chartHeight + legendHeight * fontSizeScale + 40 * fontSizeScale;
+                canvasWidth = Math.max(chartWidth, legendWidth);
+                canvasHeight = chartHeight + legendHeight + 40 * fontSizeScale;
                 legendX = 0;
                 legendY = chartHeight + 20 * fontSizeScale;
             }
