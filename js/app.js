@@ -1107,13 +1107,11 @@ class PixelArtGenerator {
     resetPerlerZoom() {
         this.perlerZoomSlider.value = 100;
         this.perlerZoomValue.textContent = '100%';
-        this.perlerCanvas.style.width = 'auto';
-        this.perlerCanvas.style.height = 'auto';
-        
-        requestAnimationFrame(() => {
-            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
-            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
-        });
+        // 1:1原生尺寸显示
+        this.perlerCanvas.style.width = this.perlerCanvasNaturalWidth + 'px';
+        this.perlerCanvas.style.height = this.perlerCanvasNaturalHeight + 'px';
+        this.perlerCanvasDisplayWidth = this.perlerCanvasNaturalWidth;
+        this.perlerCanvasDisplayHeight = this.perlerCanvasNaturalHeight;
     }
 
     calculateColorStats(imageData) {
@@ -1329,13 +1327,11 @@ class PixelArtGenerator {
         this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
         this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
         this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
-        this.perlerCanvas.style.width = 'auto';
-        this.perlerCanvas.style.height = 'auto';
-        
-        requestAnimationFrame(() => {
-            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
-            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
-        });
+        // 设置为1:1原生尺寸显示，避免浏览器缩放导致网格线颜色变淡
+        this.perlerCanvas.style.width = this.perlerCanvasNaturalWidth + 'px';
+        this.perlerCanvas.style.height = this.perlerCanvasNaturalHeight + 'px';
+        this.perlerCanvasDisplayWidth = this.perlerCanvasNaturalWidth;
+        this.perlerCanvasDisplayHeight = this.perlerCanvasNaturalHeight;
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -1419,17 +1415,17 @@ class PixelArtGenerator {
         
         if (showGrid) {
             ctx.strokeStyle = coordColor;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 1;
             ctx.beginPath();
             
             for (let x = 0; x <= perlerWidth; x++) {
-                ctx.moveTo(coordSize + x * cellSize, summaryMargin + coordSize);
-                ctx.lineTo(coordSize + x * cellSize, summaryMargin + coordSize + perlerHeight * cellSize);
+                ctx.moveTo(coordSize + x * cellSize - 0.5, summaryMargin + coordSize);
+                ctx.lineTo(coordSize + x * cellSize - 0.5, summaryMargin + coordSize + perlerHeight * cellSize);
             }
             
             for (let y = 0; y <= perlerHeight; y++) {
-                ctx.moveTo(coordSize, summaryMargin + coordSize + y * cellSize);
-                ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + y * cellSize);
+                ctx.moveTo(coordSize, summaryMargin + coordSize + y * cellSize - 0.5);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, summaryMargin + coordSize + y * cellSize - 0.5);
             }
             
             ctx.stroke();
@@ -1526,12 +1522,7 @@ class PixelArtGenerator {
                     
                     ctx.restore();
                     
-                    ctx.beginPath();
-                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#ddd';
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
-                } else {
+                    } else {
                     if (chartStyle === 'color') {
                         ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                         ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
@@ -1627,44 +1618,20 @@ class PixelArtGenerator {
         
         if (showGrid) {
             ctx.strokeStyle = coordColor;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 1;
             ctx.beginPath();
             
             for (let x = 0; x <= perlerWidth; x++) {
-                ctx.moveTo(coordSize + x * cellSize, coordSize);
-                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+                ctx.moveTo(coordSize + x * cellSize - 0.5, coordSize);
+                ctx.lineTo(coordSize + x * cellSize - 0.5, coordSize + perlerHeight * cellSize);
             }
             
             for (let y = 0; y <= perlerHeight; y++) {
-                ctx.moveTo(coordSize, coordSize + y * cellSize);
-                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+                ctx.moveTo(coordSize, coordSize + y * cellSize - 0.5);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize - 0.5);
             }
             
             ctx.stroke();
-        }
-        
-        // 绘制大格子线
-        if (this.showLargeGridLines.checked) {
-            const largeGridSize = parseInt(this.largeGridSize.value);
-            if (largeGridSize > 0) {
-                ctx.strokeStyle = this.largeGridLineColor.value;
-                ctx.lineWidth = parseFloat(this.largeGridLineWidth.value); // 自定义粗度
-                ctx.beginPath();
-                
-                // 绘制垂直大格子线
-                for (let x = 0; x <= perlerWidth; x += largeGridSize) {
-                    ctx.moveTo(coordSize + x * cellSize, coordSize);
-                    ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
-                }
-                
-                // 绘制水平大格子线
-                for (let y = 0; y <= perlerHeight; y += largeGridSize) {
-                    ctx.moveTo(coordSize, coordSize + y * cellSize);
-                    ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
-                }
-                
-                ctx.stroke();
-            }
         }
         
         // 绘制大格子线
@@ -1774,12 +1741,6 @@ class PixelArtGenerator {
                         }
                         
                         ctx.restore();
-                        
-                        ctx.beginPath();
-                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                        ctx.strokeStyle = '#ddd';
-                        ctx.lineWidth = 0.5;
-                        ctx.stroke();
                     } else {
                         if (chartStyle === 'color') {
                             ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -1869,12 +1830,6 @@ class PixelArtGenerator {
                         }
                         
                         ctx.restore();
-                        
-                        ctx.beginPath();
-                        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                        ctx.strokeStyle = '#ddd';
-                        ctx.lineWidth = 0.5;
-                        ctx.stroke();
                     } else {
                         if (chartStyle === 'color') {
                             ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -1920,13 +1875,11 @@ class PixelArtGenerator {
         this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
         this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
         this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
-        this.perlerCanvas.style.width = 'auto';
-        this.perlerCanvas.style.height = 'auto';
-        
-        requestAnimationFrame(() => {
-            this.perlerCanvasDisplayWidth = this.perlerCanvas.offsetWidth;
-            this.perlerCanvasDisplayHeight = this.perlerCanvas.offsetHeight;
-        });
+        // 设置为1:1原生尺寸显示，避免浏览器缩放导致网格线颜色变淡
+        this.perlerCanvas.style.width = this.perlerCanvasNaturalWidth + 'px';
+        this.perlerCanvas.style.height = this.perlerCanvasNaturalHeight + 'px';
+        this.perlerCanvasDisplayWidth = this.perlerCanvasNaturalWidth;
+        this.perlerCanvasDisplayHeight = this.perlerCanvasNaturalHeight;
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -1974,17 +1927,17 @@ class PixelArtGenerator {
         
         if (showGrid) {
             ctx.strokeStyle = coordColor;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = 1;
             ctx.beginPath();
             
             for (let x = 0; x <= perlerWidth; x++) {
-                ctx.moveTo(coordSize + x * cellSize, coordSize);
-                ctx.lineTo(coordSize + x * cellSize, coordSize + perlerHeight * cellSize);
+                ctx.moveTo(coordSize + x * cellSize - 0.5, coordSize);
+                ctx.lineTo(coordSize + x * cellSize - 0.5, coordSize + perlerHeight * cellSize);
             }
             
             for (let y = 0; y <= perlerHeight; y++) {
-                ctx.moveTo(coordSize, coordSize + y * cellSize);
-                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize);
+                ctx.moveTo(coordSize, coordSize + y * cellSize - 0.5);
+                ctx.lineTo(coordSize + perlerWidth * cellSize, coordSize + y * cellSize - 0.5);
             }
             
             ctx.stroke();
@@ -2051,12 +2004,7 @@ class PixelArtGenerator {
                     
                     ctx.restore();
                     
-                    ctx.beginPath();
-                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
-                    ctx.strokeStyle = '#ddd';
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
-                } else {
+                    } else {
                     if (chartStyle === 'color') {
                         ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                         ctx.fillRect(px, py, cellSize - 1, cellSize - 1);

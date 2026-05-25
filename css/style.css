@@ -325,7 +325,7 @@ header h1 {
 /* 拼豆图纸的画布容器没有尺寸限制 */
 .perler-canvas-wrapper {
     max-height: none;
-    overflow: visible;
+    overflow: auto;
 }
 
 canvas {
