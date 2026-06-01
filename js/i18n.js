@@ -40,10 +40,12 @@ const i18n = {
         beadShape: '拼豆形状：',
         beadShapeSquare: '正方形',
         beadShapeCircle: '圆形',
+        beadShapeRing: '圆环',
         beadSize: '拼豆大小：',
         showGridLines: '显示网格线',
         showCoordNumbers: '显示坐标数字',
         coordLineColor: '网格线颜色：',
+        gridLineWidth: '网格线粗度：',
         coordNumberColor: '坐标数字颜色：',
         renderPerler: '渲染拼豆图纸',
         originalPreview: '原图预览',
@@ -95,6 +97,7 @@ const i18n = {
             perlerChart: '豆师傅',
             withCode: '带编号',
             circle: '圆形',
+            ring: '圆环',
             legendRight: '图例右侧',
             bw: 'bw'
         }
@@ -140,10 +143,12 @@ const i18n = {
         beadShape: 'Bead Shape: ',
         beadShapeSquare: 'Square',
         beadShapeCircle: 'Circle',
+        beadShapeRing: 'Ring',
         beadSize: 'Bead Size: ',
         showGridLines: 'Show Grid Lines',
         showCoordNumbers: 'Show Coordinate Numbers',
         coordLineColor: 'Grid Line Color: ',
+        gridLineWidth: 'Grid Line Width: ',
         coordNumberColor: 'Coordinate Number Color: ',
         renderPerler: '🎨 Render Perler Chart',
         originalPreview: 'Original Preview',
@@ -195,6 +200,7 @@ const i18n = {
             perlerChart: 'BeadMaster',
             withCode: 'with-code',
             circle: 'circle',
+            ring: 'ring',
             legendRight: 'legend-right',
             bw: 'bw'
         }
