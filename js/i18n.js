@@ -41,6 +41,7 @@ const i18n = {
         beadShapeSquare: '正方形',
         beadShapeCircle: '圆形',
         beadShapeRing: '圆环',
+        beadShapeRoundSquare: '圆角正方形',
         beadSize: '拼豆大小：',
         showGridLines: '显示网格线',
         showCoordNumbers: '显示坐标数字',
@@ -98,6 +99,7 @@ const i18n = {
             withCode: '带编号',
             circle: '圆形',
             ring: '圆环',
+            'round-square': '圆角正方形',
             legendRight: '图例右侧',
             bw: 'bw'
         }
@@ -144,6 +146,7 @@ const i18n = {
         beadShapeSquare: 'Square',
         beadShapeCircle: 'Circle',
         beadShapeRing: 'Ring',
+        beadShapeRoundSquare: 'Rounded Square',
         beadSize: 'Bead Size: ',
         showGridLines: 'Show Grid Lines',
         showCoordNumbers: 'Show Coordinate Numbers',
@@ -201,6 +204,7 @@ const i18n = {
             withCode: 'with-code',
             circle: 'circle',
             ring: 'ring',
+            'round-square': 'rounded-square',
             legendRight: 'legend-right',
             bw: 'bw'
         }

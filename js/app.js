@@ -1185,6 +1185,61 @@ class PixelArtGenerator {
         ctx.restore();
     }
 
+    /**
+     * 绘制圆角正方形拼豆
+     * @param {CanvasRenderingContext2D} ctx 绘制上下文
+     * @param {number} px 左上角 x 坐标
+     * @param {number} py 左上角 y 坐标
+     * @param {number} cellSize 单元格大小
+     * @param {any} color 颜色对象
+     * @param {'color' | 'color-with-code' | 'bw'} chartStyle 图纸风格
+     * @param {number} fontSize 字体大小
+     */
+    drawRoundSquareBead(ctx, px, py, cellSize, color, chartStyle, fontSize) {
+        ctx.save();
+        const cornerRadius = Math.min(8, Math.floor(cellSize * 0.2));
+        const actualSize = cellSize - 1;
+        const centerX = px + cellSize / 2;
+        const centerY = py + cellSize / 2;
+
+        // 开始绘制圆角正方形
+        ctx.beginPath();
+        ctx.moveTo(px + cornerRadius, py);
+        ctx.lineTo(px + actualSize - cornerRadius, py);
+        ctx.quadraticCurveTo(px + actualSize, py, px + actualSize, py + cornerRadius);
+        ctx.lineTo(px + actualSize, py + actualSize - cornerRadius);
+        ctx.quadraticCurveTo(px + actualSize, py + actualSize, px + actualSize - cornerRadius, py + actualSize);
+        ctx.lineTo(px + cornerRadius, py + actualSize);
+        ctx.quadraticCurveTo(px, py + actualSize, px, py + actualSize - cornerRadius);
+        ctx.lineTo(px, py + cornerRadius);
+        ctx.quadraticCurveTo(px, py, px + cornerRadius, py);
+        ctx.closePath();
+
+        if (chartStyle === 'color') {
+            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+            ctx.fill();
+        } else if (chartStyle === 'color-with-code') {
+            ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+            ctx.fill();
+            ctx.fillStyle = getContrastTextColor(color.rgb);
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(color.name, centerX, centerY);
+        } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = '#333';
+            ctx.font = `${fontSize}px sans-serif`;
+            ctx.fillText(color.name, centerX, centerY);
+        }
+
+        ctx.restore();
+    }
+
     calculateColorStats(imageData) {
         const data = imageData.data;
         const colorMap = new Map();
@@ -1296,43 +1351,21 @@ class PixelArtGenerator {
         const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
         
-        // 直接使用保存的像素化结果，避免Canvas缩放丢失
-        let processedData;
-        if (!this.pixelatedData) {
-            // 回退方案
-            const smallCanvas = document.createElement('canvas');
-            const smallCtx = smallCanvas.getContext('2d');
-            smallCanvas.width = perlerWidth;
-            smallCanvas.height = perlerHeight;
-            
-            // 禁用平滑插值，使用最近邻，避免颜色模糊扩散
-            smallCtx.imageSmoothingEnabled = false;
-            smallCtx.mozImageSmoothingEnabled = false;
-            smallCtx.webkitImageSmoothingEnabled = false;
-            smallCtx.msImageSmoothingEnabled = false;
-            
-            smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
-            
-            processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
-        } else {
-            // 直接从pixelatedData计算，更准确
-            processedData = new ImageData(perlerWidth, perlerHeight);
-            const pixelSize = parseInt(this.pixelSizeSlider.value);
-            
-            for (let y = 0; y < perlerHeight; y++) {
-                for (let x = 0; x < perlerWidth; x++) {
-                    const srcX = Math.min(Math.floor(x * pixelSize), this.pixelatedData.width - 1);
-                    const srcY = Math.min(Math.floor(y * pixelSize), this.pixelatedData.height - 1);
-                    const srcIndex = (srcY * this.pixelatedData.width + srcX) * 4;
-                    const dstIndex = (y * perlerWidth + x) * 4;
-                    
-                    processedData.data[dstIndex] = this.pixelatedData.data[srcIndex];
-                    processedData.data[dstIndex + 1] = this.pixelatedData.data[srcIndex + 1];
-                    processedData.data[dstIndex + 2] = this.pixelatedData.data[srcIndex + 2];
-                    processedData.data[dstIndex + 3] = this.pixelatedData.data[srcIndex + 3];
-                }
-            }
-        }
+        // 使用smallCanvas的最近邻采样，最准确地获取每个像素格子的颜色
+        const smallCanvas = document.createElement('canvas');
+        const smallCtx = smallCanvas.getContext('2d');
+        smallCanvas.width = perlerWidth;
+        smallCanvas.height = perlerHeight;
+        
+        // 禁用平滑插值，使用最近邻，避免颜色模糊扩散
+        smallCtx.imageSmoothingEnabled = false;
+        smallCtx.mozImageSmoothingEnabled = false;
+        smallCtx.webkitImageSmoothingEnabled = false;
+        smallCtx.msImageSmoothingEnabled = false;
+        
+        smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
+        
+        const processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
         
         this.colorCounts = {};
         this.perlerColors = [];
@@ -1547,6 +1580,21 @@ class PixelArtGenerator {
                         ctx.beginPath();
                         ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
                         ctx.fill();
+                    } else if (beadShape === 'round-square') {
+                        const cornerRadius = Math.min(8, Math.floor(cellSize * 0.2));
+                        const actualSize = cellSize - 1;
+                        ctx.beginPath();
+                        ctx.moveTo(px + cornerRadius, py);
+                        ctx.lineTo(px + actualSize - cornerRadius, py);
+                        ctx.quadraticCurveTo(px + actualSize, py, px + actualSize, py + cornerRadius);
+                        ctx.lineTo(px + actualSize, py + actualSize - cornerRadius);
+                        ctx.quadraticCurveTo(px + actualSize, py + actualSize, px + actualSize - cornerRadius, py + actualSize);
+                        ctx.lineTo(px + cornerRadius, py + actualSize);
+                        ctx.quadraticCurveTo(px, py + actualSize, px, py + actualSize - cornerRadius);
+                        ctx.lineTo(px, py + cornerRadius);
+                        ctx.quadraticCurveTo(px, py, px + cornerRadius, py);
+                        ctx.closePath();
+                        ctx.fill();
                     } else {
                         ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
                     }
@@ -1598,6 +1646,8 @@ class PixelArtGenerator {
                     
                 } else if (beadShape === 'ring') {
                     this.drawRingBead(ctx, px, py, cellSize, color, chartStyle, fontSize);
+                } else if (beadShape === 'round-square') {
+                    this.drawRoundSquareBead(ctx, px, py, cellSize, color, chartStyle, fontSize);
                 } else {
                     if (chartStyle === 'color') {
                         ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -2133,6 +2183,21 @@ class PixelArtGenerator {
                         ctx.beginPath();
                         ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
                         ctx.fill();
+                    } else if (beadShape === 'round-square') {
+                        const cornerRadius = Math.min(8, Math.floor(cellSize * 0.2));
+                        const actualSize = cellSize - 1;
+                        ctx.beginPath();
+                        ctx.moveTo(px + cornerRadius, py);
+                        ctx.lineTo(px + actualSize - cornerRadius, py);
+                        ctx.quadraticCurveTo(px + actualSize, py, px + actualSize, py + cornerRadius);
+                        ctx.lineTo(px + actualSize, py + actualSize - cornerRadius);
+                        ctx.quadraticCurveTo(px + actualSize, py + actualSize, px + actualSize - cornerRadius, py + actualSize);
+                        ctx.lineTo(px + cornerRadius, py + actualSize);
+                        ctx.quadraticCurveTo(px, py + actualSize, px, py + actualSize - cornerRadius);
+                        ctx.lineTo(px, py + cornerRadius);
+                        ctx.quadraticCurveTo(px, py, px + cornerRadius, py);
+                        ctx.closePath();
+                        ctx.fill();
                     } else {
                         ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
                     }
@@ -2184,6 +2249,8 @@ class PixelArtGenerator {
                     
                 } else if (beadShape === 'ring') {
                     this.drawRingBead(ctx, px, py, cellSize, color, chartStyle, fontSize);
+                } else if (beadShape === 'round-square') {
+                    this.drawRoundSquareBead(ctx, px, py, cellSize, color, chartStyle, fontSize);
                 } else {
                     if (chartStyle === 'color') {
                         ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
@@ -2688,6 +2755,7 @@ class PixelArtGenerator {
             if (chartStyle === 'color-with-code') fileName += `_${i18nFileName.withCode}`;
             if (beadShape === 'circle') fileName += `_${i18nFileName.circle}`;
             if (beadShape === 'ring') fileName += `_${i18nFileName.ring}`;
+            if (beadShape === 'round-square') fileName += `_${i18nFileName['round-square']}`;
             if (position === 'right') fileName += `_${i18nFileName.legendRight}`;
             if (scale !== 1) fileName += `_${scale}x`;
             

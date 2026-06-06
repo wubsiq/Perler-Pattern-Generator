@@ -428,6 +428,11 @@ canvas {
     min-width: 200px;
 }
 
+.flex-item.number-item {
+    flex: 0 0 auto;
+    min-width: 200px;
+}
+
 .flex-item.slider-half {
     flex: 1;
     min-width: 200px;

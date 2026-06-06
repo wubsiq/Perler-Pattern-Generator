@@ -414,59 +414,70 @@
                                 <option value="square" data-i18n-value="beadShapeSquare">正方形</option>
                                 <option value="circle" data-i18n-value="beadShapeCircle">圆形</option>
                                 <option value="ring" data-i18n-value="beadShapeRing">圆环</option>
+                                <option value="round-square" data-i18n-value="beadShapeRoundSquare">圆角正方形</option>
                             </select>
                         </div>
-                        <div class="control-group">
-                            <label>
-                                <span data-i18n="beadSize">拼豆大小（显示）：</span>
-                                <span id="beadSizeValue">16px</span>
-                            </label>
-                            <input type="range" id="beadSizeSlider" min="6" max="48" step="2" value="16">
+                        <div class="control-group flex-row">
+                            <div class="flex-item slider-half">
+                                <label>
+                                    <span data-i18n="beadSize">拼豆大小（显示）：</span>
+                                    <span id="beadSizeValue">16px</span>
+                                </label>
+                                <input type="range" id="beadSizeSlider" min="6" max="48" step="2" value="16">
+                            </div>
+                            <div class="flex-item slider-half">
+                                <label>
+                                    <span>拼豆大小（导出）：</span>
+                                    <span id="exportBeadSizeValue">32px</span>
+                                </label>
+                                <input type="range" id="exportBeadSizeSlider" min="12" max="96" step="2" value="32">
+                            </div>
                         </div>
-                        <div class="control-group advanced-only">
-                            <label>
-                                <span>拼豆大小（导出）：</span>
-                                <span id="exportBeadSizeValue">32px</span>
-                            </label>
-                            <input type="range" id="exportBeadSizeSlider" min="12" max="96" step="2" value="32">
+                        <div class="control-group advanced-only flex-row">
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showGridLines" checked>
+                                    <span data-i18n="showGridLines">显示网格线</span>
+                                </label>
+                            </div>
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showCoordNumbers" checked>
+                                    <span data-i18n="showCoordNumbers">显示坐标数字</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="control-group advanced-only">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="showGridLines" checked>
-                                <span data-i18n="showGridLines">显示网格线</span>
-                            </label>
+                        <div class="control-group advanced-only flex-row">
+                            <div class="flex-item color-item">
+                                <label><span data-i18n="coordLineColor">网格线颜色：</span></label>
+                                <input type="color" id="coordLineColor" value="#000000">
+                            </div>
+                            <div class="flex-item number-item">
+                                <label><span data-i18n="gridLineWidth">网格线粗度：</span></label>
+                                <input type="number" id="gridLineWidth" min="0" max="5" step="0.5" value="1" style="width: 80px;">
+                            </div>
                         </div>
-                        <div class="control-group advanced-only">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="showCoordNumbers" checked>
-                                <span data-i18n="showCoordNumbers">显示坐标数字</span>
-                            </label>
+                        <div class="control-group advanced-only flex-row">
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showLargeGridLines">
+                                    <span>显示大格子线</span>
+                                </label>
+                            </div>
+                            <div class="flex-item color-item">
+                                <label>大格子线颜色：</label>
+                                <input type="color" id="largeGridLineColor" value="#8B4513">
+                            </div>
                         </div>
-                        <div class="control-group advanced-only">
-                            <label><span data-i18n="coordLineColor">网格线颜色：</span></label>
-                            <input type="color" id="coordLineColor" value="#000000">
-                        </div>
-                        <div class="control-group advanced-only">
-                            <label><span data-i18n="gridLineWidth">网格线粗度：</span></label>
-                            <input type="number" id="gridLineWidth" min="0" max="5" step="0.5" value="1" style="width: 80px;">
-                        </div>
-                        <div class="control-group advanced-only">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="showLargeGridLines">
-                                <span>显示大格子线</span>
-                            </label>
-                        </div>
-                        <div class="control-group advanced-only">
-                            <label>大格子线颜色：</label>
-                            <input type="color" id="largeGridLineColor" value="#8B4513">
-                        </div>
-                        <div class="control-group advanced-only">
-                            <label>大格子大小（每N个小格子）：</label>
-                            <input type="number" id="largeGridSize" min="0" max="100" value="5" style="width: 80px;">
-                        </div>
-                        <div class="control-group advanced-only">
-                            <label>大格子线粗度：</label>
-                            <input type="number" id="largeGridLineWidth" min="0.5" max="5" step="0.5" value="2" style="width: 80px;">
+                        <div class="control-group advanced-only flex-row">
+                            <div class="flex-item number-item">
+                                <label>大格子大小（每N个小格子）：</label>
+                                <input type="number" id="largeGridSize" min="0" max="100" value="5" style="width: 80px;">
+                            </div>
+                            <div class="flex-item number-item">
+                                <label>大格子线粗度：</label>
+                                <input type="number" id="largeGridLineWidth" min="0.5" max="5" step="0.5" value="2" style="width: 80px;">
+                            </div>
                         </div>
                         <div class="control-group advanced-only">
                             <label><span data-i18n="coordNumberColor">坐标数字颜色：</span></label>
