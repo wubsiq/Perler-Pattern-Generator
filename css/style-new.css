@@ -1,3 +1,46 @@
+/* 优化布局：行内分组 */
+.row-group {
+    display: flex !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    margin-bottom: 20px !important;
+}
+
+.row-left, .row-right {
+    flex: 1 !important;
+    min-width: 200px !important;
+    display: block !important;
+}
+
+/* 针对内联样式的flex布局 */
+.control-group[style*="display: flex"] {
+    align-items: flex-start !important;
+    margin-bottom: 20px !important;
+}
+
+.control-group[style*="display: flex"] > div {
+    flex: 1 !important;
+    min-width: 200px !important;
+}
+
+.row-group label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 5px !important;
+}
+
+.row-group input[type="range"] {
+    width: 100% !important;
+    margin-top: 5px !important;
+}
+
+/* 减少高级模式下控件间距 */
+.advanced-only {
+    margin-bottom: 10px !important;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -393,62 +436,34 @@ canvas {
     font-size: 1em;
 }
 
+.row-group label,
+.control-group[style*="flex"] label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 5px !important;
+}
+
 .control-group input {
     width: 100%;
-    padding: 12px;
+    padding: 10px 12px;
     border: 2px solid #000000;
     border-radius: 0;
     font-size: 1em;
+    background: #ffffff;
+    transition: border-color 0.3s;
 }
 
-/* 弹性布局样式 */
-.flex-row {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
+.row-group input[type="range"],
+.control-group[style*="flex"] input[type="range"] {
+    width: 100% !important;
+    margin-top: 5px !important;
 }
 
-.flex-item {
-    flex: 1;
-}
-
-.flex-item.checkbox-item {
-    flex: 0 0 auto;
-    min-width: 150px;
-    display: flex;
-    align-items: center;
-}
-
-.flex-item.slider-item {
-    flex: 1;
-}
-
-.flex-item.color-item {
-    flex: 0 0 auto;
-    min-width: 200px;
-}
-
-.flex-item.slider-half {
-    flex: 1;
-    min-width: 200px;
-}
-
-.flex-item.full-width {
-    flex: 1 1 100%;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-    .flex-row {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .flex-item.checkbox-item,
-    .flex-item.color-item {
-        flex: 1;
-        min-width: auto;
-    }
+.row-group .row-left,
+.row-group .row-right,
+.control-group[style*="flex"] > div {
+    margin-bottom: 0 !important;
 }
 
 input[type="range"] {
@@ -574,6 +589,44 @@ input[type="range"]::-moz-range-thumb {
     width: 18px;
     height: 18px;
     accent-color: #000000;
+}
+
+/* 优化布局：行内分组 */
+.row-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.row-left, .row-right {
+    flex: 1;
+    min-width: 200px;
+}
+
+.row-group .control-group {
+    margin-bottom: 0;
+}
+
+.row-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.row-group input[type="range"] {
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* 减少高级模式下控件间距 */
+.advanced-only {
+    margin-bottom: 10px;
+}
+
+.control-group.advanced-only:last-child {
+    margin-bottom: 0;
 }
 
 .action-buttons {
