@@ -166,7 +166,7 @@
                 </div>
                 <div class="preview-right">
                     <div class="controls-section">
-                        <div class="control-group advanced-only">
+                        <div class="control-group">
                             <label><span data-i18n="pixelMethod">像素化方法：</span></label>
                             <select id="pixelMethod">
                                 <option value="mosaic" data-i18n-value="pixelMethodMosaic">马赛克化（平均）</option>
@@ -195,6 +195,13 @@
                                 </label>
                                 <input type="color" id="pixelGridColor" value="#000000">
                             </div>
+                        </div>
+                        <div class="control-group advanced-only">
+                            <label>
+                                <span data-i18n="pixelGridLineWidth">像素划分线粗度：</span>
+                                <span id="pixelGridLineWidthValue">1px</span>
+                            </label>
+                            <input type="number" id="pixelGridLineWidth" min="0" max="5" step="0.5" value="1">
                         </div>
                         <div class="control-group flex-row">
                             <div class="flex-item slider-half">
@@ -392,7 +399,7 @@
                                 <option value="hsv" data-i18n-value="mappingHsv">HSV色彩空间</option>
                             </select>
                         </div>
-                        <div class="control-group advanced-only">
+                        <div class="control-group">
                             <label><span data-i18n="chartStyle">图纸样式：</span></label>
                             <select id="chartStyle">
                                 <option value="color" data-i18n-value="chartStyleColor">彩色图纸</option>

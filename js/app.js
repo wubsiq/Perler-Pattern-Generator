@@ -135,6 +135,8 @@ class PixelArtGenerator {
         this.pixelGridOffsetY = document.getElementById('pixelGridOffsetY');
         this.pixelGridOffsetXValue = document.getElementById('pixelGridOffsetXValue');
         this.pixelGridOffsetYValue = document.getElementById('pixelGridOffsetYValue');
+        this.pixelGridLineWidth = document.getElementById('pixelGridLineWidth');
+        this.pixelGridLineWidthValue = document.getElementById('pixelGridLineWidthValue');
         
         // 雕刻分裂相关元素
         this.pixelModeBtn = document.getElementById('pixelModeBtn');
@@ -547,6 +549,12 @@ class PixelArtGenerator {
             this.pixelGridOffsetYValue.textContent = this.pixelGridOffsetY.value + 'px';
             this.updatePixelatedImage();
         });
+
+        // 像素划分线粗度调整
+        this.pixelGridLineWidth.addEventListener('input', () => {
+            this.pixelGridLineWidthValue.textContent = this.pixelGridLineWidth.value + 'px';
+            this.updatePixelGridColor();
+        });
         
         // 像素块大小变化时，调整偏移滑块的最大值
         this.pixelSizeSlider.addEventListener('input', () => {
@@ -926,6 +934,8 @@ class PixelArtGenerator {
         this.pixelGridOffsetYValue.textContent = '0px';
         this.pixelGridOffsetX.max = 15; // 16-1
         this.pixelGridOffsetY.max = 15; // 16-1
+        this.pixelGridLineWidth.value = '1';
+        this.pixelGridLineWidthValue.textContent = '1px';
         
         this.lastPerlerSignature = null;
         this.unifiedSnapshots = [];
@@ -1016,27 +1026,31 @@ class PixelArtGenerator {
             const pixelSize = parseInt(this.pixelSizeSlider.value);
             const offsetX = parseInt(this.pixelGridOffsetX.value);
             const offsetY = parseInt(this.pixelGridOffsetY.value);
-            this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
-            this.pixelatedCtx.lineWidth = 1;
-            this.pixelatedCtx.beginPath();
+            const lineWidth = parseFloat(this.pixelGridLineWidth.value);
             
-            // 绘制垂直线
-            for (let x = offsetX; x < targetWidth; x += pixelSize) {
-                if (x > 0) { // 不画边界线
-                    this.pixelatedCtx.moveTo(x - 0.5, 0);
-                    this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+            if (lineWidth > 0) {
+                this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
+                this.pixelatedCtx.lineWidth = lineWidth;
+                this.pixelatedCtx.beginPath();
+                
+                // 绘制垂直线
+                for (let x = offsetX; x < targetWidth; x += pixelSize) {
+                    if (x > 0) { // 不画边界线
+                        this.pixelatedCtx.moveTo(x - 0.5, 0);
+                        this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+                    }
                 }
-            }
-            
-            // 绘制水平线
-            for (let y = offsetY; y < targetHeight; y += pixelSize) {
-                if (y > 0) { // 不画边界线
-                    this.pixelatedCtx.moveTo(0, y - 0.5);
-                    this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+                
+                // 绘制水平线
+                for (let y = offsetY; y < targetHeight; y += pixelSize) {
+                    if (y > 0) { // 不画边界线
+                        this.pixelatedCtx.moveTo(0, y - 0.5);
+                        this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+                    }
                 }
+                
+                this.pixelatedCtx.stroke();
             }
-            
-            this.pixelatedCtx.stroke();
         }
         
         // 保存像素化结果，用于拼豆化
@@ -1088,27 +1102,30 @@ class PixelArtGenerator {
         }
         
         // 再绘制新颜色的网格线
-        this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
-        this.pixelatedCtx.lineWidth = 1;
-        this.pixelatedCtx.beginPath();
-        
-        // 绘制垂直线
-        for (let x = offsetX; x < targetWidth; x += pixelSize) {
-            if (x > 0) { // 不画边界线
-                this.pixelatedCtx.moveTo(x - 0.5, 0);
-                this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+        const lineWidth = parseFloat(this.pixelGridLineWidth.value);
+        if (lineWidth > 0) {
+            this.pixelatedCtx.strokeStyle = this.pixelGridColor.value;
+            this.pixelatedCtx.lineWidth = lineWidth;
+            this.pixelatedCtx.beginPath();
+            
+            // 绘制垂直线
+            for (let x = offsetX; x < targetWidth; x += pixelSize) {
+                if (x > 0) { // 不画边界线
+                    this.pixelatedCtx.moveTo(x - 0.5, 0);
+                    this.pixelatedCtx.lineTo(x - 0.5, targetHeight);
+                }
             }
-        }
-        
-        // 绘制水平线
-        for (let y = offsetY; y < targetHeight; y += pixelSize) {
-            if (y > 0) { // 不画边界线
-                this.pixelatedCtx.moveTo(0, y - 0.5);
-                this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+            
+            // 绘制水平线
+            for (let y = offsetY; y < targetHeight; y += pixelSize) {
+                if (y > 0) { // 不画边界线
+                    this.pixelatedCtx.moveTo(0, y - 0.5);
+                    this.pixelatedCtx.lineTo(targetWidth, y - 0.5);
+                }
             }
+            
+            this.pixelatedCtx.stroke();
         }
-        
-        this.pixelatedCtx.stroke();
     }
 
     resetPerlerZoom() {
@@ -2414,35 +2431,8 @@ class PixelArtGenerator {
     }
 
     clear() {
-        this.originalImage = null;
-        this.originalWidth = 0;
-        this.originalHeight = 0;
-        this.colorCounts = {};
-        this.pixelColorStats = [];
-        this.excludedColors.clear();
-        this.lastPerlerSignature = null;
-        this.unifiedSnapshots = [];
-        this.customEditData = null;
-        this.customEditHistory = [];
-        if (this.snapshotsContainer) {
-            this.snapshotsContainer.innerHTML = '';
-        }
-        if (this.snapshotsList) {
-            this.snapshotsList.style.display = 'none';
-        }
-        
-        this.fileInput.value = '';
-        
-        this.uploadSection.style.display = 'block';
-        this.workspace.style.display = 'none';
-        
-        this.perlerContent.style.flexDirection = 'column';
-        this.perlerContent.style.gap = '0px';
-        const colorLegendArea = document.getElementById('colorLegendArea');
-        if (colorLegendArea) {
-            colorLegendArea.innerHTML = '';
-            colorLegendArea.classList.remove('horizontal');
-        }
+        // 直接刷新页面，模拟用户按F5的效果，确保完全清空
+        location.reload();
     }
 
     reset() {

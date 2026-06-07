@@ -403,49 +403,69 @@ function calculateColorDistance(rgb1, rgb2, method = 'cie2000') {
 function pixelate(imageData, blockSize, offsetX = 0, offsetY = 0) {
     const width = imageData.width;
     const height = imageData.height;
-    const newData = new ImageData(width, height);
 
-    const startX = -offsetX;
-    const startY = -offsetY;
+    const blocksX = Math.ceil((width + offsetX) / blockSize);
+    const blocksY = Math.ceil((height + offsetY) / blockSize);
 
-    for (let y = startY; y < height; y += blockSize) {
-        for (let x = startX; x < width; x += blockSize) {
+    // 第一遍：计算每个块的颜色
+    const blockColors = new Array(blocksX * blocksY);
+    const blockHasColor = new Array(blocksX * blocksY).fill(false);
+
+    for (let blockY = 0; blockY < blocksY; blockY++) {
+        for (let blockX = 0; blockX < blocksX; blockX++) {
             let r = 0, g = 0, b = 0, count = 0;
-            let hasNonTransparent = false;
 
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    if (y + dy >= 0 && x + dx >= 0) {
-                        const index = ((y + dy) * width + (x + dx)) * 4;
+            const blockStartX = -offsetX + blockX * blockSize;
+            const blockStartY = -offsetY + blockY * blockSize;
+
+            for (let dy = 0; dy < blockSize; dy++) {
+                for (let dx = 0; dx < blockSize; dx++) {
+                    const srcX = blockStartX + dx;
+                    const srcY = blockStartY + dy;
+                    if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+                        const index = (srcY * width + srcX) * 4;
                         const alpha = imageData.data[index + 3];
                         if (alpha >= 128) {
                             r += imageData.data[index];
                             g += imageData.data[index + 1];
                             b += imageData.data[index + 2];
                             count++;
-                            hasNonTransparent = true;
                         }
                     }
                 }
             }
 
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    if (y + dy >= 0 && x + dx >= 0) {
-                        const index = ((y + dy) * width + (x + dx)) * 4;
-                        if (hasNonTransparent && count > 0) {
-                            newData.data[index] = Math.round(r / count);
-                            newData.data[index + 1] = Math.round(g / count);
-                            newData.data[index + 2] = Math.round(b / count);
-                            newData.data[index + 3] = 255;
-                        } else {
-                            newData.data[index] = 255;
-                            newData.data[index + 1] = 255;
-                            newData.data[index + 2] = 255;
-                            newData.data[index + 3] = 0;
-                        }
-                    }
-                }
+            const blockIndex = blockY * blocksX + blockX;
+            if (count > 0) {
+                blockColors[blockIndex] = {
+                    r: Math.round(r / count),
+                    g: Math.round(g / count),
+                    b: Math.round(b / count)
+                };
+                blockHasColor[blockIndex] = true;
+            }
+        }
+    }
+
+    // 第二遍：填充像素
+    const newData = new ImageData(width, height);
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const blockX = Math.floor((x + offsetX) / blockSize);
+            const blockY = Math.floor((y + offsetY) / blockSize);
+            const blockIndex = blockY * blocksX + blockX;
+            
+            const index = (y * width + x) * 4;
+            if (blockX >= 0 && blockX < blocksX && blockY >= 0 && blockY < blocksY && blockHasColor[blockIndex]) {
+                newData.data[index] = blockColors[blockIndex].r;
+                newData.data[index + 1] = blockColors[blockIndex].g;
+                newData.data[index + 2] = blockColors[blockIndex].b;
+                newData.data[index + 3] = 255;
+            } else {
+                newData.data[index] = 255;
+                newData.data[index + 1] = 255;
+                newData.data[index + 2] = 255;
+                newData.data[index + 3] = 0;
             }
         }
     }
@@ -456,29 +476,35 @@ function pixelate(imageData, blockSize, offsetX = 0, offsetY = 0) {
 function pixelateMajority(imageData, blockSize, offsetX = 0, offsetY = 0) {
     const width = imageData.width;
     const height = imageData.height;
-    const newData = new ImageData(width, height);
 
-    const startX = -offsetX;
-    const startY = -offsetY;
+    const blocksX = Math.ceil((width + offsetX) / blockSize);
+    const blocksY = Math.ceil((height + offsetY) / blockSize);
 
-    for (let y = startY; y < height; y += blockSize) {
-        for (let x = startX; x < width; x += blockSize) {
+    // 第一遍：计算每个块的颜色
+    const blockColors = new Array(blocksX * blocksY);
+    const blockHasColor = new Array(blocksX * blocksY).fill(false);
+
+    for (let blockY = 0; blockY < blocksY; blockY++) {
+        for (let blockX = 0; blockX < blocksX; blockX++) {
             const colorCounts = {};
             let maxCount = 0;
             let dominantColor = null;
-            let hasNonTransparent = false;
 
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    if (y + dy >= 0 && x + dx >= 0) {
-                        const index = ((y + dy) * width + (x + dx)) * 4;
+            const blockStartX = -offsetX + blockX * blockSize;
+            const blockStartY = -offsetY + blockY * blockSize;
+
+            for (let dy = 0; dy < blockSize; dy++) {
+                for (let dx = 0; dx < blockSize; dx++) {
+                    const srcX = blockStartX + dx;
+                    const srcY = blockStartY + dy;
+                    if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+                        const index = (srcY * width + srcX) * 4;
                         const r = imageData.data[index];
                         const g = imageData.data[index + 1];
                         const b = imageData.data[index + 2];
                         const a = imageData.data[index + 3];
 
                         if (a >= 128) {
-                            hasNonTransparent = true;
                             const key = `${r},${g},${b}`;
                             if (!colorCounts[key]) {
                                 colorCounts[key] = { count: 0, r, g, b };
@@ -494,23 +520,33 @@ function pixelateMajority(imageData, blockSize, offsetX = 0, offsetY = 0) {
                 }
             }
 
-            for (let dy = 0; dy < blockSize && y + dy < height; dy++) {
-                for (let dx = 0; dx < blockSize && x + dx < width; dx++) {
-                    if (y + dy >= 0 && x + dx >= 0) {
-                        const index = ((y + dy) * width + (x + dx)) * 4;
-                        if (hasNonTransparent && dominantColor) {
-                            newData.data[index] = dominantColor.r;
-                            newData.data[index + 1] = dominantColor.g;
-                            newData.data[index + 2] = dominantColor.b;
-                            newData.data[index + 3] = 255;
-                        } else {
-                            newData.data[index] = 255;
-                            newData.data[index + 1] = 255;
-                            newData.data[index + 2] = 255;
-                            newData.data[index + 3] = 0;
-                        }
-                    }
-                }
+            const blockIndex = blockY * blocksX + blockX;
+            if (dominantColor) {
+                blockColors[blockIndex] = dominantColor;
+                blockHasColor[blockIndex] = true;
+            }
+        }
+    }
+
+    // 第二遍：填充像素
+    const newData = new ImageData(width, height);
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const blockX = Math.floor((x + offsetX) / blockSize);
+            const blockY = Math.floor((y + offsetY) / blockSize);
+            const blockIndex = blockY * blocksX + blockX;
+            
+            const index = (y * width + x) * 4;
+            if (blockX >= 0 && blockX < blocksX && blockY >= 0 && blockY < blocksY && blockHasColor[blockIndex]) {
+                newData.data[index] = blockColors[blockIndex].r;
+                newData.data[index + 1] = blockColors[blockIndex].g;
+                newData.data[index + 2] = blockColors[blockIndex].b;
+                newData.data[index + 3] = 255;
+            } else {
+                newData.data[index] = 255;
+                newData.data[index + 1] = 255;
+                newData.data[index + 2] = 255;
+                newData.data[index + 3] = 0;
             }
         }
     }
