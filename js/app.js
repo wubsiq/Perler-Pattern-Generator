@@ -102,6 +102,7 @@ class PixelArtGenerator {
         this.resetBtn = document.getElementById('resetBtn');
         this.downloadBtn = document.getElementById('downloadBtn');
         this.downloadPerlerBtn = document.getElementById('downloadPerlerBtn');
+        this.exportFormatSelect = document.getElementById('exportFormatSelect');
         
         this.presetBtns = document.querySelectorAll('.preset-btn');
         
@@ -977,29 +978,21 @@ class PixelArtGenerator {
         const offsetX = parseInt(this.pixelGridOffsetX.value);
         const offsetY = parseInt(this.pixelGridOffsetY.value);
         
-        let pixelatedData;
-        if (method === 'pixel-art') {
-            pixelatedData = pixelArtPixelate(imageData, pixelSize, offsetX, offsetY);
-        } else if (method === 'quantized') {
-            const targetColorCount = parseInt(this.targetColorCountSlider.value);
-            pixelatedData = quantizedPixelate(imageData, pixelSize, targetColorCount, offsetX, offsetY);
-        } else if (method === 'majority') {
-            pixelatedData = pixelateMajority(imageData, pixelSize, offsetX, offsetY);
-        } else {
-            pixelatedData = pixelate(imageData, pixelSize, offsetX, offsetY);
-        }
+        // 使用 Pixelator 处理像素化、对比度、锐化
+        const pixelatorResult = pixelator.process(imageData, {
+            blockSize: pixelSize,
+            offsetX: offsetX,
+            offsetY: offsetY,
+            method: method,
+            targetColorCount: parseInt(this.targetColorCountSlider.value),
+            enableContrast: this.enableContrast.checked,
+            contrastFactor: parseFloat(this.contrastSlider.value),
+            enableSharpen: this.enableSharpen.checked,
+            sharpenStrength: parseFloat(this.sharpenSlider.value)
+        });
         
-        if (this.enableContrast.checked) {
-            const contrastFactor = parseFloat(this.contrastSlider.value);
-            pixelatedData = adjustContrast(pixelatedData, contrastFactor);
-        }
-        
-        if (this.enableSharpen.checked) {
-            const sharpenStrength = parseFloat(this.sharpenSlider.value);
-            pixelatedData = sharpenImage(pixelatedData, sharpenStrength);
-        }
-        
-        this.pixelColorStats = this.calculateColorStats(pixelatedData);
+        let pixelatedData = pixelatorResult.imageData;
+        this.pixelColorStats = pixelatorResult.colorStats;
         const totalColors = this.pixelColorStats.length;
         this.imageTotalColors.textContent = totalColors;
         
@@ -1361,81 +1354,35 @@ class PixelArtGenerator {
         const targetHeight = parseInt(this.heightInput.value);
         const pixelSize = parseInt(this.pixelSizeSlider.value);
         
-        const perlerWidth = Math.ceil(targetWidth / pixelSize);
-        const perlerHeight = Math.ceil(targetHeight / pixelSize);
-        
         const colorSetName = this.colorSetSelect.value;
-        const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
         
-        // 使用smallCanvas的最近邻采样，最准确地获取每个像素格子的颜色
-        const smallCanvas = document.createElement('canvas');
-        const smallCtx = smallCanvas.getContext('2d');
-        smallCanvas.width = perlerWidth;
-        smallCanvas.height = perlerHeight;
+        // 使用 PerlerGenerator 处理
+        const extracted = perlerGenerator.extractFromImageData(
+            this.pixelatedData,
+            targetWidth,
+            targetHeight,
+            pixelSize,
+            parseInt(this.pixelGridOffsetX.value),
+            parseInt(this.pixelGridOffsetY.value)
+        );
         
-        // 禁用平滑插值，使用最近邻，避免颜色模糊扩散
-        smallCtx.imageSmoothingEnabled = false;
-        smallCtx.mozImageSmoothingEnabled = false;
-        smallCtx.webkitImageSmoothingEnabled = false;
-        smallCtx.msImageSmoothingEnabled = false;
-        
-        smallCtx.drawImage(this.pixelatedCanvas, 0, 0, perlerWidth, perlerHeight);
-        
-        const processedData = smallCtx.getImageData(0, 0, perlerWidth, perlerHeight);
-        
-        this.colorCounts = {};
-        this.perlerColors = [];
-        
-        const transparentColor = {
-            name: '',
-            rgb: [255, 255, 255],
-            isTransparent: true
-        };
-        
-        for (let y = 0; y < perlerHeight; y++) {
-            const row = [];
-            for (let x = 0; x < perlerWidth; x++) {
-                const index = (y * perlerWidth + x) * 4;
-                const r = processedData.data[index];
-                const g = processedData.data[index + 1];
-                const b = processedData.data[index + 2];
-                const a = processedData.data[index + 3];
-                
-                let closestColor;
-                if (a < 128) {
-                    closestColor = transparentColor;
-                } else {
-                    closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
-                    if (this.colorCounts[closestColor.name]) {
-                        this.colorCounts[closestColor.name]++;
-                    } else {
-                        this.colorCounts[closestColor.name] = 1;
-                    }
-                }
-                row.push(closestColor);
+        const perlerResult = perlerGenerator.generateFromProcessedData(
+            extracted.processedData,
+            extracted.perlerWidth,
+            extracted.perlerHeight,
+            {
+                colorSet: colorSetName,
+                mappingMethod: mappingMethod,
+                enableNeighborSmooth: this.enableNeighborSmooth.checked
             }
-            this.perlerColors.push(row);
-        }
+        );
+
+        this.perlerColors = perlerResult.perlerColors;
+        this.colorCounts = perlerResult.colorCounts;
         
-        if (this.enableNeighborSmooth.checked) {
-            this.perlerColors = mapWithNeighborConsistencyOnMatrix(this.perlerColors, colorSet);
-            
-            this.colorCounts = {};
-            for (let y = 0; y < perlerHeight; y++) {
-                for (let x = 0; x < perlerWidth; x++) {
-                    const color = this.perlerColors[y][x];
-                    if (this.colorCounts[color.name]) {
-                        this.colorCounts[color.name]++;
-                    } else {
-                        this.colorCounts[color.name] = 1;
-                    }
-                }
-            }
-        }
-        
-        this.drawPerlerChart(this.perlerColors, perlerWidth, perlerHeight, colorSetName);
-        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${perlerWidth} × ${perlerHeight} ${getI18nText('beans')}`;
+        this.drawPerlerChart(this.perlerColors, perlerResult.perlerWidth, perlerResult.perlerHeight, colorSetName);
+        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${perlerResult.perlerWidth} × ${perlerResult.perlerHeight} ${getI18nText('beans')}`;
         this.initCustomEditData();
     }
 
@@ -2558,6 +2505,66 @@ class PixelArtGenerator {
     }
 
     downloadPerlerChart() {
+        const format = this.exportFormatSelect.value;
+        
+        if (format === 'svg') {
+            // SVG 导出
+            const perlerWidth = this.perlerWidth;
+            const perlerHeight = this.perlerHeight;
+            const cellSize = parseInt(this.exportBeadSizeSlider.value);
+            const colorSetName = this.colorSetSelect.value;
+            
+            const svgString = perlerGenerator.generatePerlerChartSVG(
+                this.perlerColors,
+                perlerWidth,
+                perlerHeight,
+                cellSize,
+                colorSetName,
+                {
+                    chartStyle: this.chartStyle.value,
+                    beadShape: this.beadShape.value,
+                    showGrid: this.showGridLines.checked,
+                    showCoords: this.showCoordNumbers.checked,
+                    coordLineColor: this.coordLineColor.value,
+                    coordNumberColor: this.coordNumberColor.value,
+                    showLargeGrid: this.showLargeGridLines.checked,
+                    largeGridColor: this.largeGridLineColor.value,
+                    largeGridSize: parseInt(this.largeGridSize.value),
+                    largeGridLineWidth: parseInt(this.largeGridLineWidth.value),
+                    gridLineWidth: parseInt(this.gridLineWidth.value),
+                    watermarkText: this.watermarkText.value,
+                    colorCounts: this.colorCounts,
+                    legendPosition: this.legendPosition.value
+                }
+            );
+            
+            // 导出 SVG
+            this.exportCounter.perler++;
+            const chartStyle = this.chartStyle.value;
+            const beadShape = this.beadShape.value;
+            const i18nFileName = i18n[getCurrentLang()].fileName;
+            let fileName = `${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
+            
+            if (this.exportCounter.perler > 1) fileName += `_(${this.exportCounter.perler})`;
+            if (chartStyle === 'bw') fileName += `_${i18nFileName.bw}`;
+            if (chartStyle === 'color-with-code') fileName += `_${i18nFileName.withCode}`;
+            if (beadShape === 'circle') fileName += `_${i18nFileName.circle}`;
+            if (beadShape === 'ring') fileName += `_${i18nFileName.ring}`;
+            if (beadShape === 'round-square') fileName += `_${i18nFileName['round-square']}`;
+            
+            fileName += '.svg';
+            
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+            return;
+        }
+        
+        // PNG 导出（原来的逻辑）
         // 使用当前实际的拼豆图纸尺寸，而不是根据输入重新计算
         const perlerWidth = this.perlerWidth;
         const perlerHeight = this.perlerHeight;

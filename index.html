@@ -511,7 +511,11 @@
                             </div>
                         </div>
                         <div class="action-buttons">
-                            <button id="downloadPerlerBtn" class="btn btn-primary" data-i18n="downloadPerler">下载拼豆图纸</button>
+                            <button id="downloadPerlerBtn" class="btn btn-primary" data-i18n="downloadPerler" style="flex: 2;">下载</button>
+                            <select id="exportFormatSelect" style="flex: 1; min-width: 80px; max-width: 100px;">
+                                <option value="png" selected>PNG</option>
+                                <option value="svg">SVG</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -695,6 +699,9 @@
     <script src="js/colors.js" defer></script>
     <script src="js/colorUtils.js" defer></script>
     <script src="js/i18n.js" defer></script>
+    <script src="modules/StateManager.js" defer></script>
+    <script src="modules/Pixelator.js" defer></script>
+    <script src="modules/PerlerGenerator.js" defer></script>
     <script src="js/app.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
