@@ -5295,66 +5295,163 @@ class PixelArtGenerator {
         }
     }
 
-    async initShowcase() {
-        if (!this.showcaseGrid) return;
+    initShowcase() {
+        if (!this.showcaseGrid || !this.showcaseSection) return;
 
-        let samples;
-        try {
-            samples = await this.loadSamplePatterns();
-        } catch (err) {
-            console.warn('加载示例图纸失败:', err);
-            return;
+        this.showcaseLoaded = false;
+        this.showcaseSkeleton = this.createShowcaseSkeleton();
+        this.showcaseGrid.appendChild(this.showcaseSkeleton);
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting && !this.showcaseLoaded) {
+                            this.showcaseLoaded = true;
+                            observer.disconnect();
+                            this.loadAndRenderShowcase();
+                        }
+                    });
+                },
+                { rootMargin: '200px' }
+            );
+            observer.observe(this.showcaseSection);
+        } else {
+            this.loadAndRenderShowcase();
         }
+    }
 
-        samples.forEach((sample) => {
+    createShowcaseSkeleton() {
+        const container = document.createElement('div');
+        container.style.cssText = 'display: contents;';
+
+        const skeletonCount = 6;
+        for (let i = 0; i < skeletonCount; i++) {
             const card = document.createElement('div');
-            card.className = 'showcase-card';
+            card.className = 'showcase-card showcase-skeleton-card';
 
             const preview = document.createElement('div');
-            preview.className = 'showcase-preview';
-
-            const canvas = document.createElement('canvas');
-            this.renderPreviewCanvas(canvas, sample.perlerColors, sample.width, sample.height);
-            preview.appendChild(canvas);
+            preview.className = 'showcase-preview showcase-skeleton-preview';
 
             const info = document.createElement('div');
-            info.className = 'showcase-info';
-            const colorCount = Object.keys(sample.colorCounts).length;
-            info.textContent = `${sample.width} × ${sample.height} · ${colorCount} 种颜色`;
+            info.className = 'showcase-info showcase-skeleton-info';
+            info.style.height = '12px';
+            info.style.width = '70%';
+            info.style.margin = '0 auto';
+            info.style.borderRadius = '4px';
 
             card.appendChild(preview);
             card.appendChild(info);
+            container.appendChild(card);
+        }
 
-            card.addEventListener('click', () => {
-                this.launchSampleFocusMode(sample.perlerColors, sample.width, sample.height, sample.colorSet);
-            });
+        const loadingText = document.createElement('div');
+        loadingText.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #888; font-size: 13px; margin-top: 8px;';
+        loadingText.textContent = '加载中...';
+        container.appendChild(loadingText);
 
-            this.showcaseGrid.appendChild(card);
-        });
+        return container;
     }
 
-    async loadSamplePatterns() {
-        const response = await fetch('sample-patterns.json');
+    async loadAndRenderShowcase() {
+        try {
+            const packedItems = await this.loadSamplePatternsRaw();
+            this.showcaseSkeleton.remove();
+            this.renderSampleCardsAsync(packedItems);
+        } catch (err) {
+            console.warn('加载示例图纸失败:', err);
+            this.showcaseSkeleton.remove();
+            this.showcaseError();
+        }
+    }
+
+    async loadSamplePatternsRaw() {
+        const url = new URL('sample-patterns.json', location.href).href;
+        const response = await fetch(url, { cache: 'no-cache' });
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        const items = await response.json();
+        return await response.json();
+    }
 
-        const decoded = [];
-        for (const item of items) {
-            if (item.packedData) {
+    renderSampleCardsAsync(items) {
+        let index = 0;
+        const BATCH_SIZE = 1;
+
+        const renderNext = async () => {
+            const end = Math.min(index + BATCH_SIZE, items.length);
+            for (let i = index; i < end; i++) {
+                const item = items[i];
+                if (!item.packedData) continue;
+
                 try {
                     const infoPaper = await this.infoPaperManager.compressor.unpack(item.packedData);
-                    const result = this.infoPaperManager.converter.fromInfoPaper(infoPaper);
-                    if (result) {
-                        decoded.push(result);
+                    const sample = this.infoPaperManager.converter.fromInfoPaper(infoPaper);
+                    if (sample) {
+                        this.appendSampleCard(sample);
                     }
                 } catch (e) {
                     console.warn('解码示例图纸失败:', e);
                 }
             }
-        }
-        return decoded;
+            index = end;
+
+            if (index < items.length) {
+                await new Promise((resolve) => requestAnimationFrame(resolve));
+                renderNext();
+            }
+        };
+
+        renderNext();
+    }
+
+    appendSampleCard(sample) {
+        const card = document.createElement('div');
+        card.className = 'showcase-card';
+
+        const preview = document.createElement('div');
+        preview.className = 'showcase-preview';
+
+        const canvas = document.createElement('canvas');
+        this.renderPreviewCanvas(canvas, sample.perlerColors, sample.width, sample.height);
+        preview.appendChild(canvas);
+
+        const info = document.createElement('div');
+        info.className = 'showcase-info';
+        const colorCount = Object.keys(sample.colorCounts).length;
+        info.textContent = `${sample.width} × ${sample.height} · ${colorCount} 种颜色`;
+
+        card.appendChild(preview);
+        card.appendChild(info);
+
+        card.addEventListener('click', () => {
+            this.launchSampleFocusMode(sample.perlerColors, sample.width, sample.height, sample.colorSet);
+        });
+
+        this.showcaseGrid.appendChild(card);
+    }
+
+    showcaseError() {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 20px;';
+
+        const msg = document.createElement('div');
+        msg.style.cssText = 'color: #d9534f; margin-bottom: 12px; font-size: 14px;';
+        msg.textContent = '⚠️ 示例图纸加载失败，请检查网络后重试';
+
+        const retryBtn = document.createElement('button');
+        retryBtn.className = 'btn';
+        retryBtn.textContent = '🔄 重新加载';
+        retryBtn.style.cssText = 'background: #667eea; color: #fff; border-color: #667eea; padding: 8px 20px; cursor: pointer;';
+        retryBtn.addEventListener('click', () => {
+            wrapper.remove();
+            this.showcaseLoaded = false;
+            this.initShowcase();
+        });
+
+        wrapper.appendChild(msg);
+        wrapper.appendChild(retryBtn);
+        this.showcaseGrid.appendChild(wrapper);
     }
 
     renderPreviewCanvas(canvas, perlerColors, width, height) {

@@ -248,6 +248,32 @@ header h1 {
     color: #888;
 }
 
+.showcase-skeleton-card {
+    cursor: default;
+    pointer-events: none;
+}
+
+.showcase-skeleton-preview,
+.showcase-skeleton-info {
+    background: linear-gradient(
+        90deg,
+        #e9ecef 0%,
+        #f5f5f5 50%,
+        #e9ecef 100%
+    );
+    background-size: 200% 100%;
+    animation: showcase-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes showcase-skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
 @media (max-width: 768px) {
     .showcase-title {
         font-size: 22px;
