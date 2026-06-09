@@ -9,11 +9,11 @@ class InfoPaperManager {
             const infoPaper = this.converter.toInfoPaper(perlerColors, colorSetName, width, height);
             const jsonString = this.converter.toJSON(infoPaper);
 
-            if (navigator.clipboard && navigator.clipboard.writeText) {
+            if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
                 navigator.clipboard.writeText(jsonString).then(() => {
                     alert('信息化图纸数据已复制到剪贴板！');
                 }).catch((err) => {
-                    console.error('复制失败:', err);
+                    console.warn('剪贴板 API 失败，尝试回退方案:', err);
                     this.showFallbackCopyDialog(jsonString);
                 });
             } else {
@@ -31,16 +31,50 @@ class InfoPaperManager {
             const packed = await this.compressor.pack(infoPaper);
             const originalJSON = this.converter.toJSON(infoPaper);
             const ratio = this.compressor.getCompressionRatio(originalJSON, packed);
+            const successMsg = `压缩版图纸已复制！节省 ${ratio.ratio}% 体积 (${(ratio.saved / 1024).toFixed(1)}KB)\n原始 ${(ratio.original / 1024).toFixed(1)}KB → 压缩后 ${(ratio.compressed / 1024).toFixed(1)}KB`;
 
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(packed).then(() => {
-                    alert(`压缩版图纸已复制！节省 ${ratio.ratio}% 体积 (${(ratio.saved / 1024).toFixed(1)}KB)\n原始 ${(ratio.original / 1024).toFixed(1)}KB → 压缩后 ${(ratio.compressed / 1024).toFixed(1)}KB`);
-                }).catch((err) => {
-                    console.error('复制失败:', err);
-                    this.showFallbackCopyDialog(packed);
-                });
+            if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(packed);
+                    alert(successMsg);
+                    return;
+                } catch (clipboardErr) {
+                    console.warn('剪贴板 API 失败，尝试回退方案:', clipboardErr);
+                }
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = packed;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.top = '0';
+            textarea.style.left = '0';
+            textarea.style.width = '1px';
+            textarea.style.height = '1px';
+            textarea.style.padding = '0';
+            textarea.style.border = 'none';
+            textarea.style.outline = 'none';
+            textarea.style.boxShadow = 'none';
+            textarea.style.background = 'transparent';
+            textarea.style.opacity = '0';
+            textarea.style.zIndex = '-1';
+            document.body.appendChild(textarea);
+
+            let copied = false;
+            try {
+                textarea.focus();
+                textarea.setSelectionRange(0, packed.length);
+                copied = document.execCommand('copy');
+            } catch (err) {
+                console.warn('execCommand 失败:', err);
+            }
+
+            document.body.removeChild(textarea);
+
+            if (copied) {
+                alert(successMsg);
             } else {
-                this.showFallbackCopyDialog(packed);
+                this.showManualCopyDialog(packed, successMsg);
             }
         } catch (e) {
             alert(`压缩导出失败: ${e.message}`);
@@ -74,18 +108,105 @@ class InfoPaperManager {
         try {
             const infoPaper = this.converter.toInfoPaper(perlerColors, colorSetName, width, height);
             const packed = await this.compressor.pack(infoPaper);
+            const fileName = `infopaper_packed_${colorSetName}_${width}x${height}.txt`;
+
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            if (isIOS) {
+                const textarea = document.createElement('textarea');
+                textarea.value = packed;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.top = '0';
+                textarea.style.left = '0';
+                textarea.style.width = '100%';
+                textarea.style.height = '100%';
+                textarea.style.padding = '20px';
+                textarea.style.fontSize = '14px';
+                textarea.style.fontFamily = 'monospace';
+                textarea.style.boxSizing = 'border-box';
+                textarea.style.zIndex = '99999';
+                textarea.style.background = '#fff';
+
+                const tip = document.createElement('div');
+                tip.style.cssText = 'position:fixed;top:0;left:0;width:100%;padding:10px;background:#48bb78;color:white;text-align:center;font-size:14px;z-index:100000;';
+                tip.innerHTML = `📱 iOS 用户：请长按下方文本 → 全选 → 复制，或点击"完成"关闭此窗口 <button id="ios-close-btn" style="margin-left:10px;padding:5px 15px;background:white;color:#48bb78;border:none;border-radius:5px;cursor:pointer;">完成</button>`;
+
+                document.body.appendChild(tip);
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.setSelectionRange(0, packed.length);
+
+                document.getElementById('ios-close-btn').addEventListener('click', () => {
+                    document.body.removeChild(tip);
+                    document.body.removeChild(textarea);
+                });
+                return;
+            }
+
+            if (isMobile) {
+                const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(packed);
+                try {
+                    const win = window.open(dataUrl, '_blank');
+                    if (!win) {
+                        throw new Error('无法打开新窗口');
+                    }
+                    return;
+                } catch (err) {
+                    console.warn('新窗口打开失败，回退显示文本:', err);
+                    const textarea = document.createElement('textarea');
+                    textarea.value = packed;
+                    textarea.setAttribute('readonly', '');
+                    textarea.style.position = 'fixed';
+                    textarea.style.top = '0';
+                    textarea.style.left = '0';
+                    textarea.style.width = '100%';
+                    textarea.style.height = '100%';
+                    textarea.style.padding = '20px';
+                    textarea.style.fontSize = '14px';
+                    textarea.style.fontFamily = 'monospace';
+                    textarea.style.boxSizing = 'border-box';
+                    textarea.style.zIndex = '99999';
+                    textarea.style.background = '#fff';
+
+                    const tip = document.createElement('div');
+                    tip.style.cssText = 'position:fixed;top:0;left:0;width:100%;padding:10px;background:#48bb78;color:white;text-align:center;font-size:14px;z-index:100000;';
+                    tip.innerHTML = `📱 请长按下方文本 → 全选 → 复制，或点击"完成"关闭 <button id="mobile-close-btn" style="margin-left:10px;padding:5px 15px;background:white;color:#48bb78;border:none;border-radius:5px;cursor:pointer;">完成</button>`;
+
+                    document.body.appendChild(tip);
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.setSelectionRange(0, packed.length);
+
+                    document.getElementById('mobile-close-btn').addEventListener('click', () => {
+                        document.body.removeChild(tip);
+                        document.body.removeChild(textarea);
+                    });
+                    return;
+                }
+            }
 
             const blob = new Blob([packed], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement('a');
             link.href = url;
-            link.download = `infopaper_packed_${colorSetName}_${width}x${height}.txt`;
+            link.download = fileName;
+            link.style.display = 'none';
             document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
 
-            URL.revokeObjectURL(url);
+            try {
+                link.click();
+            } catch (err) {
+                console.warn('link.click 失败，尝试 window.open:', err);
+                window.open(url, '_blank');
+            }
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
         } catch (e) {
             alert(`压缩导出失败: ${e.message}`);
             console.error(e);
@@ -169,31 +290,135 @@ class InfoPaperManager {
     showFallbackCopyDialog(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
+        textarea.setAttribute('readonly', '');
         textarea.style.position = 'fixed';
         textarea.style.top = '0';
         textarea.style.left = '0';
-        textarea.style.width = '100%';
-        textarea.style.height = '300px';
-        textarea.style.zIndex = '9999';
+        textarea.style.width = '1px';
+        textarea.style.height = '1px';
+        textarea.style.padding = '0';
+        textarea.style.border = 'none';
+        textarea.style.outline = 'none';
+        textarea.style.boxShadow = 'none';
+        textarea.style.background = 'transparent';
+        textarea.style.opacity = '0';
+        textarea.style.zIndex = '-1';
         document.body.appendChild(textarea);
         textarea.focus();
-        textarea.select();
+        textarea.setSelectionRange(0, text.length);
 
         try {
             const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
             if (successful) {
                 alert('数据已复制到剪贴板！');
             } else {
-                alert('无法自动复制，请手动复制文本框中的内容');
+                this.showManualCopyDialog(text, '数据已准备好');
             }
         } catch (err) {
             console.error('复制失败:', err);
-            alert('无法自动复制，请手动复制文本框中的内容');
+            document.body.removeChild(textarea);
+            this.showManualCopyDialog(text, '数据已准备好');
         }
+    }
+
+    showManualCopyDialog(text, title) {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        `;
+
+        const header = document.createElement('div');
+        header.style.cssText = 'padding:20px;border-bottom:1px solid #eee;';
+        header.innerHTML = `
+            <h3 style="margin:0;color:#333;font-size:18px;">📋 ${title || '请手动复制'}</h3>
+            <p style="margin:8px 0 0;color:#666;font-size:13px;">由于浏览器安全限制，请长按下方文本 → 全选 → 复制</p>
+        `;
+
+        const body = document.createElement('div');
+        body.style.cssText = 'flex:1;padding:15px;overflow-y:auto;';
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.cssText = `
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            box-sizing: border-box;
+            resize: vertical;
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        `;
+        body.appendChild(textarea);
+
+        const footer = document.createElement('div');
+        footer.style.cssText = 'padding:15px 20px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end;';
+
+        const selectBtn = document.createElement('button');
+        selectBtn.textContent = '全选';
+        selectBtn.style.cssText = 'padding:8px 20px;border:1px solid #ddd;background:white;color:#333;border-radius:6px;cursor:pointer;font-size:14px;';
+        selectBtn.addEventListener('click', () => {
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
+        });
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '关闭';
+        closeBtn.style.cssText = 'padding:8px 20px;border:none;background:#667eea;color:white;border-radius:6px;cursor:pointer;font-size:14px;';
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        footer.appendChild(selectBtn);
+        footer.appendChild(closeBtn);
+
+        dialog.appendChild(header);
+        dialog.appendChild(body);
+        dialog.appendChild(footer);
+        modal.appendChild(dialog);
+        document.body.appendChild(modal);
 
         setTimeout(() => {
-            document.body.removeChild(textarea);
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, text.length);
         }, 100);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
     }
 
     showImportDialog(onSuccess, onCancel) {
