@@ -27,14 +27,25 @@ class PixelArtGenerator {
         this.carveScale = 0.5; // 雕刻时的缩放比例
         this.showCarveGrid = true; // 是否显示分裂网格
         
+        // 初始化模块
+        this.pixelator = new Pixelator();
+        this.perlerGenerator = new PerlerGenerator();
+        this.downloadManager = new DownloadManager();
+        this.colorManager = new ColorManager();
+        this.infoPaperManager = new InfoPaperManager();
+        this.focusModeRenderer = new FocusModeRenderer();
+        
         this.initElements();
         this.initEventListeners();
+        this.initShowcase();
     }
 
     initElements() {
         this.uploadArea = document.getElementById('uploadArea');
         this.fileInput = document.getElementById('fileInput');
         this.uploadSection = document.getElementById('uploadSection');
+        this.showcaseSection = document.getElementById('showcaseSection');
+        this.showcaseGrid = document.getElementById('showcaseGrid');
         this.workspace = document.getElementById('workspace');
         this.perlerSection = document.getElementById('perlerSection');
         
@@ -103,6 +114,9 @@ class PixelArtGenerator {
         this.downloadBtn = document.getElementById('downloadBtn');
         this.downloadPerlerBtn = document.getElementById('downloadPerlerBtn');
         this.exportFormatSelect = document.getElementById('exportFormatSelect');
+        this.exportInfoPaperCompressedBtn = document.getElementById('exportInfoPaperCompressedBtn');
+        this.exportInfoPaperCompressedFileBtn = document.getElementById('exportInfoPaperCompressedFileBtn');
+        this.importInfoPaperBtn = document.getElementById('importInfoPaperBtn');
         
         this.presetBtns = document.querySelectorAll('.preset-btn');
         
@@ -283,7 +297,7 @@ class PixelArtGenerator {
         
         const displaySize = parseInt(this.beadSizeSlider.value);
         let exportSize = displaySize * 2;
-        exportSize = Math.max(12, Math.min(96, exportSize));
+        exportSize = Math.max(3, Math.min(96, exportSize));
         this.exportBeadSizeSlider.value = exportSize;
         this.exportBeadSizeValue.textContent = exportSize + 'px';
         
@@ -386,7 +400,7 @@ class PixelArtGenerator {
             this.beadSizeValue.textContent = displaySize + 'px';
             
             let exportSize = displaySize * 2;
-            exportSize = Math.max(12, Math.min(96, exportSize));
+            exportSize = Math.max(3, Math.min(96, exportSize));
             this.exportBeadSizeSlider.value = exportSize;
             this.exportBeadSizeValue.textContent = exportSize + 'px';
         });
@@ -483,6 +497,10 @@ class PixelArtGenerator {
         this.downloadBtn.addEventListener('click', () => this.downloadImage());
         this.downloadPerlerBtn.addEventListener('click', () => this.downloadPerlerChart());
         this.exportPixelImageBtn.addEventListener('click', () => this.exportPixelImage());
+        
+        this.exportInfoPaperCompressedBtn.addEventListener('click', () => this.exportInfoPaperCompressed());
+        this.exportInfoPaperCompressedFileBtn.addEventListener('click', () => this.exportInfoPaperCompressedFile());
+        this.importInfoPaperBtn.addEventListener('click', () => this.importInfoPaper());
         
         this.exportScaleSlider.addEventListener('input', () => {
             const value = parseFloat(this.exportScaleSlider.value);
@@ -834,6 +852,8 @@ class PixelArtGenerator {
         const file = e.target.files[0];
         if (file) {
             this.loadImage(file);
+            // 清空 fileInput 值，确保可以重复选择相同文件
+            e.target.value = '';
         }
     }
 
@@ -875,6 +895,7 @@ class PixelArtGenerator {
 
     showWorkspace() {
         this.uploadSection.style.display = 'none';
+        this.showcaseSection.style.display = 'none';
         this.workspace.style.display = 'block';
         this.showPerlerPlaceholder();
     }
@@ -979,7 +1000,7 @@ class PixelArtGenerator {
         const offsetY = parseInt(this.pixelGridOffsetY.value);
         
         // 使用 Pixelator 处理像素化、对比度、锐化
-        const pixelatorResult = pixelator.process(imageData, {
+        const pixelatorResult = this.pixelator.process(imageData, {
             blockSize: pixelSize,
             offsetX: offsetX,
             offsetY: offsetY,
@@ -1358,7 +1379,7 @@ class PixelArtGenerator {
         const mappingMethod = this.colorMappingMethod.value;
         
         // 使用 PerlerGenerator 处理
-        const extracted = perlerGenerator.extractFromImageData(
+        const extracted = this.perlerGenerator.extractFromImageData(
             this.pixelatedData,
             targetWidth,
             targetHeight,
@@ -1367,7 +1388,7 @@ class PixelArtGenerator {
             parseInt(this.pixelGridOffsetY.value)
         );
         
-        const perlerResult = perlerGenerator.generateFromProcessedData(
+        const perlerResult = this.perlerGenerator.generateFromProcessedData(
             extracted.processedData,
             extracted.perlerWidth,
             extracted.perlerHeight,
@@ -1381,6 +1402,7 @@ class PixelArtGenerator {
         this.perlerColors = perlerResult.perlerColors;
         this.colorCounts = perlerResult.colorCounts;
         
+        this.hideShowcase();
         this.drawPerlerChart(this.perlerColors, perlerResult.perlerWidth, perlerResult.perlerHeight, colorSetName);
         this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${perlerResult.perlerWidth} × ${perlerResult.perlerHeight} ${getI18nText('beans')}`;
         this.initCustomEditData();
@@ -2387,6 +2409,10 @@ class PixelArtGenerator {
         this.drawOriginalImage();
         this.excludedColors.clear();
         this.updatePixelatedImage();
+        this.showAllInitialSections();
+        if (this.workspace) {
+            this.workspace.style.display = 'none';
+        }
         this.showPerlerPlaceholder();
         
         this.perlerContent.style.flexDirection = 'column';
@@ -2434,12 +2460,14 @@ class PixelArtGenerator {
         
         fileName += '.png';
         
-        // 创建一个临时画布来下载不带网格线的图片
+        // 创建一个临时画布来下载包含所有元素的图片（所见即所得）
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = this.pixelatedCanvasNaturalWidth;
-        tempCanvas.height = this.pixelatedCanvasNaturalHeight;
+        tempCanvas.width = this.pixelatedCanvas.width;
+        tempCanvas.height = this.pixelatedCanvas.height;
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.putImageData(this.pixelatedData, 0, 0);
+        
+        // 复制当前画布的所有内容（包括像素线）
+        tempCtx.drawImage(this.pixelatedCanvas, 0, 0);
         
         const link = document.createElement('a');
         link.download = fileName;
@@ -2504,6 +2532,103 @@ class PixelArtGenerator {
         link.click();
     }
 
+    async exportInfoPaperCompressed() {
+        if (!this.perlerColors || this.perlerColors.length === 0) {
+            alert('请先生成拼豆图纸！');
+            return;
+        }
+
+        const colorSetName = this.colorSetSelect.value;
+        await this.infoPaperManager.exportCompressedToClipboard(
+            this.perlerColors,
+            colorSetName,
+            this.perlerWidth,
+            this.perlerHeight
+        );
+    }
+
+    async exportInfoPaperCompressedFile() {
+        if (!this.perlerColors || this.perlerColors.length === 0) {
+            alert('请先生成拼豆图纸！');
+            return;
+        }
+
+        const colorSetName = this.colorSetSelect.value;
+        await this.infoPaperManager.exportCompressedToFile(
+            this.perlerColors,
+            colorSetName,
+            this.perlerWidth,
+            this.perlerHeight
+        );
+    }
+
+    importInfoPaper() {
+        this.infoPaperManager.showImportDialog(
+            (result) => {
+                this.infoPaperManager.showModeSelectDialog(
+                    result,
+                    (editResult) => {
+                        this.handleInfoPaperEditMode(editResult);
+                    },
+                    (focusResult) => {
+                        this.handleInfoPaperFocusMode(focusResult);
+                    },
+                    () => {
+                        console.log('用户取消了模式选择');
+                    }
+                );
+            },
+            () => {
+                console.log('用户取消了导入');
+            }
+        );
+    }
+
+    handleInfoPaperEditMode(result) {
+        this.perlerColors = result.perlerColors;
+        this.perlerWidth = result.width;
+        this.perlerHeight = result.height;
+        this.colorCounts = result.colorCounts;
+
+        const colorSetName = result.colorSet;
+        this.colorSetSelect.value = colorSetName;
+
+        this.hideAllInitialSections();
+        if (this.workspace) {
+            this.workspace.style.display = 'block';
+        }
+        this.drawPerlerChart(this.perlerColors, this.perlerWidth, this.perlerHeight, colorSetName);
+        this.drawColorLegend();
+        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${this.perlerWidth} × ${this.perlerHeight} ${getI18nText('beans')}`;
+        this.initCustomEditData();
+
+        alert('图纸已加载到编辑模式！');
+    }
+
+    handleInfoPaperFocusMode(result) {
+        this.hideAllInitialSections();
+        if (this.workspace) {
+            this.workspace.style.display = 'none';
+        }
+        const container = document.createElement('div');
+        container.id = 'focus-mode-container';
+        document.body.appendChild(container);
+
+        this.focusModeRenderer.init(
+            '#focus-mode-container',
+            result.perlerColors,
+            result.width,
+            result.height,
+            result.colorSet,
+            () => {
+                if (this.workspace) {
+                    this.workspace.style.display = 'block';
+                }
+                document.body.removeChild(container);
+            }
+        );
+    }
+
     downloadPerlerChart() {
         const format = this.exportFormatSelect.value;
         
@@ -2514,7 +2639,7 @@ class PixelArtGenerator {
             const cellSize = parseInt(this.exportBeadSizeSlider.value);
             const colorSetName = this.colorSetSelect.value;
             
-            const svgString = perlerGenerator.generatePerlerChartSVG(
+            const svgString = this.perlerGenerator.generatePerlerChartSVG(
                 this.perlerColors,
                 perlerWidth,
                 perlerHeight,
@@ -5139,6 +5264,133 @@ class PixelArtGenerator {
             }
         });
     }
+
+    hideShowcase() {
+        if (this.showcaseSection) {
+            this.showcaseSection.style.display = 'none';
+        }
+    }
+
+    showShowcase() {
+        if (this.showcaseSection) {
+            this.showcaseSection.style.display = '';
+        }
+    }
+
+    hideAllInitialSections() {
+        if (this.uploadSection) {
+            this.uploadSection.style.display = 'none';
+        }
+        if (this.showcaseSection) {
+            this.showcaseSection.style.display = 'none';
+        }
+    }
+
+    showAllInitialSections() {
+        if (this.uploadSection) {
+            this.uploadSection.style.display = '';
+        }
+        if (this.showcaseSection) {
+            this.showcaseSection.style.display = '';
+        }
+    }
+
+    async initShowcase() {
+        if (!this.showcaseGrid) return;
+
+        let samples;
+        try {
+            samples = await this.loadSamplePatterns();
+        } catch (err) {
+            console.warn('加载示例图纸失败:', err);
+            return;
+        }
+
+        samples.forEach((sample) => {
+            const card = document.createElement('div');
+            card.className = 'showcase-card';
+
+            const preview = document.createElement('div');
+            preview.className = 'showcase-preview';
+
+            const canvas = document.createElement('canvas');
+            this.renderPreviewCanvas(canvas, sample.perlerColors, sample.width, sample.height);
+            preview.appendChild(canvas);
+
+            const info = document.createElement('div');
+            info.className = 'showcase-info';
+            const colorCount = Object.keys(sample.colorCounts).length;
+            info.textContent = `${sample.width} × ${sample.height} · ${colorCount} 种颜色`;
+
+            card.appendChild(preview);
+            card.appendChild(info);
+
+            card.addEventListener('click', () => {
+                this.launchSampleFocusMode(sample.perlerColors, sample.width, sample.height, sample.colorSet);
+            });
+
+            this.showcaseGrid.appendChild(card);
+        });
+    }
+
+    async loadSamplePatterns() {
+        const response = await fetch('sample-patterns.json');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const items = await response.json();
+
+        const decoded = [];
+        for (const item of items) {
+            if (item.packedData) {
+                try {
+                    const infoPaper = await this.infoPaperManager.compressor.unpack(item.packedData);
+                    const result = this.infoPaperManager.converter.fromInfoPaper(infoPaper);
+                    if (result) {
+                        decoded.push(result);
+                    }
+                } catch (e) {
+                    console.warn('解码示例图纸失败:', e);
+                }
+            }
+        }
+        return decoded;
+    }
+
+    renderPreviewCanvas(canvas, perlerColors, width, height) {
+        const cellSize = Math.max(4, Math.min(16, Math.floor(160 / Math.max(width, height))));
+        canvas.width = width * cellSize;
+        canvas.height = height * cellSize;
+        const ctx = canvas.getContext('2d');
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const color = perlerColors[y][x];
+                if (color.isTransparent) continue;
+                ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+
+    launchSampleFocusMode(perlerColors, width, height, colorSet) {
+        this.hideShowcase();
+        const container = document.createElement('div');
+        container.id = 'focus-mode-container';
+        document.body.appendChild(container);
+
+        this.focusModeRenderer.init(
+            '#focus-mode-container',
+            perlerColors,
+            width,
+            height,
+            colorSet,
+            () => {
+                this.showShowcase();
+                document.body.removeChild(container);
+            }
+        );
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -5150,11 +5402,23 @@ function initMatrixTimer() {
     const navBtns = document.querySelectorAll('.nav-btn');
     const uploadSection = document.getElementById('uploadSection');
     const workspace = document.getElementById('workspace');
+    const showcaseSection = document.getElementById('showcaseSection');
     const timerSection = document.getElementById('timerSection');
     const addTimerBtn = document.getElementById('addTimerBtn');
     const timersGrid = document.getElementById('timersGrid');
+    const brandTitle = document.getElementById('brandTitle');
     
     let timerCount = 0;
+
+    function goToHomePage() {
+        navBtns.forEach(b => b.classList.remove('active'));
+        const homeBtn = Array.from(navBtns).find(b => b.textContent === '图转拼豆');
+        if (homeBtn) homeBtn.classList.add('active');
+        uploadSection.style.display = 'block';
+        if (showcaseSection) showcaseSection.style.display = '';
+        workspace.style.display = 'none';
+        timerSection.style.display = 'none';
+    }
     
     // 导航切换
     navBtns.forEach(btn => {
@@ -5164,15 +5428,22 @@ function initMatrixTimer() {
             
             if (btn.textContent === '图转拼豆') {
                 uploadSection.style.display = 'block';
+                if (showcaseSection) showcaseSection.style.display = '';
                 workspace.style.display = 'none';
                 timerSection.style.display = 'none';
             } else if (btn.textContent === '矩阵计时') {
                 uploadSection.style.display = 'none';
+                if (showcaseSection) showcaseSection.style.display = 'none';
                 workspace.style.display = 'none';
                 timerSection.style.display = 'block';
             }
         });
     });
+
+    if (brandTitle) {
+        brandTitle.style.cursor = 'pointer';
+        brandTitle.addEventListener('click', goToHomePage);
+    }
     
     // 添加计时器
     addTimerBtn.addEventListener('click', () => {

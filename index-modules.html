@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>豆师傅 - 拼豆图纸生成器 (模块化版)</title>
+    <meta name="description" content="豆师傅 - 免费在线拼豆图纸生成器">
+    <meta name="keywords" content="拼豆,拼豆图纸,拼豆生成器,像素艺术,豆师傅">
+    <link rel="preload" href="css/style.css" as="style">
+    <link rel="stylesheet" href="css/style.css" media="print" onload="this.media='all'">
+    <style>
+        .modules-banner {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="modules-banner">
+        🎉 这是模块化版本！使用修复后的模块文件
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>豆师傅 (模块化)</h1>
+                </div>
+                <div class="nav-bar">
+                    <button class="nav-btn active">图转拼豆</button>
+                    <button class="nav-btn">矩阵计时</button>
+                </div>
+                <div class="language-switch">
+                    <button id="langZh" class="lang-btn active">中文</button>
+                    <button id="langEn" class="lang-btn">EN</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📷</div>
+                <p>点击或拖拽图片到此处上传</p>
+                <p class="upload-hint">支持 JPG、PNG、GIF 格式</p>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <div class="workspace" id="workspace" style="display: none;">
+            
+            <div class="preview-section">
+                <div class="preview-left">
+                    <div class="preview-panel">
+                        <h3>原图预览</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="originalCanvas"></canvas>
+                        </div>
+                        <p id="originalSize" class="size-info"></p>
+                    </div>
+                </div>
+                <div class="preview-right">
+                    <div class="controls-section">
+                        <div class="control-group">
+                            <label>目标尺寸</label>
+                            <div class="size-inputs">
+                                <div>
+                                    <label>宽度：</label>
+                                    <input type="number" id="widthInput" min="16" max="4096" value="128">
+                                    <span>px</span>
+                                </div>
+                                <div>
+                                    <label>高度：</label>
+                                    <input type="number" id="heightInput" min="16" max="4096" value="128">
+                                    <span>px</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>预设尺寸</label>
+                            <div class="preset-sizes">
+                                <button class="preset-btn" data-width="64" data-height="64">64×64</button>
+                                <button class="preset-btn" data-width="128" data-height="128">128×128</button>
+                                <button class="preset-btn" data-width="256" data-height="256">256×256</button>
+                                <button class="preset-btn" data-width="512" data-height="512">512×512</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-left">
+                    <div class="preview-panel">
+                        <h3>像素化预览</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="pixelatedCanvas"></canvas>
+                        </div>
+                        <p id="pixelatedSize" class="size-info"></p>
+                    </div>
+                </div>
+                <div class="preview-right">
+                    <div class="controls-section">
+                        <div class="control-group">
+                            <label>像素块大小：<span id="pixelSizeValue">16px</span></label>
+                            <input type="range" id="pixelSizeSlider" min="1" max="64" value="16">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section" id="perlerSection">
+                <div class="preview-left">
+                    <div class="preview-panel" id="perlerPanel">
+                        <h3>拼豆图纸</h3>
+                        <div id="perlerContent">
+                            <div id="perlerChartArea">
+                                <div class="perler-chart-wrapper">
+                                    <div class="perler-header">
+                                        <div class="perler-watermark" id="perlerWatermark"></div>
+                                        <div class="perler-summary" id="perlerSummary"></div>
+                                    </div>
+                                    <div class="canvas-wrapper perler-canvas-wrapper">
+                                        <canvas id="perlerCanvas"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="colorLegendArea"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-right">
+                    <div id="perlerOptions" class="controls-section">
+                        <div class="control-group">
+                            <label>颜色套装：</label>
+                            <select id="colorSetSelect">
+                                <option value="mard291">Mard 291色 (默认)</option>
+                                <option value="mard221">Mard 221色</option>
+                                <option value="mard120">Mard 120色</option>
+                                <option value="mard72">Mard 72色</option>
+                                <option value="mard48">Mard 48色</option>
+                                <option value="mard24">Mard 24色</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>图纸样式：</label>
+                            <select id="chartStyle">
+                                <option value="color">彩色图纸</option>
+                                <option value="color-with-code">彩色图纸（带编号）</option>
+                                <option value="bw">黑白图纸（带编号）</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>颜色统计位置：</label>
+                            <select id="legendPosition">
+                                <option value="bottom">图纸下方</option>
+                                <option value="right">图纸右侧</option>
+                                <option value="hidden">隐藏</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>拼豆大小（显示）：<span id="beadSizeValue">16px</span></label>
+                            <input type="range" id="beadSizeSlider" min="6" max="48" step="2" value="16">
+                        </div>
+                        <div class="control-group">
+                            <button id="renderPerlerBtn" class="btn btn-primary">🎨 渲染拼豆图纸</button>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="downloadPerlerBtn" class="btn btn-primary" style="flex: 2;">下载</button>
+                            <select id="exportFormatSelect" style="flex: 1; min-width: 80px; max-width: 100px;">
+                                <option value="png" selected>PNG</option>
+                                <option value="svg">SVG</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/colors.js" defer></script>
+    <script src="js/colorUtils.js" defer></script>
+    <script src="modules/StateManager.js" defer></script>
+    <script src="modules/ColorManager.js" defer></script>
+    <script src="modules/CanvasRenderer.js" defer></script>
+    <script src="modules/PerlerGenerator.js" defer></script>
+    <script src="modules/DownloadManager.js" defer></script>
+
+    <script>
+        let originalImageData = null;
+        let pixelatedImageData = null;
+        let perlerMappedColors = [];
+        let colorCounts = {};
+        let colorNames = [];
+        let downloadCount = 0;
+        
+        let colorManager = null;
+        let canvasRenderer = null;
+        let perlerGenerator = null;
+        let downloadManager = null;
+
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 豆师傅模块化版已加载！');
+            
+            initModules();
+            
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = '#f0f9ff';
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.background = '';
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = '';
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('widthInput').value = btn.dataset.width;
+                    document.getElementById('heightInput').value = btn.dataset.height;
+                });
+            });
+
+            const pixelSizeSlider = document.getElementById('pixelSizeSlider');
+            const pixelSizeValue = document.getElementById('pixelSizeValue');
+            pixelSizeSlider.addEventListener('input', () => {
+                pixelSizeValue.textContent = pixelSizeSlider.value + 'px';
+            });
+
+            const beadSizeSlider = document.getElementById('beadSizeSlider');
+            const beadSizeValue = document.getElementById('beadSizeValue');
+            beadSizeSlider.addEventListener('input', () => {
+                beadSizeValue.textContent = beadSizeSlider.value + 'px';
+            });
+
+            document.getElementById('downloadPerlerBtn').addEventListener('click', downloadPerlerImage);
+            document.getElementById('renderPerlerBtn').addEventListener('click', renderPerlerChart);
+        });
+
+        function initModules() {
+            try {
+                colorManager = new ColorManager();
+                console.log('✅ ColorManager 已初始化');
+            } catch (e) {
+                console.log('⚠️ ColorManager 初始化失败，使用备用实现');
+            }
+
+            try {
+                canvasRenderer = new CanvasRenderer();
+                console.log('✅ CanvasRenderer 已初始化');
+            } catch (e) {
+                console.log('⚠️ CanvasRenderer 初始化失败，使用备用实现');
+            }
+
+            try {
+                perlerGenerator = new PerlerGenerator();
+                console.log('✅ PerlerGenerator 已初始化');
+            } catch (e) {
+                console.log('⚠️ PerlerGenerator 初始化失败，使用备用实现');
+            }
+
+            try {
+                downloadManager = new DownloadManager();
+                console.log('✅ DownloadManager 已初始化');
+            } catch (e) {
+                console.log('⚠️ DownloadManager 初始化失败，使用备用实现');
+            }
+        }
+
+        function handleFileUpload(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('请上传图片文件！');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    displayOriginalImage(img);
+                    document.getElementById('uploadSection').style.display = 'none';
+                    document.getElementById('workspace').style.display = 'block';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayOriginalImage(img) {
+            const canvas = document.getElementById('originalCanvas');
+
+            // 使用 CanvasRenderer 渲染原始图片
+            if (canvasRenderer) {
+                originalImageData = canvasRenderer.renderOriginalImage(canvas, img, { maxHeight: 400 });
+            } else {
+                // 备用实现
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                // 计算显示尺寸
+                const maxDisplayHeight = 400;
+                let displayWidth = img.width;
+                let displayHeight = img.height;
+                
+                if (img.height > maxDisplayHeight) {
+                    const scale = maxDisplayHeight / img.height;
+                    displayWidth = img.width * scale;
+                    displayHeight = maxDisplayHeight;
+                }
+                
+                // 设置显示尺寸
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+                
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+
+            document.getElementById('originalSize').textContent = 
+                `原始尺寸: ${img.width}×${img.height} px`;
+
+            const widthInput = document.getElementById('widthInput');
+            const heightInput = document.getElementById('heightInput');
+            if (img.width > img.height) {
+                widthInput.value = Math.min(128, img.width);
+                heightInput.value = Math.round(img.height / img.width * parseInt(widthInput.value));
+            } else {
+                heightInput.value = Math.min(128, img.height);
+                widthInput.value = Math.round(img.width / img.height * parseInt(heightInput.value));
+            }
+
+            widthInput.addEventListener('input', updatePixelation);
+            heightInput.addEventListener('input', updatePixelation);
+            document.getElementById('pixelSizeSlider').addEventListener('input', updatePixelation);
+
+            updatePixelation();
+        }
+
+        function updatePixelation() {
+            const originalCanvas = document.getElementById('originalCanvas');
+            const pixelCanvas = document.getElementById('pixelatedCanvas');
+            const ctx = pixelCanvas.getContext('2d');
+
+            const targetW = parseInt(document.getElementById('widthInput').value);
+            const targetH = parseInt(document.getElementById('heightInput').value);
+            const pixelSize = parseInt(document.getElementById('pixelSizeSlider').value);
+
+            pixelCanvas.width = targetW;
+            pixelCanvas.height = targetH;
+
+            ctx.drawImage(originalCanvas, 0, 0, targetW, targetH);
+
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = Math.ceil(targetW / pixelSize);
+            tempCanvas.height = Math.ceil(targetH / pixelSize);
+            tempCtx.drawImage(pixelCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(tempCanvas, 0, 0, targetW, targetH);
+
+            // 计算显示尺寸
+            const maxDisplayHeight = 400;
+            let displayWidth = targetW;
+            let displayHeight = targetH;
+            
+            if (targetH > maxDisplayHeight) {
+                const scale = maxDisplayHeight / targetH;
+                displayWidth = targetW * scale;
+                displayHeight = maxDisplayHeight;
+            }
+            
+            // 设置显示尺寸
+            pixelCanvas.style.width = displayWidth + 'px';
+            pixelCanvas.style.height = displayHeight + 'px';
+
+            pixelatedImageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+            document.getElementById('pixelatedSize').textContent = 
+                `像素图尺寸: ${tempCanvas.width}×${tempCanvas.height} px`;
+
+            analyzeColors(pixelatedImageData);
+        }
+
+        function analyzeColors(imgData) {
+            colorCounts = {};
+            const data = imgData.data;
+            const colorSetName = document.getElementById('colorSetSelect').value;
+            const colorSet = colorSets[colorSetName] || colorSets['mard291'];
+            
+            for (let y = 0; y < imgData.height; y++) {
+                for (let x = 0; x < imgData.width; x++) {
+                    const i = (y * imgData.width + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    let closest = colorSet[0];
+                    let minDist = Infinity;
+                    colorSet.forEach(c => {
+                        const dist = Math.sqrt(Math.pow(c.rgb[0] - r, 2) + 
+                                               Math.pow(c.rgb[1] - g, 2) + 
+                                               Math.pow(c.rgb[2] - b, 2));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = c;
+                        }
+                    });
+                    
+                    const name = closest.name;
+                    colorCounts[name] = (colorCounts[name] || 0) + 1;
+                }
+            }
+
+            colorNames = Object.keys(colorCounts).sort((a, b) => colorCounts[b] - colorCounts[a]);
+        }
+
+        function renderPerlerChart() {
+            if (!pixelatedImageData) {
+                alert('请先上传图片！');
+                return;
+            }
+
+            const canvas = document.getElementById('perlerCanvas');
+            const chartStyle = document.getElementById('chartStyle').value;
+            const colorSetName = document.getElementById('colorSetSelect').value;
+            const beadSize = parseInt(document.getElementById('beadSizeSlider').value);
+
+            const width = pixelatedImageData.width;
+            const height = pixelatedImageData.height;
+            const colorSet = colorSets[colorSetName] || colorSets['mard291'];
+
+            canvas.width = width * beadSize;
+            canvas.height = height * beadSize;
+            const ctx = canvas.getContext('2d');
+
+            perlerMappedColors = [];
+
+            for (let y = 0; y < height; y++) {
+                perlerMappedColors[y] = [];
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    const r = pixelatedImageData.data[i];
+                    const g = pixelatedImageData.data[i + 1];
+                    const b = pixelatedImageData.data[i + 2];
+
+                    let closest = colorSet[0];
+                    let minDist = Infinity;
+                    colorSet.forEach(c => {
+                        const dist = Math.sqrt(Math.pow(c.rgb[0] - r, 2) + 
+                                               Math.pow(c.rgb[1] - g, 2) + 
+                                               Math.pow(c.rgb[2] - b, 2));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = c;
+                        }
+                    });
+
+                    perlerMappedColors[y][x] = closest;
+
+                    ctx.fillStyle = `rgb(${closest.rgb[0]},${closest.rgb[1]},${closest.rgb[2]})`;
+                    ctx.fillRect(x * beadSize, y * beadSize, beadSize, beadSize);
+
+                    if (chartStyle !== 'color') {
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * beadSize, y * beadSize, beadSize, beadSize);
+
+                        if (chartStyle !== 'bw') {
+                            ctx.fillStyle = '#000';
+                            ctx.font = `${beadSize / 3}px sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(closest.name.substring(0, 3), 
+                                x * beadSize + beadSize / 2, 
+                                y * beadSize + beadSize / 2);
+                        }
+                    }
+                }
+            }
+
+            document.getElementById('perlerSummary').innerHTML = 
+                `<strong>总豆子:</strong> ${width * height} 颗 · <strong>颜色数:</strong> ${Object.keys(colorCounts).length} 种`;
+            document.getElementById('perlerWatermark').textContent = 
+                '豆师傅 - 拼豆图纸生成器';
+
+            renderColorLegend();
+        }
+
+        function renderColorLegend() {
+            const legendArea = document.getElementById('colorLegendArea');
+            const legendPosition = document.getElementById('legendPosition').value;
+            
+            if (legendPosition === 'hidden') {
+                legendArea.innerHTML = '';
+                return;
+            }
+
+            const colorSetName = document.getElementById('colorSetSelect').value;
+            const colorSet = colorSets[colorSetName] || colorSets['mard291'];
+            
+            let html = '<div style="margin-top:20px; padding:15px; background:#f8f9fa; border-radius:8px;">';
+            html += '<h4 style="margin-top:0; margin-bottom:10px; color:#667eea;">颜色统计</h4>';
+            html += '<div style="display:flex; flex-wrap:wrap; gap:10px;">';
+
+            colorNames.slice(0, 24).forEach(name => {
+                const count = colorCounts[name];
+                const color = colorSet.find(c => c.name === name);
+                if (!color) return;
+                
+                const [r, g, b] = color.rgb;
+                const textColor = (r + g + b) < 382 ? '#fff' : '#000';
+                
+                html += '<div style="display:flex; align-items:center; padding:5px 10px; border-radius:6px; border:1px solid #ddd; background:#fff;">';
+                html += `<div style="width:30px; height:30px; border-radius:4px; margin-right:8px; background:rgb(${r},${g},${b}); border:1px solid #999;"></div>`;
+                html += `<div>`;
+                html += `<div style="font-weight:600; font-size:12px;">${name}</div>`;
+                html += `<div style="font-size:11px; color:#666;">${count} 颗</div>`;
+                html += '</div>';
+                html += '</div>';
+            });
+
+            html += '</div></div>';
+            legendArea.innerHTML = html;
+        }
+
+        function downloadPerlerImage() {
+            const format = document.getElementById('exportFormatSelect').value;
+
+            if (format === 'png') {
+                if (downloadManager) {
+                    const canvas = document.getElementById('perlerCanvas');
+                    downloadManager.downloadCanvas(canvas, 'perler', 'png');
+                } else {
+                    const canvas = document.getElementById('perlerCanvas');
+                    const link = document.createElement('a');
+                    downloadCount++;
+                    link.download = `perler_chart_${downloadCount}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }
+            } else {
+                downloadPerlerSVG();
+            }
+        }
+
+        function downloadPerlerSVG() {
+            let svg;
+            
+            if (perlerGenerator) {
+                try {
+                    const colorSetName = document.getElementById('colorSetSelect').value;
+                    const chartStyle = document.getElementById('chartStyle').value;
+                    const legendPosition = document.getElementById('legendPosition').value;
+                    const beadSize = 32;
+                    const showGridLines = true;
+                    const showCoordNumbers = true;
+                    const coordLineColor = '#000000';
+                    const gridLineWidth = 1;
+                    const exportScale = 1;
+                    const watermarkText = '豆师傅';
+                    const showLargeGridLines = false;
+                    const largeGridLineColor = '#8B4513';
+                    const largeGridSize = 5;
+                    const largeGridLineWidth = 2;
+                    const coordNumberColor = '#000000';
+                    const transparentBackground = false;
+
+                    svg = perlerGenerator.generatePerlerChartSVG(
+                        pixelatedImageData,
+                        colorSetName,
+                        chartStyle,
+                        legendPosition,
+                        beadSize,
+                        showGridLines,
+                        showCoordNumbers,
+                        coordLineColor,
+                        gridLineWidth,
+                        exportScale,
+                        watermarkText,
+                        showLargeGridLines,
+                        largeGridLineColor,
+                        largeGridSize,
+                        largeGridLineWidth,
+                        coordNumberColor,
+                        watermarkText,
+                        transparentBackground
+                    );
+                } catch (e) {
+                    console.log('⚠️ PerlerGenerator 失败，使用备用实现', e);
+                    svg = generatePerlerChartSVG();
+                }
+            } else {
+                svg = generatePerlerChartSVG();
+            }
+
+            if (downloadManager) {
+                downloadManager.downloadSVG(svg, 'perler_chart.svg');
+            } else {
+                downloadCount++;
+                const blob = new Blob([svg], { type: 'image/svg+xml' });
+                const link = document.createElement('a');
+                link.download = `perler_chart_${downloadCount}.svg`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }
+        }
+
+        function generatePerlerChartSVG() {
+            const colorSetName = document.getElementById('colorSetSelect').value;
+            const chartStyle = document.getElementById('chartStyle').value;
+            const legendPosition = document.getElementById('legendPosition').value;
+            const showGridLines = true;
+            const showCoordNumbers = true;
+            const coordLineColor = '#000000';
+            const gridLineWidth = 1;
+            const showLargeGridLines = false;
+            const largeGridLineColor = '#8B4513';
+            const largeGridSize = 5;
+            const largeGridLineWidth = 2;
+            const coordNumberColor = '#000000';
+            const watermarkText = '豆师傅';
+            
+            const beadSize = 32;
+            const width = pixelatedImageData.width;
+            const height = pixelatedImageData.height;
+            const colorSet = colorSets[colorSetName] || colorSets['mard291'];
+            
+            const finalWidth = width * beadSize;
+            const finalHeight = height * beadSize;
+            
+            let svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="${finalWidth}px" height="${finalHeight}px" viewBox="0 0 ${finalWidth} ${finalHeight}" xmlns="http://www.w3.org/2000/svg">
+    <g id="perler_chart">
+        <rect x="0" y="0" width="${finalWidth}" height="${finalHeight}" fill="#ffffff"/>
+`;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const color = perlerMappedColors[y][x];
+                    const px = x * beadSize;
+                    const py = y * beadSize;
+                    
+                    svg += `        <rect x="${px}" y="${py}" width="${beadSize}" height="${beadSize}" fill="rgb(${color.rgb[0]},${color.rgb[1]},${color.rgb[2]})"/>
+`;
+                }
+            }
+            
+            if (showGridLines) {
+                svg += `        <g id="grid_lines" stroke="${coordLineColor}" stroke-width="${gridLineWidth}">
+`;
+                for (let x = 0; x <= width; x++) {
+                    const px = x * beadSize;
+                    svg += `            <line x1="${px}" y1="0" x2="${px}" y2="${finalHeight}"/>
+`;
+                }
+                for (let y = 0; y <= height; y++) {
+                    const py = y * beadSize;
+                    svg += `            <line x1="0" y1="${py}" x2="${finalWidth}" y2="${py}"/>
+`;
+                }
+                svg += `        </g>
+`;
+            }
+            
+            if (chartStyle !== 'color') {
+                svg += `        <g id="color_codes" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="middle">
+`;
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const color = perlerMappedColors[y][x];
+                        const px = x * beadSize + beadSize / 2;
+                        const py = y * beadSize + beadSize / 2;
+                        svg += `            <text x="${px}" y="${py}">${color.name}</text>
+`;
+                    }
+                }
+                svg += `        </g>
+`;
+            }
+            
+            svg += `        <g id="watermark">
+            <text x="${finalWidth - 10}" y="20" font-family="sans-serif" font-size="12" font-weight="bold" fill="#667eea" text-anchor="end" dominant-baseline="auto">豆师傅 - 拼豆图纸生成器</text>
+        </g>
+`;
+            
+            if (legendPosition !== 'hidden') {
+                const totalBeans = width * height;
+                const colorTypes = colorNames.length;
+                
+                let legendWidth = 0;
+                let legendHeight = 0;
+                const itemsPerColumn = Math.ceil(colorTypes / 3);
+                const columnWidth = 140;
+                const rowHeight = 28;
+                const legendXGap = 10;
+                const legendYOffset1 = 25;
+                const legendYOffset2 = 50;
+                const legendStartY = 70;
+                const legendTitleSize = 16;
+                const totalSize = 12;
+                const rectWidth = 24;
+                const rectHeight = 20;
+                const colorNameSize = 10;
+                
+                const numColumns = Math.min(3, colorTypes);
+                legendWidth = numColumns * columnWidth + 20;
+                legendHeight = legendStartY + Math.min(itemsPerColumn, colorTypes) * rowHeight + 20;
+                
+                let legendX = 0;
+                let legendY = finalHeight + 10;
+                let totalWidth = finalWidth;
+                let totalHeight = finalHeight + legendHeight + 20;
+                
+                if (legendPosition === 'right') {
+                    legendX = finalWidth + 10;
+                    legendY = 0;
+                    totalWidth = finalWidth + legendWidth + 20;
+                    totalHeight = Math.max(finalHeight, legendHeight);
+                }
+                
+                svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="${totalWidth}px" height="${totalHeight}px" viewBox="0 0 ${totalWidth} ${totalHeight}" xmlns="http://www.w3.org/2000/svg">
+    <g id="perler_chart">
+        <rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="#ffffff"/>
+`;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const color = perlerMappedColors[y][x];
+                        const px = x * beadSize;
+                        const py = y * beadSize;
+                        
+                        svg += `        <rect x="${px}" y="${py}" width="${beadSize}" height="${beadSize}" fill="rgb(${color.rgb[0]},${color.rgb[1]},${color.rgb[2]})"/>
+`;
+                    }
+                }
+                
+                if (showGridLines) {
+                    svg += `        <g id="grid_lines" stroke="${coordLineColor}" stroke-width="${gridLineWidth}">
+`;
+                    for (let x = 0; x <= width; x++) {
+                        const px = x * beadSize;
+                        svg += `            <line x1="${px}" y1="0" x2="${px}" y2="${finalHeight}"/>
+`;
+                    }
+                    for (let y = 0; y <= height; y++) {
+                        const py = y * beadSize;
+                        svg += `            <line x1="0" y1="${py}" x2="${finalWidth}" y2="${py}"/>
+`;
+                    }
+                    svg += `        </g>
+`;
+                }
+                
+                if (chartStyle !== 'color') {
+                    svg += `        <g id="color_codes" font-family="sans-serif" font-size="10" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="middle">
+`;
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const color = perlerMappedColors[y][x];
+                            const px = x * beadSize + beadSize / 2;
+                            const py = y * beadSize + beadSize / 2;
+                            svg += `            <text x="${px}" y="${py}">${color.name}</text>
+`;
+                        }
+                    }
+                    svg += `        </g>
+`;
+                }
+                
+                svg += `        <g id="watermark">
+            <text x="${finalWidth - 10}" y="20" font-family="sans-serif" font-size="12" font-weight="bold" fill="#667eea" text-anchor="end" dominant-baseline="auto">豆师傅 - 拼豆图纸生成器</text>
+        </g>
+`;
+                
+                svg += `    </g>
+    <g id="color_legend" transform="translate(${legendX}, ${legendY})">
+        <rect x="0" y="0" width="${legendWidth}" height="${legendHeight}" fill="#f8f9fa" rx="8"/>
+        <text x="${legendXGap}" y="${legendYOffset1}" font-family="sans-serif" font-size="${legendTitleSize}" font-weight="bold" fill="#667eea" text-anchor="start">颜色图例</text>
+        <text x="${legendXGap}" y="${legendYOffset2}" font-family="sans-serif" font-size="${totalSize}" font-weight="bold" fill="#333" text-anchor="start">总数量: ${totalBeans} 颗 · 颜色: ${colorTypes}</text>
+`;
+                
+                let col = 0;
+                let row = 0;
+                
+                for (const name of colorNames) {
+                    const count = colorCounts[name];
+                    const color = colorSet.find(c => c.name === name);
+                    
+                    if (color) {
+                        const x = legendXGap + col * columnWidth;
+                        const y = legendStartY + row * rowHeight;
+                        
+                        svg += `        <rect x="${x}" y="${y}" width="${rectWidth}" height="${rectHeight}" fill="rgb(${color.rgb[0]},${color.rgb[1]},${color.rgb[2]})" stroke="#999" stroke-width="1"/>
+`;
+                        
+                        const textFill = getContrastTextColor(color.rgb);
+                        svg += `        <text x="${x + rectWidth + 5}" y="${y + rectHeight / 2}" font-family="sans-serif" font-size="${colorNameSize}" fill="${textFill}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${name} × ${count}</text>
+`;
+                    }
+                    
+                    row++;
+                    if (row >= itemsPerColumn) {
+                        row = 0;
+                        col++;
+                    }
+                }
+                
+                svg += `    </g>
+</svg>`;
+            } else {
+                svg += `    </g>
+</svg>`;
+            }
+            
+            return svg;
+        }
+        
+        function getContrastTextColor(rgb) {
+            const brightness = rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114;
+            return brightness > 128 ? '#000000' : '#ffffff';
+        }
+    </script>
+</body>
+</html>

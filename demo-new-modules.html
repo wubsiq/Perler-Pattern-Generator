@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Modules Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .info-box {
+            background: #f0f9ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+        .module-demo {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .demo-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        .demo-content {
+            padding: 20px;
+        }
+        .demo-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        .output-area {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>New Modules Demo</h1>
+        <p class="subtitle">Testing our newly created modules independently</p>
+        
+        <div class="info-box">
+            <strong>NOTE:</strong> This page uses the new modules directly, independent from app.js!
+        </div>
+
+        <div class="module-demo">
+            <div class="demo-header">ColorManager Test</div>
+            <div class="demo-content">
+                <div class="demo-buttons">
+                    <button class="btn btn-primary" onclick="testColorManager()">Test ColorManager</button>
+                    <button class="btn btn-secondary" onclick="testColorConversions()">Test Color Conversions</button>
+                </div>
+                <div class="output-area" id="colorOutput">Click buttons to start testing...</div>
+            </div>
+        </div>
+
+        <div class="module-demo">
+            <div class="demo-header">CanvasRenderer Test</div>
+            <div class="demo-content">
+                <div class="demo-buttons">
+                    <button class="btn btn-primary" onclick="testCanvasRenderer()">Test CanvasRenderer</button>
+                    <button class="btn btn-secondary" onclick="testContrastColor()">Test Contrast Color</button>
+                </div>
+                <canvas id="testCanvas" style="display: none; margin-top: 10px;"></canvas>
+                <div class="output-area" id="canvasOutput">Click buttons to start testing...</div>
+            </div>
+        </div>
+
+        <div class="module-demo">
+            <div class="demo-header">PixelArtProcessor Test</div>
+            <div class="demo-content">
+                <div class="demo-buttons">
+                    <button class="btn btn-primary" onclick="testPixelArtProcessor()">Test PixelArtProcessor</button>
+                </div>
+                <div class="output-area" id="pixelOutput">Click buttons to start testing...</div>
+            </div>
+        </div>
+
+        <div class="module-demo">
+            <div class="demo-header">DownloadManager Test</div>
+            <div class="demo-content">
+                <div class="demo-buttons">
+                    <button class="btn btn-primary" onclick="testDownloadManager()">Test DownloadManager</button>
+                </div>
+                <div class="output-area" id="downloadOutput">Click buttons to start testing...</div>
+            </div>
+        </div>
+
+        <div class="module-demo">
+            <div class="demo-header">All Modules Test</div>
+            <div class="demo-content">
+                <div class="demo-buttons">
+                    <button class="btn btn-primary" onclick="testAllModules()">Run All Module Tests</button>
+                    <button class="btn btn-secondary" onclick="listAllModules()">List All Modules</button>
+                </div>
+                <div class="output-area" id="allOutput">Click buttons to start testing...</div>
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-secondary" onclick="window.location.href='test-modules.html'">Module Test Page</button>
+            <button class="btn btn-secondary" onclick="window.location.href='index.html'">Open Main App</button>
+        </div>
+    </div>
+
+    <script src="modules/StateManager.js" defer></script>
+    <script src="modules/Pixelator.js" defer></script>
+    <script src="modules/PerlerGenerator.js" defer></script>
+    <script src="modules/ImageUploader.js" defer></script>
+    <script src="modules/DownloadManager.js" defer></script>
+    <script src="modules/SnapshotManager.js" defer></script>
+    <script src="modules/CustomEditor.js" defer></script>
+    <script src="modules/SmartOptimizer.js" defer></script>
+    <script src="modules/CarveSplitter.js" defer></script>
+    <script src="modules/PixelArtProcessor.js" defer></script>
+    <script src="modules/ColorManager.js" defer></script>
+    <script src="modules/CanvasRenderer.js" defer></script>
+    <script src="modules/UIController.js" defer></script>
+
+    <script>
+        const modules = [
+            { name: 'ColorManager', global: 'colorManager' },
+            { name: 'CanvasRenderer', global: 'canvasRenderer' },
+            { name: 'PixelArtProcessor', global: 'pixelArtProcessor' },
+            { name: 'DownloadManager', global: 'downloadManager' },
+            { name: 'ImageUploader', global: 'imageUploader' },
+            { name: 'SnapshotManager', global: 'snapshotManager' },
+            { name: 'CustomEditor', global: 'customEditor' },
+            { name: 'SmartOptimizer', global: 'smartOptimizer' },
+            { name: 'CarveSplitter', global: 'carveSplitter' },
+            { name: 'Pixelator', global: 'pixelator' },
+            { name: 'PerlerGenerator', global: 'perlerGenerator' },
+            { name: 'StateManager', global: 'stateManager' },
+            { name: 'UIController', global: 'uiController' }
+        ];
+
+        function logOutput(elementId, text) {
+            const el = document.getElementById(elementId);
+            const time = new Date().toLocaleTimeString();
+            el.textContent = '[' + time + '] ' + text + '\n' + el.textContent;
+        }
+
+        function testColorManager() {
+            const output = document.getElementById('colorOutput');
+            output.textContent = '========== Testing ColorManager ==========\n';
+            
+            if (typeof colorManager === 'undefined') {
+                output.textContent += 'ERROR: ColorManager not loaded\n';
+                return;
+            }
+
+            output.textContent += 'OK: ColorManager loaded successfully\n';
+            output.textContent += 'Methods: ' + Object.getOwnPropertyNames(colorManager).join(', ') + '\n';
+            
+            try {
+                const contrast = colorManager.getContrastTextColor([255, 0, 0]);
+                output.textContent += 'Red bg text color: ' + contrast + '\n';
+                
+                const hex = colorManager.rgbToHex([0, 128, 255]);
+                output.textContent += 'RGB to Hex: [0,128,255] -> ' + hex + '\n';
+                
+                const rgb = colorManager.hexToRgb('#00ff00');
+                output.textContent += 'Hex to RGB: #00ff00 -> [' + rgb.join(',') + ']\n';
+                
+                output.textContent += 'OK: ColorManager tests passed!\n';
+            } catch (e) {
+                output.textContent += 'ERROR: Test failed: ' + e.message + '\n';
+            }
+        }
+
+        function testColorConversions() {
+            if (typeof colorManager === 'undefined') return;
+            
+            const output = document.getElementById('colorOutput');
+            output.textContent += '\n========== Testing Color Conversions ==========\n';
+            
+            const testColors = [
+                { name: 'Red', rgb: [255, 0, 0] },
+                { name: 'Green', rgb: [0, 255, 0] },
+                { name: 'Blue', rgb: [0, 0, 255] },
+                { name: 'White', rgb: [255, 255, 255] },
+                { name: 'Black', rgb: [0, 0, 0] }
+            ];
+            
+            testColors.forEach(function(color) {
+                const hex = colorManager.rgbToHex(color.rgb);
+                const textColor = colorManager.getContrastTextColor(color.rgb);
+                output.textContent += color.name + ': RGB(' + color.rgb + ') -> ' + hex + ', Text: ' + textColor + '\n';
+            });
+        }
+
+        function testCanvasRenderer() {
+            const output = document.getElementById('canvasOutput');
+            output.textContent = '========== Testing CanvasRenderer ==========\n';
+            
+            if (typeof canvasRenderer === 'undefined') {
+                output.textContent += 'ERROR: CanvasRenderer not loaded\n';
+                return;
+            }
+
+            output.textContent += 'OK: CanvasRenderer loaded successfully\n';
+            output.textContent += 'Methods: ' + Object.getOwnPropertyNames(canvasRenderer).join(', ') + '\n';
+            
+            try {
+                const canvas = document.getElementById('testCanvas');
+                canvas.style.display = 'block';
+                canvas.width = 200;
+                canvas.height = 150;
+                
+                const contrastWhite = canvasRenderer.getContrastTextColor([255, 255, 255]);
+                const contrastBlack = canvasRenderer.getContrastTextColor([0, 0, 0]);
+                
+                output.textContent += 'White bg text color: ' + contrastWhite + '\n';
+                output.textContent += 'Black bg text color: ' + contrastBlack + '\n';
+                
+                const displaySize = canvasRenderer.calculateDisplaySize(400, 300, 400);
+                output.textContent += 'Calculate display size: ' + JSON.stringify(displaySize) + '\n';
+                
+                output.textContent += 'OK: CanvasRenderer tests passed!\n';
+            } catch (e) {
+                output.textContent += 'ERROR: Test failed: ' + e.message + '\n';
+            }
+        }
+
+        function testContrastColor() {
+            if (typeof canvasRenderer === 'undefined') return;
+            
+            const output = document.getElementById('canvasOutput');
+            output.textContent += '\n========== Testing Contrast Colors ==========\n';
+            
+            const testColors = [
+                [255, 255, 255],
+                [0, 0, 0],
+                [255, 0, 0],
+                [0, 255, 0],
+                [0, 0, 255],
+                [128, 128, 128],
+                [255, 255, 0],
+                [128, 0, 128]
+            ];
+            
+            testColors.forEach(function(rgb) {
+                const textColor = canvasRenderer.getContrastTextColor(rgb);
+                output.textContent += 'RGB(' + rgb + ') -> Text: ' + textColor + '\n';
+            });
+        }
+
+        function testPixelArtProcessor() {
+            const output = document.getElementById('pixelOutput');
+            output.textContent = '========== Testing PixelArtProcessor ==========\n';
+            
+            if (typeof pixelArtProcessor === 'undefined') {
+                output.textContent += 'ERROR: PixelArtProcessor not loaded\n';
+                return;
+            }
+
+            output.textContent += 'OK: PixelArtProcessor loaded successfully\n';
+            output.textContent += 'Methods: ' + Object.getOwnPropertyNames(pixelArtProcessor).join(', ') + '\n';
+            
+            try {
+                pixelArtProcessor.setPixelSize(16);
+                pixelArtProcessor.setOffset(0, 0);
+                
+                const gridSize = pixelArtProcessor.calculateGridSize(400, 300, 16);
+                output.textContent += 'Calculate grid size: ' + JSON.stringify(gridSize) + '\n';
+                
+                output.textContent += 'OK: PixelArtProcessor tests passed!\n';
+            } catch (e) {
+                output.textContent += 'ERROR: Test failed: ' + e.message + '\n';
+            }
+        }
+
+        function testDownloadManager() {
+            const output = document.getElementById('downloadOutput');
+            output.textContent = '========== Testing DownloadManager ==========\n';
+            
+            if (typeof downloadManager === 'undefined') {
+                output.textContent += 'ERROR: DownloadManager not loaded\n';
+                return;
+            }
+
+            output.textContent += 'OK: DownloadManager loaded successfully\n';
+            output.textContent += 'Methods: ' + Object.getOwnPropertyNames(downloadManager).join(', ') + '\n';
+            
+            output.textContent += 'OK: DownloadManager is ready! Test in main app.\n';
+        }
+
+        function listAllModules() {
+            const output = document.getElementById('allOutput');
+            output.textContent = '========== Module List ==========\n\n';
+            
+            let okCount = 0;
+            let errorCount = 0;
+            
+            modules.forEach(function(mod) {
+                const exists = typeof window[mod.global] !== 'undefined';
+                const status = exists ? 'OK' : 'ERROR';
+                
+                if (exists) {
+                    okCount++;
+                    const methods = Object.getOwnPropertyNames(window[mod.global]).filter(function(p) {
+                        return typeof window[mod.global][p] === 'function';
+                    }).slice(0, 6).join(', ');
+                    output.textContent += status + ' ' + mod.name + ' (' + mod.global + ') - Methods: ' + (methods || 'None') + '\n';
+                } else {
+                    errorCount++;
+                    output.textContent += status + ' ' + mod.name + ' - Not loaded\n';
+                }
+            });
+            
+            output.textContent += '\n========== Summary ==========\n';
+            output.textContent += 'OK: ' + okCount + '\n';
+            output.textContent += 'ERROR: ' + errorCount + '\n';
+            output.textContent += 'Total: ' + modules.length + '\n';
+        }
+
+        function testAllModules() {
+            const output = document.getElementById('allOutput');
+            output.textContent = '========== Running All Module Tests ==========\n\n';
+            
+            let results = { ok: 0, error: 0, warning: 0 };
+            
+            modules.forEach(function(mod) {
+                output.textContent += 'Testing ' + mod.name + '...\n';
+                
+                try {
+                    const instance = window[mod.global];
+                    
+                    if (typeof instance !== 'undefined') {
+                        results.ok++;
+                        
+                        const methodCount = Object.getOwnPropertyNames(instance).filter(function(p) {
+                            return typeof instance[p] === 'function';
+                        }).length;
+                        
+                        output.textContent += '  OK ' + mod.name + ' - OK (' + methodCount + ' methods)\n';
+                    } else {
+                        results.error++;
+                        output.textContent += '  ERROR ' + mod.name + ' - Not loaded\n';
+                    }
+                } catch (e) {
+                    results.error++;
+                    output.textContent += '  ERROR ' + mod.name + ' - Error: ' + e.message + '\n';
+                }
+            });
+            
+            output.textContent += '\n========== Test Results ==========\n';
+            output.textContent += 'OK: ' + results.ok + '\n';
+            output.textContent += 'ERROR: ' + results.error + '\n';
+            output.textContent += 'WARNING: ' + results.warning + '\n';
+            
+            if (results.error === 0) {
+                output.textContent += '\nAll modules passed!\n';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const allOutput = document.getElementById('allOutput');
+            allOutput.textContent = 'Page loaded! Click buttons to start testing!\n';
+            allOutput.textContent += 'Tip: Click "List All Modules" first to see loading status\n';
+        });
+    </script>
+</body>
+</html>

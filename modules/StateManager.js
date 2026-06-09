@@ -92,4 +92,4 @@ class StateManager {
 }
 
 // 导出为全局单例
-const stateManager = new StateManager();
+

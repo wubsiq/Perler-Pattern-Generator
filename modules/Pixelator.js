@@ -151,4 +151,4 @@ class Pixelator {
     }
 }
 
-const pixelator = new Pixelator();
+

@@ -509,4 +509,4 @@ class PerlerGenerator {
     }
 }
 
-const perlerGenerator = new PerlerGenerator();
+

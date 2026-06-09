@@ -30,11 +30,12 @@
         <header>
             <div class="header-content">
                 <div class="header-title">
-                    <h1>豆师傅</h1>
+                    <h1 class="brand-title" id="brandTitle">豆师傅</h1>
                 </div>
                 <div class="nav-bar">
                     <button class="nav-btn active">图转拼豆</button>
                     <button class="nav-btn">矩阵计时</button>
+                    <button class="nav-btn" id="importInfoPaperBtn">导入图纸</button>
                 </div>
                 <div class="language-switch">
                     <button id="langZh" class="lang-btn active">中文</button>
@@ -49,6 +50,13 @@
                 <p data-i18n="uploadTitle">点击或拖拽图片到此处上传</p>
                 <p class="upload-hint" data-i18n="uploadHint">支持 JPG、PNG、GIF 格式</p>
                 <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <div class="showcase-section" id="showcaseSection">
+            <h2 class="showcase-title">🎨 示例图纸</h2>
+            <p class="showcase-subtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
+            <div class="showcase-grid" id="showcaseGrid">
             </div>
         </div>
 
@@ -430,14 +438,14 @@
                                     <span data-i18n="beadSize">拼豆大小（显示）：</span>
                                     <span id="beadSizeValue">16px</span>
                                 </label>
-                                <input type="range" id="beadSizeSlider" min="6" max="48" step="2" value="16">
+                                <input type="range" id="beadSizeSlider" min="3" max="48" step="1" value="16">
                             </div>
                             <div class="flex-item slider-half">
                                 <label>
                                     <span>拼豆大小（导出）：</span>
                                     <span id="exportBeadSizeValue">32px</span>
                                 </label>
-                                <input type="range" id="exportBeadSizeSlider" min="12" max="96" step="2" value="32">
+                                <input type="range" id="exportBeadSizeSlider" min="3" max="96" step="1" value="32">
                             </div>
                         </div>
                         <div class="control-group advanced-only flex-row">
@@ -516,6 +524,10 @@
                                 <option value="png" selected>PNG</option>
                                 <option value="svg">SVG</option>
                             </select>
+                        </div>
+                        <div class="action-buttons" style="margin-top: 10px;">
+                            <button id="exportInfoPaperCompressedBtn" class="btn" style="flex: 2; background: #ed8936; border-color: #ed8936; color: white;">📦 导出图纸信息</button>
+                            <button id="exportInfoPaperCompressedFileBtn" class="btn" style="flex: 1; min-width: 80px; max-width: 100px; background: #dd6b20; border-color: #dd6b20; color: white;">下载</button>
                         </div>
                     </div>
                 </div>
@@ -699,9 +711,14 @@
     <script src="js/colors.js" defer></script>
     <script src="js/colorUtils.js" defer></script>
     <script src="js/i18n.js" defer></script>
-    <script src="modules/StateManager.js" defer></script>
     <script src="modules/Pixelator.js" defer></script>
+    <script src="modules/ColorManager.js" defer></script>
     <script src="modules/PerlerGenerator.js" defer></script>
+    <script src="modules/DownloadManager.js" defer></script>
+    <script src="modules/InfoPaperConverter.js" defer></script>
+    <script src="modules/InfoPaperCompressor.js" defer></script>
+    <script src="modules/InfoPaperManager.js" defer></script>
+    <script src="modules/FocusModeRenderer.js" defer></script>
     <script src="js/app.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
