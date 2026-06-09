@@ -5334,17 +5334,11 @@ class PixelArtGenerator {
     }
 
     async loadSamplePatterns() {
-        const inlineScript = document.getElementById('samplePatternsData');
-        let items;
-        if (inlineScript && inlineScript.textContent) {
-            items = JSON.parse(inlineScript.textContent);
-        } else {
-            const response = await fetch('sample-patterns.json');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            items = await response.json();
+        const response = await fetch('sample-patterns.json');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        const items = await response.json();
 
         const decoded = [];
         for (const item of items) {
