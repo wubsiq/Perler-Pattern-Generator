@@ -26,17 +26,17 @@
         </div>
     </div>
 
-    <div class="container">
+    <main class="container">
         <header>
             <div class="header-content">
                 <div class="header-title">
                     <h1 class="brand-title" id="brandTitle">豆师傅</h1>
                 </div>
-                <div class="nav-bar">
+                <nav class="nav-bar">
                     <button class="nav-btn active">图转拼豆</button>
                     <button class="nav-btn">矩阵计时</button>
                     <button class="nav-btn" id="importInfoPaperBtn">导入图纸</button>
-                </div>
+                </nav>
                 <div class="language-switch">
                     <button id="langZh" class="lang-btn active">中文</button>
                     <button id="langEn" class="lang-btn">EN</button>
@@ -44,23 +44,23 @@
             </div>
         </header>
 
-        <div class="upload-section" id="uploadSection">
+        <section class="upload-section" id="uploadSection">
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📷</div>
                 <p data-i18n="uploadTitle">点击或拖拽图片到此处上传</p>
                 <p class="upload-hint" data-i18n="uploadHint">支持 JPG、PNG、GIF 格式</p>
                 <input type="file" id="fileInput" accept="image/*" style="display: none;">
             </div>
-        </div>
+        </section>
 
-        <div class="showcase-section" id="showcaseSection">
+        <section class="showcase-section" id="showcaseSection">
             <h2 class="showcase-title">🎨 示例图纸</h2>
             <p class="showcase-subtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
             <div class="showcase-grid" id="showcaseGrid">
             </div>
-        </div>
+        </section>
 
-        <div class="timer-section" id="timerSection" style="display: none;">
+        <section class="timer-section" id="timerSection" style="display: none;">
             <div class="timer-header">
                 <h2>⏱️ 矩阵计时</h2>
                 <button class="btn btn-primary" id="addTimerBtn">+ 添加计时器</button>
@@ -68,7 +68,7 @@
             <div class="timers-grid" id="timersGrid">
                 <!-- 计时器会动态生成在这里 -->
             </div>
-        </div>
+        </section>
 
         <div class="modal" id="timerModal" style="display: none;">
             <div class="modal-content">
@@ -97,7 +97,7 @@
             </div>
         </div>
 
-        <div class="workspace" id="workspace" style="display: none;">
+        <section class="workspace" id="workspace" style="display: none;">
             
             <div class="preview-section">
                 <div class="preview-left">
@@ -726,8 +726,8 @@
                 <button id="clearBtn" class="btn btn-danger" data-i18n="clear">清空</button>
                 <button id="resetBtn" class="btn btn-secondary" data-i18n="reset">重置</button>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script src="js/colors.js" defer></script>
     <script src="js/colorUtils.js" defer></script>

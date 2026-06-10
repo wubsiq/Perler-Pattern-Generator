@@ -1587,7 +1587,7 @@ class PixelArtGenerator {
 
     updateColorUsageList() {
         if (!this.pixelColorStats.length) {
-            this.colorUsageList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无颜色数据</p>';
+            this.colorUsageList.innerHTML = '<p style="color: #555; text-align: center; padding: 20px;">暂无颜色数据</p>';
             return;
         }
         
@@ -1756,7 +1756,7 @@ class PixelArtGenerator {
         
         const drawFooter = () => {
             ctx.font = '11px sans-serif';
-            ctx.fillStyle = '#999';
+            ctx.fillStyle = '#555';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = summaryMargin + coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
@@ -2102,7 +2102,7 @@ class PixelArtGenerator {
         
         const drawFooter = () => {
             ctx.font = '11px sans-serif';
-            ctx.fillStyle = '#999';
+            ctx.fillStyle = '#555';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
@@ -2417,7 +2417,7 @@ class PixelArtGenerator {
         
         const drawFooter = () => {
             ctx.font = '11px sans-serif';
-            ctx.fillStyle = '#999';
+            ctx.fillStyle = '#555';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const footerY = coordSize * 2 + perlerHeight * cellSize + footerSize / 2;
@@ -5632,33 +5632,16 @@ class PixelArtGenerator {
         if (!this.showcaseGrid || !this.showcaseSection) return;
 
         this.showcaseLoaded = false;
-        this.showcaseSkeleton = this.createShowcaseSkeleton();
+        this.showcaseSkeleton = this.createShowcaseSkeleton(6);
         this.showcaseGrid.appendChild(this.showcaseSkeleton);
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach((entry) => {
-                        if (entry.isIntersecting && !this.showcaseLoaded) {
-                            this.showcaseLoaded = true;
-                            observer.disconnect();
-                            this.loadAndRenderShowcase();
-                        }
-                    });
-                },
-                { rootMargin: '200px' }
-            );
-            observer.observe(this.showcaseSection);
-        } else {
-            this.loadAndRenderShowcase();
-        }
+        this.loadAndRenderShowcase();
     }
 
-    createShowcaseSkeleton() {
+    createShowcaseSkeleton(count) {
         const container = document.createElement('div');
         container.style.cssText = 'display: contents;';
 
-        const skeletonCount = 6;
+        const skeletonCount = count || 6;
         for (let i = 0; i < skeletonCount; i++) {
             const card = document.createElement('div');
             card.className = 'showcase-card showcase-skeleton-card';
@@ -5668,7 +5651,8 @@ class PixelArtGenerator {
 
             const info = document.createElement('div');
             info.className = 'showcase-info showcase-skeleton-info';
-            info.style.height = '12px';
+            info.style.height = '18px';
+            info.style.lineHeight = '18px';
             info.style.width = '70%';
             info.style.margin = '0 auto';
             info.style.borderRadius = '4px';
@@ -5678,67 +5662,41 @@ class PixelArtGenerator {
             container.appendChild(card);
         }
 
-        const loadingText = document.createElement('div');
-        loadingText.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #888; font-size: 13px; margin-top: 8px;';
-        loadingText.textContent = '加载中...';
-        container.appendChild(loadingText);
-
         return container;
     }
 
     async loadAndRenderShowcase() {
         try {
             const packedItems = await this.loadSamplePatternsRaw();
-            this.showcaseSkeleton.remove();
-            this.renderSampleCardsAsync(packedItems);
+            const cards = await this.createAllSampleCards(packedItems);
+            if (this.showcaseSkeleton) this.showcaseSkeleton.remove();
+            cards.forEach((card) => this.showcaseGrid.appendChild(card));
         } catch (err) {
             console.warn('加载示例图纸失败:', err);
-            this.showcaseSkeleton.remove();
+            if (this.showcaseSkeleton) this.showcaseSkeleton.remove();
             this.showcaseError();
         }
     }
 
-    async loadSamplePatternsRaw() {
-        const url = new URL('sample-patterns.json', location.href).href;
-        const response = await fetch(url, { cache: 'no-cache' });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return await response.json();
-    }
-
-    renderSampleCardsAsync(items) {
-        let index = 0;
-        const BATCH_SIZE = 1;
-
-        const renderNext = async () => {
-            const end = Math.min(index + BATCH_SIZE, items.length);
-            for (let i = index; i < end; i++) {
-                const item = items[i];
-                if (!item.packedData) continue;
-
-                try {
-                    const infoPaper = await this.infoPaperManager.compressor.unpack(item.packedData);
-                    const sample = this.infoPaperManager.converter.fromInfoPaper(infoPaper);
-                    if (sample) {
-                        this.appendSampleCard(sample);
-                    }
-                } catch (e) {
-                    console.warn('解码示例图纸失败:', e);
+    async createAllSampleCards(items) {
+        const cards = [];
+        for (const item of items) {
+            if (!item.packedData) continue;
+            try {
+                const infoPaper = await this.infoPaperManager.compressor.unpack(item.packedData);
+                const sample = this.infoPaperManager.converter.fromInfoPaper(infoPaper);
+                if (sample) {
+                    const card = this.createSampleCard(sample);
+                    cards.push(card);
                 }
+            } catch (e) {
+                console.warn('解码示例图纸失败:', e);
             }
-            index = end;
-
-            if (index < items.length) {
-                await new Promise((resolve) => requestAnimationFrame(resolve));
-                renderNext();
-            }
-        };
-
-        renderNext();
+        }
+        return cards;
     }
 
-    appendSampleCard(sample) {
+    createSampleCard(sample) {
         const card = document.createElement('div');
         card.className = 'showcase-card';
 
@@ -5761,7 +5719,16 @@ class PixelArtGenerator {
             this.launchSampleFocusMode(sample.perlerColors, sample.width, sample.height, sample.colorSet);
         });
 
-        this.showcaseGrid.appendChild(card);
+        return card;
+    }
+
+    async loadSamplePatternsRaw() {
+        const url = new URL('sample-patterns.json', location.href).href;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
     }
 
     showcaseError() {

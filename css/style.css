@@ -198,7 +198,7 @@ header h1 {
 
 .crop-btn:hover {
     background: #f5f5f5;
-    border-color: #999;
+    border-color: #666;
 }
 
 .crop-btn.confirm {
@@ -336,7 +336,7 @@ header h1 {
 
 .showcase-info {
     font-size: 12px;
-    color: #888;
+    color: #555;
 }
 
 .showcase-skeleton-card {
@@ -414,7 +414,7 @@ header h1 {
 
 .upload-hint {
     font-size: 0.9em;
-    color: #888;
+    color: #555;
 }
 
 .workspace {
@@ -926,13 +926,13 @@ input[type="color"]:focus {
 
 .color-percentage {
     font-size: 0.8em;
-    color: #888;
+    color: #555;
     margin-left: 8px;
 }
 
 .color-rgb {
     font-size: 0.75em;
-    color: #999;
+    color: #666;
     font-family: monospace;
 }
 
@@ -1163,7 +1163,7 @@ input[type="color"]:focus {
     border: none;
     font-size: 2em;
     cursor: pointer;
-    color: #999;
+    color: #666;
     transition: color 0.2s;
     line-height: 1;
 }
@@ -1302,7 +1302,7 @@ input[type="color"]:focus {
 
 .suggestion-beans {
     font-size: 0.85em;
-    color: #888;
+    color: #555;
     margin-top: 4px;
 }
 
@@ -1775,7 +1775,7 @@ input[type="color"]:focus {
 .snapshot-item-desc {
     margin-top: 5px;
     font-size: 0.8em;
-    color: #888888;
+    color: #555888;
 }
 
 .snapshot-item-actions {
