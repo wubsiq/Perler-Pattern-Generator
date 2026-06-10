@@ -1373,16 +1373,24 @@ class PixelArtGenerator {
         
         this.pixelatedCanvasNaturalWidth = targetWidth;
         this.pixelatedCanvasNaturalHeight = targetHeight;
+        
+        const savedPixelatedZoom = parseInt(this.pixelatedZoomSlider.value);
         this.pixelatedCanvas.style.width = 'auto';
         this.pixelatedCanvas.style.height = 'auto';
         
         requestAnimationFrame(() => {
             this.pixelatedCanvasDisplayWidth = this.pixelatedCanvas.offsetWidth;
             this.pixelatedCanvasDisplayHeight = this.pixelatedCanvas.offsetHeight;
+            
+            if (savedPixelatedZoom !== 100) {
+                const scale = savedPixelatedZoom / 100;
+                this.pixelatedCanvas.style.width = (this.pixelatedCanvasDisplayWidth * scale) + 'px';
+                this.pixelatedCanvas.style.height = (this.pixelatedCanvasDisplayHeight * scale) + 'px';
+            }
         });
         
-        this.pixelatedZoomSlider.value = 100;
-        this.pixelatedZoomValue.textContent = '100%';
+        this.pixelatedZoomSlider.value = savedPixelatedZoom;
+        this.pixelatedZoomValue.textContent = savedPixelatedZoom + '%';
         
         this.showPerlerPlaceholder();
     }
@@ -1704,15 +1712,31 @@ class PixelArtGenerator {
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
         
-        this.perlerCanvas.width = coordSize * 2 + perlerWidth * cellSize;
-        this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
-        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
-        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
-        // 设置为1:1原生尺寸显示，避免浏览器缩放导致网格线颜色变淡
-        this.perlerCanvas.style.width = this.perlerCanvasNaturalWidth + 'px';
-        this.perlerCanvas.style.height = this.perlerCanvasNaturalHeight + 'px';
-        this.perlerCanvasDisplayWidth = this.perlerCanvasNaturalWidth;
-        this.perlerCanvasDisplayHeight = this.perlerCanvasNaturalHeight;
+        const newCanvasWidth = coordSize * 2 + perlerWidth * cellSize;
+        const newCanvasHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
+        
+        const savedPerlerZoom = parseInt(this.perlerZoomSlider.value);
+        const oldNaturalWidth = this.perlerCanvasNaturalWidth || newCanvasWidth;
+        
+        this.perlerCanvas.width = newCanvasWidth;
+        this.perlerCanvas.height = newCanvasHeight;
+        this.perlerCanvasNaturalWidth = newCanvasWidth;
+        this.perlerCanvasNaturalHeight = newCanvasHeight;
+        
+        if (savedPerlerZoom === 100 || !oldNaturalWidth || oldNaturalWidth === 0) {
+            this.perlerCanvas.style.width = newCanvasWidth + 'px';
+            this.perlerCanvas.style.height = newCanvasHeight + 'px';
+            this.perlerCanvasDisplayWidth = newCanvasWidth;
+            this.perlerCanvasDisplayHeight = newCanvasHeight;
+        } else {
+            const scale = savedPerlerZoom / 100;
+            this.perlerCanvas.style.width = (newCanvasWidth * scale) + 'px';
+            this.perlerCanvas.style.height = (newCanvasHeight * scale) + 'px';
+            this.perlerCanvasDisplayWidth = newCanvasWidth;
+            this.perlerCanvasDisplayHeight = newCanvasHeight;
+        }
+        this.perlerZoomSlider.value = savedPerlerZoom;
+        this.perlerZoomValue.textContent = savedPerlerZoom + '%';
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -2257,7 +2281,6 @@ class PixelArtGenerator {
             } else {
                 this.drawColorLegend();
                 drawFooter();
-                this.resetPerlerZoom();
             }
         };
         
@@ -2386,7 +2409,6 @@ class PixelArtGenerator {
         this.drawColorLegend();
         // 不再绘制底部水印，改为在顶部显示
         // drawFooter();
-        this.resetPerlerZoom();
     }
 
     drawPerlerChartSync(perlerColors, perlerWidth, perlerHeight, colorSetName) {
@@ -2401,15 +2423,31 @@ class PixelArtGenerator {
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
         
-        this.perlerCanvas.width = coordSize * 2 + perlerWidth * cellSize;
-        this.perlerCanvas.height = coordSize * 2 + perlerHeight * cellSize + footerSize;
-        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
-        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
-        // 设置为1:1原生尺寸显示，避免浏览器缩放导致网格线颜色变淡
-        this.perlerCanvas.style.width = this.perlerCanvasNaturalWidth + 'px';
-        this.perlerCanvas.style.height = this.perlerCanvasNaturalHeight + 'px';
-        this.perlerCanvasDisplayWidth = this.perlerCanvasNaturalWidth;
-        this.perlerCanvasDisplayHeight = this.perlerCanvasNaturalHeight;
+        const newCanvasWidth = coordSize * 2 + perlerWidth * cellSize;
+        const newCanvasHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
+        
+        const savedPerlerZoom = parseInt(this.perlerZoomSlider.value);
+        const oldNaturalWidth = this.perlerCanvasNaturalWidth || newCanvasWidth;
+        
+        this.perlerCanvas.width = newCanvasWidth;
+        this.perlerCanvas.height = newCanvasHeight;
+        this.perlerCanvasNaturalWidth = newCanvasWidth;
+        this.perlerCanvasNaturalHeight = newCanvasHeight;
+        
+        if (savedPerlerZoom === 100 || !oldNaturalWidth || oldNaturalWidth === 0) {
+            this.perlerCanvas.style.width = newCanvasWidth + 'px';
+            this.perlerCanvas.style.height = newCanvasHeight + 'px';
+            this.perlerCanvasDisplayWidth = newCanvasWidth;
+            this.perlerCanvasDisplayHeight = newCanvasHeight;
+        } else {
+            const scale = savedPerlerZoom / 100;
+            this.perlerCanvas.style.width = (newCanvasWidth * scale) + 'px';
+            this.perlerCanvas.style.height = (newCanvasHeight * scale) + 'px';
+            this.perlerCanvasDisplayWidth = newCanvasWidth;
+            this.perlerCanvasDisplayHeight = newCanvasHeight;
+        }
+        this.perlerZoomSlider.value = savedPerlerZoom;
+        this.perlerZoomValue.textContent = savedPerlerZoom + '%';
         
         const ctx = this.perlerCtx;
         ctx.fillStyle = '#ffffff';
@@ -2596,7 +2634,6 @@ class PixelArtGenerator {
         this.drawColorLegend();
         // 不再绘制底部水印，改为在顶部显示
         // drawFooter();
-        this.resetPerlerZoom();
     }
 
     drawColorLegend() {

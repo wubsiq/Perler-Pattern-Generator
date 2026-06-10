@@ -594,25 +594,28 @@
                                 <button class="edit-tool-btn" data-tool="colorConvert">🔄 颜色转换</button>
                                 <button class="edit-tool-btn" data-tool="canvasBounds">📐 画布边界</button>
                             </div>
-                            <div class="control-group">
-                                <label>图像翻转：</label>
-                                <div style="display: flex; gap: 10px;">
-                                    <button id="flipHorizontalBtn" class="btn btn-secondary">↔️ 左右翻转</button>
-                                    <button id="flipVerticalBtn" class="btn btn-secondary">↕️ 上下翻转</button>
+                        </div>
+                        <div class="control-group">
+                            <label>图像翻转：</label>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="flipHorizontalBtn" class="btn btn-secondary">↔️ 左右翻转</button>
+                                <button id="flipVerticalBtn" class="btn btn-secondary">↕️ 上下翻转</button>
+                            </div>
+                        </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item color-item">
+                                <label><span data-i18n="currentColor">当前颜色：</span></label>
+                                <div class="current-color-wrapper">
+                                    <input type="color" id="customEditColor" value="#000000">
+                                    <span id="currentColorValue">#000000</span>
                                 </div>
                             </div>
-                        </div>
-                        <div class="control-group">
-                            <label><span data-i18n="currentColor">当前颜色：</span></label>
-                            <div class="current-color-wrapper">
-                                <input type="color" id="customEditColor" value="#000000">
-                                <span id="currentColorValue">#000000</span>
+                            <div class="flex-item slider-item">
+                                <label><span data-i18n="brushSize">画笔大小：</span>
+                                    <span id="brushSizeValue">1</span>
+                                </label>
+                                <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
                             </div>
-                        </div>
-                        <div class="control-group">
-                            <label><span data-i18n="brushSize">画笔大小：</span></label>
-                            <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
-                            <span id="brushSizeValue">1</span>
                         </div>
                         <div class="control-group">
                             <label class="checkbox-label">
@@ -620,18 +623,20 @@
                                 <span data-i18n="showCustomEditGrid">显示网格</span>
                             </label>
                         </div>
-                        <div class="control-group">
-                            <label>橡皮擦颜色：</label>
-                            <div class="current-color-wrapper">
-                                <input type="color" id="eraserColor" value="#ffffff">
-                                <span id="eraserColorValue">#ffffff</span>
+                        <div class="control-group flex-row">
+                            <div class="flex-item color-item">
+                                <label>橡皮擦颜色：</label>
+                                <div class="current-color-wrapper">
+                                    <input type="color" id="eraserColor" value="#ffffff">
+                                    <span id="eraserColorValue">#ffffff</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="control-group">
-                            <label>剃刀工具底色：</label>
-                            <div class="current-color-wrapper">
-                                <input type="color" id="razorBgColor" value="#00ff00">
-                                <span id="razorBgColorValue">#00ff00</span>
+                            <div class="flex-item color-item">
+                                <label>剃刀工具底色：</label>
+                                <div class="current-color-wrapper">
+                                    <input type="color" id="razorBgColor" value="#00ff00">
+                                    <span id="razorBgColorValue">#00ff00</span>
+                                </div>
                             </div>
                         </div>
                         <div class="control-group">
@@ -646,26 +651,30 @@
                         <div class="control-group">
                             <label>连锁最大色块：</label>
                             <div class="current-color-wrapper">
-                                <input type="number" id="chainRazorMax" value="1000" min="1" max="10000" style="width: 80px;">
+                                <input type="number" id="chainRazorMax" value="1000" min="1" max="10000" style="width: 100px;">
                             </div>
                         </div>
-                        <div class="control-group">
-                            <button id="applyCustomEditBtn" class="btn btn-primary" data-i18n="applyEdit">✓ 应用编辑</button>
+                        <div class="control-group flex-row">
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="exportTransparentBackground">
+                                    <span>导出透明背景</span>
+                                </label>
+                            </div>
+                            <div class="flex-item">
+                                <button id="applyCustomEditBtn" class="btn btn-primary" data-i18n="applyEdit" style="width: 100%;">✓ 应用编辑</button>
+                            </div>
                         </div>
-                        <div class="control-group">
-                            <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit">↩ 撤销</button>
-                        </div>
-                        <div class="control-group">
-                            <button id="saveSnapshotBtn" class="btn btn-secondary">💾 保存快照</button>
-                        </div>
-                        <div class="control-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="exportTransparentBackground">
-                                <span>导出透明背景</span>
-                            </label>
-                        </div>
-                        <div class="control-group">
-                            <button id="exportPixelImageBtn" class="btn btn-primary">📥 导出像素图</button>
+                        <div class="control-group flex-row">
+                            <div class="flex-item">
+                                <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit" style="width: 100%;">↩ 撤销</button>
+                            </div>
+                            <div class="flex-item">
+                                <button id="saveSnapshotBtn" class="btn btn-secondary" style="width: 100%;">💾 保存快照</button>
+                            </div>
+                            <div class="flex-item">
+                                <button id="exportPixelImageBtn" class="btn btn-primary" style="width: 100%;">📥 导出像素图</button>
+                            </div>
                         </div>
                         <div class="control-group" id="colorConvertControls" style="display: none;">
                             <label>颜色转换设置：</label>
@@ -691,28 +700,30 @@
                         </div>
                         <div class="control-group" id="canvasBoundsControls" style="display: none;">
                             <label>📐 画布边界调整：</label>
-                            <div style="margin-top: 10px;">
-                                <div style="margin-bottom: 8px;">
-                                    <label style="display: inline-block; width: 60px;">左边界：</label>
-                                    <input type="number" id="canvasBoundsLeft" min="0" value="0" style="width: 80px;">
+                            <div class="flex-row" style="margin-top: 10px;">
+                                <div class="flex-item">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">左边界：</label>
+                                    <input type="number" id="canvasBoundsLeft" min="0" value="0" style="width: 100%;">
                                 </div>
-                                <div style="margin-bottom: 8px;">
-                                    <label style="display: inline-block; width: 60px;">右边界：</label>
-                                    <input type="number" id="canvasBoundsRight" min="1" value="64" style="width: 80px;">
+                                <div class="flex-item">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">右边界：</label>
+                                    <input type="number" id="canvasBoundsRight" min="1" value="64" style="width: 100%;">
                                 </div>
-                                <div style="margin-bottom: 8px;">
-                                    <label style="display: inline-block; width: 60px;">上边界：</label>
-                                    <input type="number" id="canvasBoundsTop" min="0" value="0" style="width: 80px;">
-                                </div>
-                                <div style="margin-bottom: 8px;">
-                                    <label style="display: inline-block; width: 60px;">下边界：</label>
-                                    <input type="number" id="canvasBoundsBottom" min="1" value="64" style="width: 80px;">
-                                </div>
-                                <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                                    当前显示尺寸：<span id="canvasBoundsCurrentSize">64 × 64</span>
-                                </div>
-                                <button id="resetCanvasBoundsBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">重置边界</button>
                             </div>
+                            <div class="flex-row" style="margin-top: 10px;">
+                                <div class="flex-item">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">上边界：</label>
+                                    <input type="number" id="canvasBoundsTop" min="0" value="0" style="width: 100%;">
+                                </div>
+                                <div class="flex-item">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">下边界：</label>
+                                    <input type="number" id="canvasBoundsBottom" min="1" value="64" style="width: 100%;">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                当前显示尺寸：<span id="canvasBoundsCurrentSize">64 × 64</span>
+                            </div>
+                            <button id="resetCanvasBoundsBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">重置边界</button>
                         </div>
                         <div class="control-group" id="snapshotsList" style="display: none;">
                             <label>保存的快照：</label>
