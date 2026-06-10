@@ -336,23 +336,35 @@ class PerlerGenerator {
 
             // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = summaryMargin + coordSize - cellSize;
+                svg += `<rect x="${boxX}" y="${boxY}" width="${cellSize}" height="${cellSize}" fill="none" stroke="#000000" stroke-width="1"/>`;
                 svg += `<text x="${coordSize + x * cellSize + cellSize / 2}" y="${summaryMargin + coordSize / 2}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${fontSizeCoord}" fill="${coordNumberColor}">${x + 1}</text>`;
             }
 
             // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize - cellSize;
+                const boxY = summaryMargin + coordSize + y * cellSize;
+                svg += `<rect x="${boxX}" y="${boxY}" width="${cellSize}" height="${cellSize}" fill="none" stroke="#000000" stroke-width="1"/>`;
                 svg += `<text x="${coordSize / 2}" y="${summaryMargin + coordSize + y * cellSize + cellSize / 2}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${fontSizeCoord}" fill="${coordNumberColor}">${y + 1}</text>`;
             }
 
             // 右边编号
             const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize + perlerWidth * cellSize;
+                const boxY = summaryMargin + coordSize + y * cellSize;
+                svg += `<rect x="${boxX}" y="${boxY}" width="${cellSize}" height="${cellSize}" fill="none" stroke="#000000" stroke-width="1"/>`;
                 svg += `<text x="${rightCoordX}" y="${summaryMargin + coordSize + y * cellSize + cellSize / 2}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${fontSizeCoord}" fill="${coordNumberColor}">${y + 1}</text>`;
             }
 
             // 下面编号
             const bottomCoordY = summaryMargin + coordSize + perlerHeight * cellSize + coordSize / 2;
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = summaryMargin + coordSize + perlerHeight * cellSize;
+                svg += `<rect x="${boxX}" y="${boxY}" width="${cellSize}" height="${cellSize}" fill="none" stroke="#000000" stroke-width="1"/>`;
                 svg += `<text x="${coordSize + x * cellSize + cellSize / 2}" y="${bottomCoordY}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${fontSizeCoord}" fill="${coordNumberColor}">${x + 1}</text>`;
             }
         }

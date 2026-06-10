@@ -3,6 +3,10 @@ class PixelArtGenerator {
         this.originalImage = null;
         this.originalWidth = 0;
         this.originalHeight = 0;
+        this.fullOriginalImage = null; // 保存完整的原始图片（用于重置裁切）
+        this.fullOriginalWidth = 0;
+        this.fullOriginalHeight = 0;
+        this.isCropped = false; // 是否已裁切过
         this.perlerMode = false;
         this.colorCounts = {};
         this.pixelColorStats = [];
@@ -77,6 +81,22 @@ class PixelArtGenerator {
         this.pixelatedSize = document.getElementById('pixelatedSize');
         this.pixelatedGridCount = document.getElementById('pixelatedGridCount');
         this.perlerSize = document.getElementById('perlerSize');
+
+        // 裁切功能相关元素
+        this.cropBtn = document.getElementById('cropBtn');
+        this.resetCropBtn = document.getElementById('resetCropBtn');
+        this.confirmCropBtn = document.getElementById('confirmCropBtn');
+        this.cancelCropBtn = document.getElementById('cancelCropBtn');
+        this.cropOverlay = document.getElementById('cropOverlay');
+        this.cropBox = document.getElementById('cropBox');
+        this.isCropMode = false;
+        this.isCreatingCrop = false;
+        this.isDraggingCrop = false;
+        this.isResizingCrop = false;
+        this.activeHandle = null;
+        this.cropStartX = 0;
+        this.cropStartY = 0;
+        this.initialCropBox = null;
         
         this.pixelSizeSlider = document.getElementById('pixelSizeSlider');
         this.pixelSizeValue = document.getElementById('pixelSizeValue');
@@ -325,6 +345,20 @@ class PixelArtGenerator {
                 this.loadImage(files[0]);
             }
         });
+
+        // 裁切功能按钮
+        this.cropBtn.addEventListener('click', () => this.toggleCropMode());
+        this.confirmCropBtn.addEventListener('click', () => this.confirmCrop());
+        this.cancelCropBtn.addEventListener('click', () => this.cancelCrop());
+        this.resetCropBtn.addEventListener('click', () => this.resetToFullImage());
+
+        // 裁切选框交互
+        this.cropOverlay.addEventListener('mousedown', (e) => this.cropMouseDown(e));
+        this.cropOverlay.addEventListener('touchstart', (e) => this.cropTouchStart(e), { passive: false });
+        document.addEventListener('mousemove', (e) => this.cropMouseMove(e));
+        document.addEventListener('touchmove', (e) => this.cropTouchMove(e), { passive: false });
+        document.addEventListener('mouseup', (e) => this.cropMouseUp(e));
+        document.addEventListener('touchend', (e) => this.cropTouchEnd(e));
         
         this.langZh.addEventListener('click', () => setLanguage('zh'));
         this.langEn.addEventListener('click', () => setLanguage('en'));
@@ -877,6 +911,13 @@ class PixelArtGenerator {
             this.originalImage = img;
             this.originalWidth = img.width;
             this.originalHeight = img.height;
+            // 保存完整的原始图片用于重置裁切
+            this.fullOriginalImage = img;
+            this.fullOriginalWidth = img.width;
+            this.fullOriginalHeight = img.height;
+            this.isCropped = false;
+            // 重置裁切按钮状态
+            this.updateCropButtonState();
             this.showWorkspace();
             this.drawOriginalImage();
             this.resetInputs();
@@ -891,6 +932,256 @@ class PixelArtGenerator {
         };
         
         img.src = objectURL;
+    }
+
+    updateCropButtonState() {
+        if (this.isCropMode) {
+            this.cropBtn.style.display = 'none';
+            this.resetCropBtn.style.display = 'none';
+            this.confirmCropBtn.style.display = 'inline-block';
+            this.cancelCropBtn.style.display = 'inline-block';
+        } else {
+            this.cropBtn.style.display = 'inline-block';
+            this.confirmCropBtn.style.display = 'none';
+            this.cancelCropBtn.style.display = 'none';
+            this.resetCropBtn.style.display = this.isCropped ? 'inline-block' : 'none';
+        }
+    }
+
+    toggleCropMode() {
+        this.isCropMode = !this.isCropMode;
+        if (this.isCropMode) {
+            this.enterCropMode();
+        } else {
+            this.exitCropMode();
+        }
+    }
+
+    enterCropMode() {
+        const wrapperRect = this.cropOverlay.parentElement.getBoundingClientRect();
+        const canvasRect = this.originalCanvas.getBoundingClientRect();
+        // overlay相对于wrapper的偏移（因为canvas在wrapper中是居中的）
+        const offsetX = canvasRect.left - wrapperRect.left;
+        const offsetY = canvasRect.top - wrapperRect.top;
+        const canvasW = canvasRect.width;
+        const canvasH = canvasRect.height;
+        this.cropOverlay.style.display = 'block';
+        this.cropOverlay.style.left = offsetX + 'px';
+        this.cropOverlay.style.top = offsetY + 'px';
+        this.cropOverlay.style.width = canvasW + 'px';
+        this.cropOverlay.style.height = canvasH + 'px';
+        this.cropOverlay.style.right = 'auto';
+        this.cropOverlay.style.bottom = 'auto';
+        // 默认选框100%覆盖整个图片
+        this.setCropBox(0, 0, canvasW, canvasH);
+        this.cropBox.style.display = 'block';
+        this.updateCropButtonState();
+    }
+
+    exitCropMode() {
+        this.cropOverlay.style.display = 'none';
+        this.cropOverlay.style.left = '';
+        this.cropOverlay.style.top = '';
+        this.cropOverlay.style.width = '';
+        this.cropOverlay.style.height = '';
+        this.cropOverlay.style.right = '';
+        this.cropOverlay.style.bottom = '';
+        this.cropBox.style.display = 'none';
+        this.updateCropButtonState();
+    }
+
+    cancelCrop() {
+        this.isCropMode = false;
+        this.exitCropMode();
+    }
+
+    setCropBox(x, y, w, h) {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        const maxW = overlayRect.width;
+        const maxH = overlayRect.height;
+        x = Math.max(0, Math.min(x, maxW - 20));
+        y = Math.max(0, Math.min(y, maxH - 20));
+        w = Math.max(20, Math.min(w, maxW - x));
+        h = Math.max(20, Math.min(h, maxH - y));
+        this.cropBox.style.left = x + 'px';
+        this.cropBox.style.top = y + 'px';
+        this.cropBox.style.width = w + 'px';
+        this.cropBox.style.height = h + 'px';
+    }
+
+    getCropBoxRect() {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        const boxRect = this.cropBox.getBoundingClientRect();
+        return {
+            left: boxRect.left - overlayRect.left,
+            top: boxRect.top - overlayRect.top,
+            width: boxRect.width,
+            height: boxRect.height,
+            right: boxRect.right - overlayRect.left,
+            bottom: boxRect.bottom - overlayRect.top
+        };
+    }
+
+    getCropEventPos(e) {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        return {
+            x: e.clientX - overlayRect.left,
+            y: e.clientY - overlayRect.top,
+            containerW: overlayRect.width,
+            containerH: overlayRect.height
+        };
+    }
+
+    cropMouseDown(e) {
+        const pos = this.getCropEventPos(e);
+        const handle = e.target.getAttribute && e.target.getAttribute('data-handle');
+        if (handle) {
+            this.isResizingCrop = true;
+            this.activeHandle = handle;
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.initialCropBox = this.getCropBoxRect();
+        } else if (e.target === this.cropBox) {
+            this.isDraggingCrop = true;
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.initialCropBox = this.getCropBoxRect();
+        } else {
+            this.isCreatingCrop = true;
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.setCropBox(pos.x, pos.y, 1, 1);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    cropTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const mouseLikeEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            target: e.target,
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation()
+        };
+        this.cropMouseDown(mouseLikeEvent);
+    }
+
+    cropMouseMove(e) {
+        if (!this.isCropMode || (!this.isCreatingCrop && !this.isDraggingCrop && !this.isResizingCrop)) return;
+        const pos = this.getCropEventPos(e);
+        if (this.isCreatingCrop) {
+            const x = Math.min(this.cropStartX, pos.x);
+            const y = Math.min(this.cropStartY, pos.y);
+            const w = Math.abs(pos.x - this.cropStartX);
+            const h = Math.abs(pos.y - this.cropStartY);
+            this.setCropBox(x, y, w, h);
+        } else if (this.isDraggingCrop) {
+            const dx = pos.x - this.cropStartX;
+            const dy = pos.y - this.cropStartY;
+            this.setCropBox(
+                this.initialCropBox.left + dx,
+                this.initialCropBox.top + dy,
+                this.initialCropBox.width,
+                this.initialCropBox.height
+            );
+        } else if (this.isResizingCrop) {
+            const dx = pos.x - this.cropStartX;
+            const dy = pos.y - this.cropStartY;
+            let newX = this.initialCropBox.left;
+            let newY = this.initialCropBox.top;
+            let newW = this.initialCropBox.width;
+            let newH = this.initialCropBox.height;
+            const handle = this.activeHandle;
+            if (handle.includes('w')) { newX = this.initialCropBox.left + dx; newW = this.initialCropBox.width - dx; }
+            if (handle.includes('e')) { newW = this.initialCropBox.width + dx; }
+            if (handle.includes('n')) { newY = this.initialCropBox.top + dy; newH = this.initialCropBox.height - dy; }
+            if (handle.includes('s')) { newH = this.initialCropBox.height + dy; }
+            if (newW < 20) { newX = this.initialCropBox.left; newW = 20; }
+            if (newH < 20) { newY = this.initialCropBox.top; newH = 20; }
+            this.setCropBox(newX, newY, newW, newH);
+        }
+        e.preventDefault();
+    }
+
+    cropTouchMove(e) {
+        if (!this.isCropMode || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const mouseLikeEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => e.preventDefault()
+        };
+        this.cropMouseMove(mouseLikeEvent);
+    }
+
+    cropMouseUp(e) {
+        this.isCreatingCrop = false;
+        this.isDraggingCrop = false;
+        this.isResizingCrop = false;
+        this.activeHandle = null;
+        this.initialCropBox = null;
+    }
+
+    cropTouchEnd(e) {
+        this.cropMouseUp(e);
+    }
+
+    confirmCrop() {
+        const boxRect = this.getCropBoxRect();
+        const canvasRect = this.originalCanvas.getBoundingClientRect();
+        // 计算显示尺寸与实际像素尺寸的比例
+        const scaleX = this.originalWidth / canvasRect.width;
+        const scaleY = this.originalHeight / canvasRect.height;
+        // 转换为像素坐标
+        const sourceX = Math.round(boxRect.left * scaleX);
+        const sourceY = Math.round(boxRect.top * scaleY);
+        const sourceW = Math.round(boxRect.width * scaleX);
+        const sourceH = Math.round(boxRect.height * scaleY);
+        if (sourceW < 10 || sourceH < 10) {
+            alert('裁切区域太小，请选择更大的区域！');
+            return;
+        }
+        // 使用离屏 canvas 裁切
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = sourceW;
+        tempCanvas.height = sourceH;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(
+            this.originalImage,
+            sourceX, sourceY, sourceW, sourceH,
+            0, 0, sourceW, sourceH
+        );
+        // 将裁切结果转换为新的 Image 对象
+        const croppedDataURL = tempCanvas.toDataURL('image/png');
+        const newImg = new Image();
+        newImg.onload = () => {
+            this.originalImage = newImg;
+            this.originalWidth = newImg.width;
+            this.originalHeight = newImg.height;
+            this.isCropped = true;
+            this.isCropMode = false;
+            this.exitCropMode();
+            this.drawOriginalImage();
+            this.resetInputs();
+            this.updatePixelatedImage();
+        };
+        newImg.src = croppedDataURL;
+    }
+
+    resetToFullImage() {
+        if (!this.fullOriginalImage) return;
+        this.originalImage = this.fullOriginalImage;
+        this.originalWidth = this.fullOriginalWidth;
+        this.originalHeight = this.fullOriginalHeight;
+        this.isCropped = false;
+        this.isCropMode = false;
+        this.exitCropMode();
+        this.drawOriginalImage();
+        this.resetInputs();
+        this.updatePixelatedImage();
     }
 
     showWorkspace() {
@@ -1479,26 +1770,40 @@ class PixelArtGenerator {
         
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
             
             // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = summaryMargin + coordSize - cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, summaryMargin + coordSize / 2);
             }
             
             // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize - cellSize;
+                const boxY = summaryMargin + coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, coordSize / 2, summaryMargin + coordSize + y * cellSize + cellSize / 2);
             }
             
             // 右边编号
             const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize + perlerWidth * cellSize;
+                const boxY = summaryMargin + coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, rightCoordX, summaryMargin + coordSize + y * cellSize + cellSize / 2);
             }
             
             // 下面编号
             const bottomCoordY = summaryMargin + coordSize + perlerHeight * cellSize + coordSize / 2;
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = summaryMargin + coordSize + perlerHeight * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }
@@ -1704,26 +2009,40 @@ class PixelArtGenerator {
         
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
             
             // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = coordSize - cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
             }
             
             // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize - cellSize;
+                const boxY = coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
             }
             
             // 右边编号
             const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize + perlerWidth * cellSize;
+                const boxY = coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
             }
             
             // 下面编号
             const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = coordSize + perlerHeight * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }
@@ -2112,26 +2431,40 @@ class PixelArtGenerator {
         
         if (showCoords) {
             ctx.fillStyle = coordNumColor;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
             
             // 上面编号
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = coordSize - cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, coordSize / 2);
             }
             
             // 左边编号
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize - cellSize;
+                const boxY = coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, coordSize / 2, coordSize + y * cellSize + cellSize / 2);
             }
             
             // 右边编号
             const rightCoordX = coordSize + perlerWidth * cellSize + coordSize / 2;
             for (let y = 0; y < perlerHeight; y++) {
+                const boxX = coordSize + perlerWidth * cellSize;
+                const boxY = coordSize + y * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(y + 1, rightCoordX, coordSize + y * cellSize + cellSize / 2);
             }
             
             // 下面编号
             const bottomCoordY = coordSize + perlerHeight * cellSize + coordSize / 2;
             for (let x = 0; x < perlerWidth; x++) {
+                const boxX = coordSize + x * cellSize;
+                const boxY = coordSize + perlerHeight * cellSize;
+                ctx.strokeRect(boxX, boxY, cellSize, cellSize);
                 ctx.fillText(x + 1, coordSize + x * cellSize + cellSize / 2, bottomCoordY);
             }
         }

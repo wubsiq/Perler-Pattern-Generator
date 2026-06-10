@@ -77,7 +77,11 @@ class FocusModeRenderer {
                 if (!color.isTransparent) {
                     const key = color.name;
                     if (!colorMap.has(key)) {
-                        colorMap.set(key, { name: color.name, rgb: color.rgb, count: 0 });
+                        colorMap.set(key, {
+                            name: color.name,
+                            rgb: [Math.round(color.rgb[0]), Math.round(color.rgb[1]), Math.round(color.rgb[2])],
+                            count: 0
+                        });
                     }
                     colorMap.get(key).count++;
                 }
@@ -351,7 +355,11 @@ class FocusModeRenderer {
         }
 
         const items = this.colorStats.map((color) => {
-            const rgb = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+            const r = Math.round(color.rgb[0]);
+            const g = Math.round(color.rgb[1]);
+            const b = Math.round(color.rgb[2]);
+            const rgb = `rgb(${r}, ${g}, ${b})`;
+            const borderRgb = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
             const isSelected = this.highlightedColorName === color.name;
             const isLocked = this.lockedColors.has(color.name);
             let borderStyle = '2px solid transparent';
@@ -384,10 +392,10 @@ class FocusModeRenderer {
                     <div style="
                         width: 28px;
                         height: 28px;
-                        border-radius: 50%;
+                        border-radius: 6px;
                         background: ${rgb};
-                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-                        border: 2px solid rgba(255, 255, 255, 0.3);
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+                        border: 1px solid ${borderRgb};
                         pointer-events: none;
                         position: relative;
                     ">${isLocked ? '<div style=\"position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:#34c759;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.4);\">✓</div>' : ''}</div>
@@ -675,14 +683,17 @@ class FocusModeRenderer {
                 if (color.isTransparent) {
                     this.ctx.fillStyle = '#16213e';
                 } else {
+                    const cr = Math.round(color.rgb[0]);
+                    const cg = Math.round(color.rgb[1]);
+                    const cb = Math.round(color.rgb[2]);
                     if (this.showSingleHighlight && this.highlightedColorName) {
                         if (color.name === this.highlightedColorName) {
-                            this.ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                            this.ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
                         } else {
-                            this.ctx.fillStyle = `rgba(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]}, 0.15)`;
+                            this.ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, 0.15)`;
                         }
                     } else {
-                        this.ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                        this.ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
                     }
                 }
 
@@ -755,7 +766,7 @@ class FocusModeRenderer {
                 this.ctx.stroke();
             }
 
-            this.ctx.strokeStyle = this.hexToRgba(this.gridColor, 0.4);
+            this.ctx.strokeStyle = this.hexToRgba(this.gridColor, 0.7);
             this.ctx.lineWidth = 2;
             for (let i = 0; i <= this.width; i += 10) {
                 const px = centerX + coordSize + i * this.cellSize;
@@ -778,9 +789,16 @@ class FocusModeRenderer {
             this.ctx.font = `${fontSizeCoord}px sans-serif`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 1;
             this.ctx.fillStyle = '#ffffff';
 
             for (let x = 0; x < this.width; x++) {
+                const boxX = centerX + coordSize + x * this.cellSize;
+                const boxYTop = centerY + coordSize - this.cellSize;
+                const boxYBottom = centerY + coordSize + chartHeight;
+                this.ctx.strokeRect(boxX, boxYTop, this.cellSize, this.cellSize);
+                this.ctx.strokeRect(boxX, boxYBottom, this.cellSize, this.cellSize);
                 if ((x + 1) % 5 === 0 || x === 0) {
                     const px = centerX + coordSize + x * this.cellSize + this.cellSize / 2;
                     this.ctx.fillText(x + 1, px, centerY + coordSize / 2);
@@ -789,6 +807,11 @@ class FocusModeRenderer {
             }
 
             for (let y = 0; y < this.height; y++) {
+                const boxXLeft = centerX + coordSize - this.cellSize;
+                const boxXRight = centerX + coordSize + chartWidth;
+                const boxY = centerY + coordSize + y * this.cellSize;
+                this.ctx.strokeRect(boxXLeft, boxY, this.cellSize, this.cellSize);
+                this.ctx.strokeRect(boxXRight, boxY, this.cellSize, this.cellSize);
                 if ((y + 1) % 5 === 0 || y === 0) {
                     const py = centerY + coordSize + y * this.cellSize + this.cellSize / 2;
                     this.ctx.fillText(y + 1, centerX + coordSize / 2, py);

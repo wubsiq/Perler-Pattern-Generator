@@ -103,8 +103,20 @@
                 <div class="preview-left">
                     <div class="preview-panel">
                         <h3 data-i18n="originalPreview">原图预览</h3>
-                        <div class="canvas-wrapper">
+                        <div class="canvas-wrapper" style="position: relative;">
                             <canvas id="originalCanvas"></canvas>
+                            <div id="cropOverlay" class="crop-overlay" style="display: none;">
+                                <div id="cropBox" class="crop-box">
+                                    <div class="crop-handle crop-handle-nw" data-handle="nw"></div>
+                                    <div class="crop-handle crop-handle-ne" data-handle="ne"></div>
+                                    <div class="crop-handle crop-handle-sw" data-handle="sw"></div>
+                                    <div class="crop-handle crop-handle-se" data-handle="se"></div>
+                                    <div class="crop-handle crop-handle-n" data-handle="n"></div>
+                                    <div class="crop-handle crop-handle-s" data-handle="s"></div>
+                                    <div class="crop-handle crop-handle-w" data-handle="w"></div>
+                                    <div class="crop-handle crop-handle-e" data-handle="e"></div>
+                                </div>
+                            </div>
                         </div>
                         <p id="originalSize" class="size-info"></p>
                     </div>
@@ -140,6 +152,15 @@
                                 <input type="checkbox" id="keepRatioCheckbox" checked>
                                 <span data-i18n="keepRatio">保持宽高比</span>
                             </label>
+                        </div>
+                        <div class="control-group">
+                            <label>图片裁切</label>
+                            <div class="crop-buttons">
+                                <button id="cropBtn" class="btn crop-btn">✂️ 裁切图片</button>
+                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;">↺ 重置图片</button>
+                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;">✓ 确认裁切</button>
+                                <button id="cancelCropBtn" class="btn crop-btn cancel" style="display: none;">✕ 取消</button>
+                            </div>
                         </div>
                     </div>
                 </div>
