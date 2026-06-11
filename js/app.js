@@ -193,7 +193,6 @@ class PixelArtGenerator {
         this.currentColorValue = document.getElementById('currentColorValue');
         this.customEditBrushSize = document.getElementById('customEditBrushSize');
         this.brushSizeValue = document.getElementById('brushSizeValue');
-        this.showCustomEditGrid = document.getElementById('showCustomEditGrid');
         this.applyCustomEditBtn = document.getElementById('applyCustomEditBtn');
         this.undoCustomEditBtn = document.getElementById('undoCustomEditBtn');
         this.eraserColor = document.getElementById('eraserColor');
@@ -673,23 +672,24 @@ class PixelArtGenerator {
         
         this.customEditColor.addEventListener('input', () => {
             this.currentColorValue.textContent = this.customEditColor.value;
+            this.refreshCustomEditBrushCursor();
         });
         
         this.eraserColor.addEventListener('input', () => {
             this.eraserColorValue.textContent = this.eraserColor.value;
+            this.refreshCustomEditBrushCursor();
         });
         
         this.razorBgColor.addEventListener('input', () => {
             this.razorBgColorValue.textContent = this.razorBgColor.value;
             this.drawCustomEditCanvas();
+            this.refreshCustomEditBrushCursor();
         });
         
         this.customEditBrushSize.addEventListener('input', () => {
             this.brushSizeValue.textContent = this.customEditBrushSize.value;
-            this.updateCustomEditBrushCursorSize();
+            this.refreshCustomEditBrushCursor();
         });
-        
-        this.showCustomEditGrid.addEventListener('change', () => this.drawCustomEditCanvas());
         
         this.applyCustomEditBtn.addEventListener('click', () => this.applyCustomEdit());
         this.undoCustomEditBtn.addEventListener('click', () => this.undoCustomEdit());
@@ -3341,6 +3341,7 @@ class PixelArtGenerator {
         
         canvas.addEventListener('mouseenter', (e) => {
             this.customEditBrushCursor.style.display = 'block';
+            this.lastCustomEditMouseEvent = e;
             this.updateCustomEditBrushCursorSize();
             this.updateCustomEditBrushCursorPosition(e);
         });
@@ -3348,16 +3349,27 @@ class PixelArtGenerator {
         canvas.addEventListener('mouseleave', (e) => {
             this.handleCustomEditMouseUp();
             this.customEditBrushCursor.style.display = 'none';
+            this.lastCustomEditMouseEvent = null;
         });
         
-        canvas.addEventListener('mousedown', (e) => this.handleCustomEditMouseDown(e));
+        canvas.addEventListener('mousedown', (e) => {
+            this.lastCustomEditMouseEvent = e;
+            this.handleCustomEditMouseDown(e);
+        });
         
         canvas.addEventListener('mousemove', (e) => {
+            this.lastCustomEditMouseEvent = e;
             this.updateCustomEditBrushCursorPosition(e);
             this.handleCustomEditMouseMove(e);
         });
         
         canvas.addEventListener('mouseup', () => this.handleCustomEditMouseUp());
+    }
+    
+    refreshCustomEditBrushCursor() {
+        if (this.customEditBrushCursor && this.customEditBrushCursor.style.display === 'block' && this.lastCustomEditMouseEvent) {
+            this.updateCustomEditBrushCursorPosition(this.lastCustomEditMouseEvent);
+        }
     }
 
     getPerlerSignature() {
@@ -3409,7 +3421,6 @@ class PixelArtGenerator {
         if (!this.customEditData) return;
         
         const cellSize = parseInt(this.beadSizeSlider.value);
-        const showGrid = this.showCustomEditGrid.checked;
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         
         this.customEditCanvas.width = coordSize * 2 + this.perlerWidth * cellSize;
@@ -3465,27 +3476,7 @@ class PixelArtGenerator {
                 } else {
                     ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                 }
-                ctx.fillRect(coordSize + x * cellSize, coordSize + y * cellSize, cellSize - 1, cellSize - 1);
-            }
-        }
-        
-        if (showGrid) {
-            const lineWidth = parseFloat(this.gridLineWidth.value);
-            if (lineWidth > 0) {
-                ctx.strokeStyle = '#ddd';
-                ctx.lineWidth = lineWidth;
-                for (let x = displayLeft; x <= displayRight; x++) {
-                    ctx.beginPath();
-                    ctx.moveTo(coordSize + x * cellSize, coordSize + displayTop * cellSize);
-                    ctx.lineTo(coordSize + x * cellSize, coordSize + displayBottom * cellSize);
-                    ctx.stroke();
-                }
-                for (let y = displayTop; y <= displayBottom; y++) {
-                    ctx.beginPath();
-                    ctx.moveTo(coordSize + displayLeft * cellSize, coordSize + y * cellSize);
-                    ctx.lineTo(coordSize + displayRight * cellSize, coordSize + y * cellSize);
-                    ctx.stroke();
-                }
+                ctx.fillRect(coordSize + x * cellSize, coordSize + y * cellSize, cellSize, cellSize);
             }
         }
         
@@ -4367,13 +4358,24 @@ class PixelArtGenerator {
         this.customEditBrushCursor.style.height = size + 'px';
     }
     
-    // 更新自定义编辑画笔光标位置
+    // 更新自定义编辑画笔光标位置（吸附到格子）
     updateCustomEditBrushCursorPosition(e) {
         if (!this.customEditBrushCursor) return;
         
         const rect = this.customEditCanvas.getBoundingClientRect();
         const clientX = e.clientX || (e.touches && e.touches[0].clientX);
         const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const cellSize = parseInt(this.beadSizeSlider.value);
+        const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
+        
+        // 计算当前鼠标所在的格子坐标（与 getCustomEditCell 计算方式完全一致）
+        const pixelX = clientX - rect.left - coordSize;
+        const pixelY = clientY - rect.top - coordSize;
+        const cellX = Math.floor(pixelX / cellSize);
+        const cellY = Math.floor(pixelY / cellSize);
+        
+        // 检查是否在有效画布范围内（包括透明区域，只要是合法格子就可以）
+        const isInCanvas = cellX >= 0 && cellX < this.perlerWidth && cellY >= 0 && cellY < this.perlerHeight;
         
         // 连锁剃刀固定为1个格子
         let brushSize;
@@ -4382,14 +4384,67 @@ class PixelArtGenerator {
         } else {
             brushSize = parseInt(this.customEditBrushSize.value);
         }
+        const halfBrush = Math.floor(brushSize / 2);
         
-        const size = brushSize * this.customEditCellSize;
+        // 吸附到左上角的格子边界
+        const snapLeft = coordSize + (cellX - halfBrush) * cellSize;
+        const snapTop = coordSize + (cellY - halfBrush) * cellSize;
+        const snapSize = brushSize * cellSize;
         
-        const x = clientX - rect.left - size / 2;
-        const y = clientY - rect.top - size / 2;
+        // 更新光标位置（吸附到格子）
+        this.customEditBrushCursor.style.left = snapLeft + 'px';
+        this.customEditBrushCursor.style.top = snapTop + 'px';
+        this.customEditBrushCursor.style.width = snapSize + 'px';
+        this.customEditBrushCursor.style.height = snapSize + 'px';
         
-        this.customEditBrushCursor.style.left = x + 'px';
-        this.customEditBrushCursor.style.top = y + 'px';
+        // 根据工具类型更新光标颜色
+        const cursor = this.customEditBrushCursor;
+        cursor.classList.remove('brush-cursor-brush', 'brush-cursor-eraser', 'brush-cursor-razor', 'brush-cursor-picker', 'brush-cursor-fill', 'brush-cursor-invalid');
+        
+        // 画布边界工具不显示画笔光标
+        if (this.currentEditTool === 'canvasBounds') {
+            cursor.style.display = 'none';
+            return;
+        }
+        
+        if (!isInCanvas) {
+            cursor.classList.add('brush-cursor-invalid');
+            cursor.style.borderColor = 'rgba(128, 128, 128, 0.5)';
+            cursor.style.backgroundColor = 'rgba(128, 128, 128, 0.1)';
+            return;
+        }
+        
+        switch (this.currentEditTool) {
+            case 'brush':
+                cursor.classList.add('brush-cursor-brush');
+                cursor.style.borderColor = this.customEditColor.value;
+                cursor.style.backgroundColor = this.customEditColor.value + '33';
+                break;
+            case 'eraser':
+                cursor.classList.add('brush-cursor-eraser');
+                cursor.style.borderColor = this.eraserColor.value;
+                cursor.style.backgroundColor = this.eraserColor.value + '33';
+                break;
+            case 'razor':
+            case 'chainRazor':
+                cursor.classList.add('brush-cursor-razor');
+                cursor.style.borderColor = this.razorBgColor.value;
+                cursor.style.backgroundColor = this.razorBgColor.value + '33';
+                break;
+            case 'picker':
+                cursor.classList.add('brush-cursor-picker');
+                cursor.style.borderColor = '#333333';
+                cursor.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                break;
+            case 'fill':
+                cursor.classList.add('brush-cursor-fill');
+                cursor.style.borderColor = this.customEditColor.value;
+                cursor.style.backgroundColor = this.customEditColor.value + '22';
+                break;
+            default:
+                cursor.style.borderColor = 'rgba(0, 123, 255, 0.8)';
+                cursor.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+        }
     }
     
     // ==================== 画布边界调整相关方法 ====================
