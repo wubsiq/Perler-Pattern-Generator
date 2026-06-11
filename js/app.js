@@ -305,6 +305,14 @@ class PixelArtGenerator {
         this.canvasBoundsHandles = document.getElementById('canvasBoundsHandles');
         this.resetCanvasBoundsBtn = document.getElementById('resetCanvasBoundsBtn');
         
+        // 描边工具相关
+        this.strokeControls = document.getElementById('strokeControls');
+        this.strokeColor = document.getElementById('strokeColor');
+        this.strokeColorValue = document.getElementById('strokeColorValue');
+        this.strokeThickness = document.getElementById('strokeThickness');
+        this.strokeThicknessValue = document.getElementById('strokeThicknessValue');
+        this.executeStrokeBtn = document.getElementById('executeStrokeBtn');
+        
         this.canvasBounds = null;
         this.isDraggingCanvasBounds = false;
         this.draggingHandle = null;
@@ -665,6 +673,14 @@ class PixelArtGenerator {
                     this.canvasBoundsHandles.style.display = 'none';
                 }
                 
+                // 显示/隐藏描边控制
+                if (this.currentEditTool === 'stroke') {
+                    this.strokeControls.style.display = 'block';
+                    this.customEditBrushCursor.style.display = 'none';
+                } else {
+                    this.strokeControls.style.display = 'none';
+                }
+                
                 // 更新画笔光标
                 this.updateCustomEditBrushCursorSize();
             });
@@ -866,6 +882,22 @@ class PixelArtGenerator {
         
         this.resetCanvasBoundsBtn.addEventListener('click', () => {
             this.resetCanvasBounds();
+        });
+        
+        // 描边工具：颜色和厚度更新
+        this.strokeColor.addEventListener('input', () => {
+            this.strokeColorValue.textContent = this.strokeColor.value;
+        });
+        this.strokeThickness.addEventListener('input', () => {
+            this.strokeThicknessValue.textContent = this.strokeThickness.value;
+        });
+        
+        // 描边工具：执行描边
+        this.executeStrokeBtn.addEventListener('click', () => {
+            const type = document.querySelector('input[name="strokeType"]:checked').value;
+            const thickness = parseInt(this.strokeThickness.value);
+            const colorHex = this.strokeColor.value;
+            this.applyStroke(type, thickness, colorHex);
         });
         
         // 初始化画布边界拖拽事件
@@ -3592,6 +3624,13 @@ class PixelArtGenerator {
         } else if (this.currentEditTool === 'fill') {
             console.log('[handleCustomEditMouseDown] 调用 fill 工具（不设置 isDrawing）');
             this.applyEditToCell(x, y);
+        } else if (
+            this.currentEditTool === 'colorConvert' ||
+            this.currentEditTool === 'canvasBounds' ||
+            this.currentEditTool === 'stroke'
+        ) {
+            // 非交互式工具：点击画布不执行任何绘制
+            return;
         } else {
             console.log('[handleCustomEditMouseDown] 调用 applyEditToCell');
             this.isDrawing = true;
@@ -3945,6 +3984,129 @@ class PixelArtGenerator {
             alert(`成功转换 ${convertedCount} 个豆粒！`);
         } else {
             alert('没有找到匹配的颜色！');
+        }
+    }
+    
+    // 描边工具：外描边/内描边
+    // type: 'outer' | 'inner'
+    //   outer = 把透明且邻近有实体的格子涂成描边色（向外扩散）
+    //   inner = 把实体且邻近有透明的格子涂成描边色（向内侵蚀）
+    // thickness: 1-10，循环执行 N 次以产生扩散效果
+    // colorHex: '#xxxxxx'，用户选择的颜色，会自动映射到当前色板中最接近的颜色
+    applyStroke(type, thickness, colorHex) {
+        if (!this.customEditData) {
+            alert('请先加载图像或创建新画布！');
+            return;
+        }
+        if (thickness < 1) thickness = 1;
+        if (thickness > 10) thickness = 10;
+        
+        const width = this.perlerWidth;
+        const height = this.perlerHeight;
+        const [r, g, b] = this.hexToRgb(colorHex);
+        
+        // 获取当前色板，把用户选择的颜色映射到色板中最接近的颜色
+        const colorSetName = this.colorSetSelect.value;
+        const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
+        
+        const closestColor = findClosestColor([r, g, b], colorSet, mappingMethod);
+        
+        const strokeColorObj = {
+            name: closestColor.name,
+            rgb: closestColor.rgb,
+            isTransparent: false,
+            displayName: closestColor.name
+        };
+        
+        // 保存历史记录（在修改之前保存原始数据）
+        this.saveCustomEditHistory();
+        
+        let totalChanged = 0;
+        
+        // 8 邻居：上、下、左、右 + 四个对角
+        const neighbors = [
+            [-1, -1], [0, -1], [1, -1],
+            [-1, 0],           [1, 0],
+            [-1, 1],  [0, 1],  [1, 1]
+        ];
+        
+        // 循环 N 次实现"扩散"效果
+        // 每次只能用当前轮次开始时的状态来判断边缘，所以用临时数组
+        for (let round = 0; round < thickness; round++) {
+            // 标记本轮需要修改的格子（不能边遍历边修改，会影响判断）
+            const toChange = [];
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const current = this.customEditData[y][x];
+                    const isTransparentCurrent = !current || current.isTransparent;
+                    
+                    // 判断当前格子是否为"目标类型"的边缘
+                    let isEdge = false;
+                    
+                    if (type === 'outer') {
+                        // 外描边：当前是透明的 + 8邻居中至少有一个非透明 → 涂成描边色
+                        if (!isTransparentCurrent) continue; // 只处理透明格子
+                        
+                        for (const [dx, dy] of neighbors) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                const nb = this.customEditData[ny][nx];
+                                if (nb && !nb.isTransparent) {
+                                    isEdge = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // 内描边：当前是非透明的 + 8邻居中至少有一个透明 → 涂成描边色
+                        if (isTransparentCurrent) continue; // 只处理实体格子
+                        
+                        // 已经是描边色本身的格子，不参与判断（避免持续扩散）
+                        if (current.name === strokeColorObj.name) continue;
+                        
+                        for (const [dx, dy] of neighbors) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                                // 超出边界 → 视为透明（边缘格子也算边缘）
+                                isEdge = true;
+                                break;
+                            }
+                            const nb = this.customEditData[ny][nx];
+                            if (!nb || nb.isTransparent) {
+                                isEdge = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (isEdge) {
+                        toChange.push({ x, y });
+                    }
+                }
+            }
+            
+            // 本轮没有任何可修改的格子 → 提前结束
+            if (toChange.length === 0) break;
+            
+            // 批量修改
+            for (const pos of toChange) {
+                this.customEditData[pos.y][pos.x] = strokeColorObj;
+                totalChanged++;
+            }
+        }
+        
+        // 重绘画布
+        this.drawCustomEditCanvas();
+        
+        if (totalChanged > 0) {
+            const mappedHex = this.rgbToHex(closestColor.rgb[0], closestColor.rgb[1], closestColor.rgb[2]);
+            alert(`描边完成！\n选择颜色: ${colorHex.toUpperCase()}\n已映射到: ${closestColor.name} (${mappedHex.toUpperCase()})\n共修改 ${totalChanged} 个豆粒。`);
+        } else {
+            alert('没有可修改的格子，可能图像中没有足够的边缘。');
         }
     }
 

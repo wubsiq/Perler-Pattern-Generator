@@ -593,6 +593,7 @@
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
                                 <button class="edit-tool-btn" data-tool="colorConvert">🔄 颜色转换</button>
                                 <button class="edit-tool-btn" data-tool="canvasBounds">📐 画布边界</button>
+                                <button class="edit-tool-btn" data-tool="stroke">✏️ 描边</button>
                             </div>
                         </div>
                         <div class="control-group">
@@ -718,6 +719,36 @@
                                 当前显示尺寸：<span id="canvasBoundsCurrentSize">64 × 64</span>
                             </div>
                             <button id="resetCanvasBoundsBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">重置边界</button>
+                        </div>
+                        <div class="control-group" id="strokeControls" style="display: none;">
+                            <label>✏️ 描边设置：</label>
+                            <div style="margin-top: 10px;">
+                                <div style="margin-bottom: 12px;">
+                                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">描边类型：</label>
+                                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                            <input type="radio" name="strokeType" value="outer" checked>
+                                            <span>外描边（向外扩散）</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                            <input type="radio" name="strokeType" value="inner">
+                                            <span>内描边（向内侵蚀）</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">描边厚度：<span id="strokeThicknessValue">1</span> 格</label>
+                                    <input type="range" id="strokeThickness" min="1" max="10" step="1" value="1" style="width: 100%;">
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">描边颜色：</label>
+                                    <div class="current-color-wrapper">
+                                        <input type="color" id="strokeColor" value="#000000">
+                                        <span id="strokeColorValue">#000000</span>
+                                    </div>
+                                </div>
+                                <button id="executeStrokeBtn" class="btn btn-primary" style="width: 100%; margin-top: 5px;">▶ 执行描边</button>
+                            </div>
                         </div>
                         <div class="control-group" id="snapshotsList" style="display: none;">
                             <label>保存的快照：</label>
