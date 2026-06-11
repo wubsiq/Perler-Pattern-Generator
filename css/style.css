@@ -135,12 +135,12 @@ header h1 {
 
 @media (max-width: 768px) {
     header {
-        padding: 20px;
+        padding: 5px;
     }
     
     .header-content {
         flex-direction: column;
-        gap: 15px;
+        gap: 5px;
     }
     
     .header-title {
@@ -154,11 +154,11 @@ header h1 {
     .nav-bar {
         flex-wrap: wrap;
         justify-content: center;
-        gap: 10px;
+        gap: 5px;
     }
     
     .nav-btn {
-        padding: 8px 16px;
+        padding: 4px 8px;
         font-size: 0.9em;
     }
     
@@ -651,7 +651,7 @@ canvas {
 @media (max-width: 768px) {
     .flex-row {
         flex-direction: column;
-        gap: 15px;
+        gap: 5px;
     }
     
     .flex-item.checkbox-item,
