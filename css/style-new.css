@@ -121,6 +121,8 @@ header::before {
     font-size: 1em;
     font-weight: 600;
     transition: all 0.3s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .nav-btn:hover {
@@ -163,6 +165,8 @@ header h1 {
     font-size: 14px;
     font-weight: 500;
     transition: all 0.3s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .lang-btn:hover {
@@ -239,6 +243,12 @@ header h1 {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.upload-area > * {
+    pointer-events: none;
 }
 
 .upload-area:hover {
@@ -289,6 +299,8 @@ header h1 {
     font-size: 1em;
     font-weight: 600;
     transition: all 0.3s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .mode-btn:hover {
@@ -543,6 +555,8 @@ input[type="range"]::-moz-range-thumb {
     margin-right: 6px;
     transition: border-color 0.3s;
     background: #ffffff;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .size-inputs input[type="number"]:focus {
@@ -569,6 +583,8 @@ input[type="range"]::-moz-range-thumb {
     font-size: 1em;
     transition: border-color 0.3s;
     background: #ffffff;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .color-count-inputs input[type="number"]:focus {
@@ -606,6 +622,8 @@ input[type="range"]::-moz-range-thumb {
     gap: 8px;
     cursor: pointer;
     font-weight: normal;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -671,6 +689,8 @@ input[type="range"]::-moz-range-thumb {
     transition: all 0.3s;
     background: #ffffff;
     color: #000000;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-primary {
@@ -724,6 +744,8 @@ select {
     cursor: pointer;
     transition: border-color 0.3s;
     color: #000000;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 select:focus {
@@ -740,6 +762,8 @@ input[type="color"] {
     cursor: pointer;
     padding: 2px;
     transition: border-color 0.3s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 input[type="color"]:hover {
@@ -967,6 +991,8 @@ input[type="color"]:focus {
     transition: all 0.2s;
     min-height: 44px;
     min-width: 80px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .blank-size-btn:hover {
@@ -1086,6 +1112,7 @@ input[type="color"]:focus {
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -1626,6 +1653,8 @@ input[type="color"]:focus {
     border: 2px solid #000000;
     transition: all 0.2s ease;
     z-index: 9999;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .snapshot-float-btn:hover {
@@ -2176,6 +2205,8 @@ input[type="color"]:focus {
         min-height: 44px;
         font-size: 16px;
         -webkit-appearance: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 
     input[type="color"] {
@@ -2185,9 +2216,11 @@ input[type="color"]:focus {
 
     select {
         min-height: 48px;
+        font-size: 16px;
         padding: 10px 12px;
-        font-size: 1em;
         -webkit-appearance: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .checkbox-label {
@@ -2195,6 +2228,8 @@ input[type="color"]:focus {
         display: flex;
         align-items: center;
         padding: 8px 0;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .checkbox-label input[type="checkbox"] {
