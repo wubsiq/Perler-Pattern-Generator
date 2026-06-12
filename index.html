@@ -572,6 +572,13 @@
                                 <option value="round-square" data-i18n-value="beadShapeRoundSquare">圆角正方形</option>
                             </select>
                         </div>
+                        <div class="control-group">
+                            <label><span data-i18n="transparentCellColor">透明格颜色：</span></label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="transparentCellColor" value="#ffffff" style="width: 60px; height: 40px;">
+                                <span id="transparentCellColorValue" style="font-size: 0.9em; color: #666;">#ffffff</span>
+                            </div>
+                        </div>
                         <div class="control-group flex-row">
                             <div class="flex-item slider-half">
                                 <label>
@@ -775,10 +782,10 @@
                             <div class="flex-item">
                                 <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit" style="width: 100%;">↩ 撤销</button>
                             </div>
-                            <div class="flex-item">
+                            <div class="flex-item" style="display: none;">
                                 <button id="saveSnapshotBtn" class="btn btn-secondary" data-i18n="saveSnapshot" style="width: 100%;">💾 保存快照</button>
                             </div>
-                            <div class="flex-item">
+                            <div class="flex-item" style="display: none;">
                                 <button id="exportPixelImageBtn" class="btn btn-primary" data-i18n="exportPixelImage" style="width: 100%;">📥 导出像素图</button>
                             </div>
                         </div>

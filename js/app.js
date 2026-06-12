@@ -125,6 +125,8 @@ class PixelArtGenerator {
         this.chartStyle = document.getElementById('chartStyle');
         this.legendPosition = document.getElementById('legendPosition');
         this.beadShape = document.getElementById('beadShape');
+        this.transparentCellColor = document.getElementById('transparentCellColor');
+        this.transparentCellColorValue = document.getElementById('transparentCellColorValue');
         this.beadSizeSlider = document.getElementById('beadSizeSlider');
         this.beadSizeValue = document.getElementById('beadSizeValue');
         this.exportBeadSizeSlider = document.getElementById('exportBeadSizeSlider');
@@ -486,6 +488,14 @@ class PixelArtGenerator {
         });
         this.legendPosition.addEventListener('change', () => this.refreshLegendPosition());
         this.beadShape.addEventListener('change', () => {
+            if (Object.keys(this.colorCounts).length > 0) {
+                this.refreshPerlerChartDisplay();
+            }
+        });
+        this.transparentCellColor.addEventListener('input', () => {
+            if (this.transparentCellColorValue) {
+                this.transparentCellColorValue.textContent = this.transparentCellColor.value;
+            }
             if (Object.keys(this.colorCounts).length > 0) {
                 this.refreshPerlerChartDisplay();
             }
@@ -1886,13 +1896,14 @@ class PixelArtGenerator {
     drawPerlerChartToCanvas(ctx, perlerColors, perlerWidth, perlerHeight, cellSize, colorSetName) {
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
-        const summaryMargin = cellSize * 2 + 20; // 给摘要留出额外空间
+        const summaryMargin = cellSize * 2 + 20;
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
         const showGrid = this.showGridLines.checked;
         const showCoords = this.showCoordNumbers.checked;
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
+        const transparentColor = (this.transparentCellColor && this.transparentCellColor.value) || '#ffffff';
         
         const canvasWidth = coordSize * 2 + perlerWidth * cellSize;
         // 增加coordSize/2的空间，确保下面的编号和大格子线能够完全显示
@@ -2013,7 +2024,7 @@ class PixelArtGenerator {
                 const py = summaryMargin + coordSize + y * cellSize;
                 
                 if (color.isTransparent) {
-                    ctx.fillStyle = '#ffffff';
+                    ctx.fillStyle = transparentColor;
                     if (beadShape === 'circle' || beadShape === 'ring') {
                         ctx.beginPath();
                         ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
@@ -2147,6 +2158,7 @@ class PixelArtGenerator {
         const showCoords = this.showCoordNumbers.checked;
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
+        const transparentColor = (this.transparentCellColor && this.transparentCellColor.value) || '#ffffff';
         const ctx = this.perlerCtx;
         
         const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
@@ -2269,7 +2281,7 @@ class PixelArtGenerator {
                     const py = coordSize + y * cellSize;
                     
                     if (color.isTransparent) {
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = transparentColor;
                         if (beadShape === 'circle' || beadShape === 'ring') {
                             ctx.beginPath();
                             ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
@@ -2545,6 +2557,7 @@ class PixelArtGenerator {
         const showCoords = this.showCoordNumbers.checked;
         const coordColor = this.coordLineColor.value;
         const coordNumColor = this.coordNumberColor.value;
+        const transparentColor = (this.transparentCellColor && this.transparentCellColor.value) || '#ffffff';
         
         const newCanvasWidth = coordSize * 2 + perlerWidth * cellSize;
         const newCanvasHeight = coordSize * 2 + perlerHeight * cellSize + footerSize;
@@ -2658,7 +2671,7 @@ class PixelArtGenerator {
                 const py = coordSize + y * cellSize;
                 
                 if (color.isTransparent) {
-                    ctx.fillStyle = '#ffffff';
+                    ctx.fillStyle = transparentColor;
                     if (beadShape === 'circle' || beadShape === 'ring') {
                         ctx.beginPath();
                         ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);

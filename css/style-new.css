@@ -632,6 +632,13 @@ input[type="range"]::-moz-range-thumb {
     accent-color: #000000;
 }
 
+/* 隐藏旧版快照功能（已被新的操作历史面板替代） */
+#saveSnapshotBtn,
+#exportPixelImageBtn,
+#snapshotsList {
+    display: none !important;
+}
+
 /* 优化布局：行内分组 */
 .row-group {
     display: flex;
