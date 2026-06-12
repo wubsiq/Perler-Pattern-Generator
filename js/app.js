@@ -30,6 +30,7 @@ class PixelArtGenerator {
         this.originalImageData = null; // 缓存原图 imageData
         this.carveScale = 0.5; // 雕刻时的缩放比例
         this.showCarveGrid = true; // 是否显示分裂网格
+        this.isBlankCanvasMode = false; // 是否在空白画布模式
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -46,6 +47,19 @@ class PixelArtGenerator {
 
     initElements() {
         this.uploadArea = document.getElementById('uploadArea');
+        this.blankCanvasArea = document.getElementById('blankCanvasArea');
+        this.blankCanvasModal = document.getElementById('blankCanvasModal');
+        this.blankCanvasWidth = document.getElementById('blankCanvasWidth');
+        this.blankCanvasHeight = document.getElementById('blankCanvasHeight');
+        this.closeBlankCanvasModalBtn = document.getElementById('closeBlankCanvasModalBtn');
+        this.cancelBlankCanvasBtn = document.getElementById('cancelBlankCanvasBtn');
+        this.confirmBlankCanvasBtn = document.getElementById('confirmBlankCanvasBtn');
+
+        this.originalSection = document.getElementById('originalSection');
+        this.pixelatedSection = document.getElementById('pixelatedSection');
+        this.modeSwitch = document.getElementById('modeSwitch');
+        this.customEditSection = document.getElementById('customEditSection');
+
         this.fileInput = document.getElementById('fileInput');
         this.uploadSection = document.getElementById('uploadSection');
         this.showcaseSection = document.getElementById('showcaseSection');
@@ -259,7 +273,9 @@ class PixelArtGenerator {
         this.perlerCanvasDisplayWidth = 0;
         this.perlerCanvasDisplayHeight = 0;
         
-        this.colorConvertControls = document.getElementById('colorConvertControls');
+        this.colorConvertPanel = document.getElementById('colorConvertPanel');
+        this.colorConvertPanelHeader = document.getElementById('colorConvertPanelHeader');
+        this.closeColorConvertBtn = document.getElementById('closeColorConvertBtn');
         this.colorConvertSourceColor = document.getElementById('colorConvertSourceColor');
         this.colorConvertSourceColorValue = document.getElementById('colorConvertSourceColorValue');
         this.colorConvertTargetColor = document.getElementById('colorConvertTargetColor');
@@ -267,8 +283,9 @@ class PixelArtGenerator {
         this.pickSourceColorBtn = document.getElementById('pickSourceColorBtn');
         this.pickTargetColorBtn = document.getElementById('pickTargetColorBtn');
         this.executeColorConvertBtn = document.getElementById('executeColorConvertBtn');
-        
+
         this.colorConvertPickMode = null;
+        this.colorConvertPanelDragState = null;
         
         this.exportScaleSlider = document.getElementById('exportScaleSlider');
         this.exportScaleValue = document.getElementById('exportScaleValue');
@@ -305,13 +322,20 @@ class PixelArtGenerator {
         this.canvasBoundsHandles = document.getElementById('canvasBoundsHandles');
         this.resetCanvasBoundsBtn = document.getElementById('resetCanvasBoundsBtn');
         
-        // 描边工具相关
-        this.strokeControls = document.getElementById('strokeControls');
+        // 描边工具（浮动面板版）
+        this.strokePanel = document.getElementById('strokePanel');
+        this.strokePanelHeader = document.getElementById('strokePanelHeader');
+        this.closeStrokePanelBtn = document.getElementById('closeStrokePanelBtn');
         this.strokeColor = document.getElementById('strokeColor');
         this.strokeColorValue = document.getElementById('strokeColorValue');
         this.strokeThickness = document.getElementById('strokeThickness');
         this.strokeThicknessValue = document.getElementById('strokeThicknessValue');
         this.executeStrokeBtn = document.getElementById('executeStrokeBtn');
+
+        // 颜色剔除工具（浮动面板版）
+        this.colorRemovePanel = document.getElementById('colorRemovePanel');
+        this.colorRemovePanelHeader = document.getElementById('colorRemovePanelHeader');
+        this.closeColorRemoveBtn = document.getElementById('closeColorRemoveBtn');
         
         this.canvasBounds = null;
         this.isDraggingCanvasBounds = false;
@@ -352,6 +376,41 @@ class PixelArtGenerator {
                 this.loadImage(files[0]);
             }
         });
+
+        if (this.blankCanvasArea) {
+            this.blankCanvasArea.addEventListener('click', () => this.openBlankCanvasModal());
+        }
+        if (this.closeBlankCanvasModalBtn) {
+            this.closeBlankCanvasModalBtn.addEventListener('click', () => this.closeBlankCanvasModal());
+        }
+        if (this.cancelBlankCanvasBtn) {
+            this.cancelBlankCanvasBtn.addEventListener('click', () => this.closeBlankCanvasModal());
+        }
+        if (this.confirmBlankCanvasBtn) {
+            this.confirmBlankCanvasBtn.addEventListener('click', () => {
+                const width = parseInt(this.blankCanvasWidth.value);
+                const height = parseInt(this.blankCanvasHeight.value);
+                this.createBlankCanvas(width, height);
+            });
+        }
+        document.querySelectorAll('.blank-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.blank-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const w = parseInt(btn.dataset.width);
+                const h = parseInt(btn.dataset.height);
+                this.blankCanvasWidth.value = w;
+                this.blankCanvasHeight.value = h;
+                this.createBlankCanvas(w, h);
+            });
+        });
+        if (this.blankCanvasModal) {
+            this.blankCanvasModal.addEventListener('click', (e) => {
+                if (e.target === this.blankCanvasModal) {
+                    this.closeBlankCanvasModal();
+                }
+            });
+        }
 
         // 裁切功能按钮
         this.cropBtn.addEventListener('click', () => this.toggleCropMode());
@@ -634,34 +693,42 @@ class PixelArtGenerator {
         document.querySelectorAll('.edit-tool-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const newTool = btn.dataset.tool;
-                
+
+                // 描边工具：打开浮动面板，不切换工具状态
+                if (newTool === 'stroke') {
+                    this.openStrokePanel();
+                    return;
+                }
+
+                // 颜色转换工具：打开浮动面板，不切换工具状态
+                if (newTool === 'colorConvert') {
+                    this.openColorConvertPanel();
+                    return;
+                }
+
+                // 颜色剔除工具：打开浮动面板，不切换工具状态
+                if (newTool === 'colorRemove') {
+                    this.openColorRemovePanel();
+                    return;
+                }
+
                 // 如果之前是取色器，恢复原始的画笔大小
                 if (this.currentEditTool === 'picker' && newTool !== 'picker') {
                     this.customEditBrushSize.value = this.savedBrushSize;
                     this.brushSizeValue.textContent = this.savedBrushSize;
                 }
-                
+
                 // 如果新工具是取色器，保存当前的画笔大小，然后设置为1
                 if (newTool === 'picker' && this.currentEditTool !== 'picker') {
                     this.savedBrushSize = this.customEditBrushSize.value;
                     this.customEditBrushSize.value = 1;
                     this.brushSizeValue.textContent = '1';
                 }
-                
+
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 this.currentEditTool = newTool;
-                this.colorConvertPickMode = null;
-                this.pickSourceColorBtn.classList.remove('color-pick-active');
-                this.pickTargetColorBtn.classList.remove('color-pick-active');
-                
-                // 显示/隐藏颜色转换控制
-                if (this.currentEditTool === 'colorConvert') {
-                    this.colorConvertControls.style.display = 'block';
-                } else {
-                    this.colorConvertControls.style.display = 'none';
-                }
-                
+
                 // 显示/隐藏画布边界控制
                 if (this.currentEditTool === 'canvasBounds') {
                     this.canvasBoundsControls.style.display = 'block';
@@ -671,14 +738,6 @@ class PixelArtGenerator {
                 } else {
                     this.canvasBoundsControls.style.display = 'none';
                     this.canvasBoundsHandles.style.display = 'none';
-                }
-                
-                // 显示/隐藏描边控制
-                if (this.currentEditTool === 'stroke') {
-                    this.strokeControls.style.display = 'block';
-                    this.customEditBrushCursor.style.display = 'none';
-                } else {
-                    this.strokeControls.style.display = 'none';
                 }
                 
                 // 更新画笔光标
@@ -719,18 +778,20 @@ class PixelArtGenerator {
         });
         
         this.pickRemoveColorBtn.addEventListener('click', () => {
-            // 切换到取色模式
-            this.currentEditTool = 'picker';
+            // 不切换工具，仅设置取色模式
             this.pickRemoveColorMode = true;
-            document.querySelectorAll('.edit-tool-btn').forEach(btn => btn.classList.remove('active'));
-            // 去掉弹窗，改为在控制台显示
-            console.log('请在画布上点击要剔除的颜色');
+            this.pickRemoveColorBtn.classList.add('color-pick-active');
         });
-        
+
         this.removeColorBtn.addEventListener('click', () => {
             this.removeSelectedColor();
         });
-        
+
+        // 颜色剔除面板关闭按钮
+        this.closeColorRemoveBtn.addEventListener('click', () => {
+            this.closeColorRemovePanel();
+        });
+
         // 悬浮快照面板事件
         this.snapshotFloatBtn.addEventListener('click', () => {
             this.toggleSnapshotPanel();
@@ -750,14 +811,22 @@ class PixelArtGenerator {
             }
         });
         
+        this.closeColorConvertBtn.addEventListener('click', () => {
+            this.closeColorConvertPanel();
+        });
+
+        this.initColorConvertPanelDrag();
+        this.initStrokePanelDrag();
+        this.initColorRemovePanelDrag();
+
         this.colorConvertSourceColor.addEventListener('input', () => {
             this.colorConvertSourceColorValue.textContent = this.colorConvertSourceColor.value;
         });
-        
+
         this.colorConvertTargetColor.addEventListener('input', () => {
             this.colorConvertTargetColorValue.textContent = this.colorConvertTargetColor.value;
         });
-        
+
         this.pickSourceColorBtn.addEventListener('click', () => {
             if (this.colorConvertPickMode === 'source') {
                 this.colorConvertPickMode = null;
@@ -849,50 +918,71 @@ class PixelArtGenerator {
         
         // 画布边界调整事件
         this.canvasBoundsLeftInput.addEventListener('input', () => {
-            if (this.canvasBounds) {
-                this.canvasBounds.left = parseInt(this.canvasBoundsLeftInput.value);
-                this.updateCanvasBoundsDisplay();
-                this.drawCustomEditCanvas();
-            }
+            if (!this.canvasBounds) return;
+            let val = parseInt(this.canvasBoundsLeftInput.value);
+            if (isNaN(val)) return;
+            val = Math.min(val, this.canvasBounds.right - 1);
+            this.applyCanvasBounds(val, this.canvasBounds.right, this.canvasBounds.top, this.canvasBounds.bottom);
+            this.updateCanvasBoundsInputs();
+            this.updateCanvasBoundsDisplay();
+            this.drawCustomEditCanvas();
+            this.updateCanvasBoundsHandlesPosition();
         });
-        
+
         this.canvasBoundsRightInput.addEventListener('input', () => {
-            if (this.canvasBounds) {
-                this.canvasBounds.right = parseInt(this.canvasBoundsRightInput.value);
-                this.updateCanvasBoundsDisplay();
-                this.drawCustomEditCanvas();
-            }
+            if (!this.canvasBounds) return;
+            let val = parseInt(this.canvasBoundsRightInput.value);
+            if (isNaN(val)) return;
+            val = Math.max(val, this.canvasBounds.left + 1);
+            this.applyCanvasBounds(this.canvasBounds.left, val, this.canvasBounds.top, this.canvasBounds.bottom);
+            this.updateCanvasBoundsInputs();
+            this.updateCanvasBoundsDisplay();
+            this.drawCustomEditCanvas();
+            this.updateCanvasBoundsHandlesPosition();
         });
-        
+
         this.canvasBoundsTopInput.addEventListener('input', () => {
-            if (this.canvasBounds) {
-                this.canvasBounds.top = parseInt(this.canvasBoundsTopInput.value);
-                this.updateCanvasBoundsDisplay();
-                this.drawCustomEditCanvas();
-            }
+            if (!this.canvasBounds) return;
+            let val = parseInt(this.canvasBoundsTopInput.value);
+            if (isNaN(val)) return;
+            val = Math.min(val, this.canvasBounds.bottom - 1);
+            this.applyCanvasBounds(this.canvasBounds.left, this.canvasBounds.right, val, this.canvasBounds.bottom);
+            this.updateCanvasBoundsInputs();
+            this.updateCanvasBoundsDisplay();
+            this.drawCustomEditCanvas();
+            this.updateCanvasBoundsHandlesPosition();
         });
-        
+
         this.canvasBoundsBottomInput.addEventListener('input', () => {
-            if (this.canvasBounds) {
-                this.canvasBounds.bottom = parseInt(this.canvasBoundsBottomInput.value);
-                this.updateCanvasBoundsDisplay();
-                this.drawCustomEditCanvas();
-            }
+            if (!this.canvasBounds) return;
+            let val = parseInt(this.canvasBoundsBottomInput.value);
+            if (isNaN(val)) return;
+            val = Math.max(val, this.canvasBounds.top + 1);
+            this.applyCanvasBounds(this.canvasBounds.left, this.canvasBounds.right, this.canvasBounds.top, val);
+            this.updateCanvasBoundsInputs();
+            this.updateCanvasBoundsDisplay();
+            this.drawCustomEditCanvas();
+            this.updateCanvasBoundsHandlesPosition();
         });
         
         this.resetCanvasBoundsBtn.addEventListener('click', () => {
             this.resetCanvasBounds();
         });
         
-        // 描边工具：颜色和厚度更新
+        // 描边工具（浮动面板版）：颜色和厚度更新
         this.strokeColor.addEventListener('input', () => {
             this.strokeColorValue.textContent = this.strokeColor.value;
         });
         this.strokeThickness.addEventListener('input', () => {
             this.strokeThicknessValue.textContent = this.strokeThickness.value;
         });
-        
-        // 描边工具：执行描边
+
+        // 描边工具（浮动面板版）：关闭按钮
+        this.closeStrokePanelBtn.addEventListener('click', () => {
+            this.closeStrokePanel();
+        });
+
+        // 描边工具（浮动面板版）：执行描边
         this.executeStrokeBtn.addEventListener('click', () => {
             const type = document.querySelector('input[name="strokeType"]:checked').value;
             const thickness = parseInt(this.strokeThickness.value);
@@ -931,7 +1021,7 @@ class PixelArtGenerator {
         }
         
         if (file.size > 20 * 1024 * 1024) {
-            alert('文件大小不能超过 20MB！');
+            alert(getI18nText('alertFileTooLarge'));
             return;
         }
         
@@ -960,7 +1050,7 @@ class PixelArtGenerator {
         img.onerror = (error) => {
             console.error('图片加载失败:', error);
             URL.revokeObjectURL(objectURL);
-            alert('图片加载失败，请尝试其他图片！');
+            alert(getI18nText('alertImageLoadFailed'));
         };
         
         img.src = objectURL;
@@ -1173,7 +1263,7 @@ class PixelArtGenerator {
         const sourceW = Math.round(boxRect.width * scaleX);
         const sourceH = Math.round(boxRect.height * scaleY);
         if (sourceW < 10 || sourceH < 10) {
-            alert('裁切区域太小，请选择更大的区域！');
+            alert(getI18nText('alertCropAreaTooSmall'));
             return;
         }
         // 使用离屏 canvas 裁切
@@ -1220,6 +1310,7 @@ class PixelArtGenerator {
         this.uploadSection.style.display = 'none';
         this.showcaseSection.style.display = 'none';
         this.workspace.style.display = 'block';
+        this.setWorkspaceMode('normal');
         this.showPerlerPlaceholder();
     }
 
@@ -1229,7 +1320,7 @@ class PixelArtGenerator {
         this.originalCanvas.height = this.originalHeight;
         this.originalCtx.drawImage(this.originalImage, 0, 0);
         this.originalImageData = this.originalCtx.getImageData(0, 0, this.originalWidth, this.originalHeight);
-        this.originalSize.textContent = `原始尺寸: ${this.originalWidth} × ${this.originalHeight} px`;
+        this.originalSize.textContent = `${getI18nText('originalSize')}: ${this.originalWidth} × ${this.originalHeight} px`;
         
         // 计算画布的显示尺寸，限制高度为400px，保持宽高比
         const maxDisplayHeight = 400;
@@ -1393,11 +1484,11 @@ class PixelArtGenerator {
         // 保存像素化结果，用于拼豆化
         this.pixelatedData = pixelatedData;
         
-        this.pixelatedSize.textContent = `像素化尺寸: ${targetWidth} × ${targetHeight} px`;
+        this.pixelatedSize.textContent = `${getI18nText('pixelatedSize')}: ${targetWidth} × ${targetHeight} px`;
         // 计算格子数，向上取整
         const gridWidth = Math.ceil(targetWidth / pixelSize);
         const gridHeight = Math.ceil(targetHeight / pixelSize);
-        this.pixelatedGridCount.textContent = `长宽格子比: ${gridWidth} × ${gridHeight}`;
+        this.pixelatedGridCount.textContent = `${getI18nText('gridRatio')}: ${gridWidth} × ${gridHeight}`;
         
         if (this.enableColorQuantize.checked) {
             this.updateColorUsageList();
@@ -1627,7 +1718,7 @@ class PixelArtGenerator {
 
     updateColorUsageList() {
         if (!this.pixelColorStats.length) {
-            this.colorUsageList.innerHTML = '<p style="color: #555; text-align: center; padding: 20px;">暂无颜色数据</p>';
+            this.colorUsageList.innerHTML = '<p style="color: #555; text-align: center; padding: 20px;">' + getI18nText('noColorData') + '</p>';
             return;
         }
         
@@ -1663,7 +1754,7 @@ class PixelArtGenerator {
                         <div class="color-rgb">RGB(${color.r}, ${color.g}, ${color.b})</div>
                     </div>
                     <button class="color-action-btn remove" data-color="${colorKey}" data-i18n="remove">
-                        ${isExcluded ? '恢复' : '排除'}
+                        ${isExcluded ? getI18nText('restoreColor') : getI18nText('excludeColor')}
                     </button>
                 </div>
             `;
@@ -1692,8 +1783,8 @@ class PixelArtGenerator {
         this.perlerCtx.fillStyle = '#666';
         this.perlerCtx.font = '14px sans-serif';
         this.perlerCtx.textAlign = 'center';
-        this.perlerCtx.fillText('点击"渲染拼豆图纸"按钮生成图纸', this.perlerCanvas.width / 2, this.perlerCanvas.height / 2);
-        this.perlerSize.textContent = '拼豆尺寸: 等待渲染';
+        this.perlerCtx.fillText(getI18nText('clickToRenderPerler'), this.perlerCanvas.width / 2, this.perlerCanvas.height / 2);
+        this.perlerSize.textContent = getI18nText('perlerWaitingRender');
     }
 
     refreshPerlerChartDisplay() {
@@ -2879,7 +2970,7 @@ class PixelArtGenerator {
 
     exportPixelImage() {
         if (!this.customEditData) {
-            alert('请先加载可编辑的像素图！');
+            alert(getI18nText('alertNoEditableImage'));
             return;
         }
 
@@ -2936,7 +3027,7 @@ class PixelArtGenerator {
 
     async exportInfoPaperCompressed() {
         if (!this.perlerColors || this.perlerColors.length === 0) {
-            alert('请先生成拼豆图纸！');
+            alert(getI18nText('alertNoPerlerGenerated'));
             return;
         }
 
@@ -2951,7 +3042,7 @@ class PixelArtGenerator {
 
     async exportInfoPaperCompressedFile() {
         if (!this.perlerColors || this.perlerColors.length === 0) {
-            alert('请先生成拼豆图纸！');
+            alert(getI18nText('alertNoPerlerGenerated'));
             return;
         }
 
@@ -3004,7 +3095,7 @@ class PixelArtGenerator {
         this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${this.perlerWidth} × ${this.perlerHeight} ${getI18nText('beans')}`;
         this.initCustomEditData();
 
-        alert('图纸已加载到编辑模式！');
+        alert(getI18nText('alertLoadedToEditMode'));
     }
 
     handleInfoPaperFocusMode(result) {
@@ -3179,12 +3270,12 @@ class PixelArtGenerator {
             const MAX_CANVAS_AREA = 268435456;
             
             if (finalWidth > MAX_CANVAS_SIZE || finalHeight > MAX_CANVAS_SIZE) {
-                alert(`导出尺寸过大！最大支持 ${MAX_CANVAS_SIZE}px 边长。\n当前尺寸：${Math.round(finalWidth)} × ${Math.round(finalHeight)}\n请降低缩放倍数。`);
+                alert(getI18nTextWithVars('alertExportSizeTooLarge', {max: MAX_CANVAS_SIZE, width: Math.round(finalWidth), height: Math.round(finalHeight)}));
                 return;
             }
             
             if (finalWidth * finalHeight > MAX_CANVAS_AREA) {
-                alert(`导出图片像素过多！最大支持 ${(MAX_CANVAS_AREA / 1000000).toFixed(1)} 百万像素。\n当前：${((finalWidth * finalHeight) / 1000000).toFixed(1)} 百万像素\n请降低缩放倍数。`);
+                alert(getI18nTextWithVars('alertExportPixelsTooMany', {max: (MAX_CANVAS_AREA / 1000000).toFixed(1), current: ((finalWidth * finalHeight) / 1000000).toFixed(1)}));
                 return;
             }
             
@@ -3301,12 +3392,12 @@ class PixelArtGenerator {
         const MAX_CANVAS_AREA = 268435456;
         
         if (finalWidth > MAX_CANVAS_SIZE || finalHeight > MAX_CANVAS_SIZE) {
-            alert(`导出尺寸过大！最大支持 ${MAX_CANVAS_SIZE}px 边长。\n当前尺寸：${Math.round(finalWidth)} × ${Math.round(finalHeight)}\n请降低缩放倍数。`);
+            alert(getI18nTextWithVars('alertExportSizeTooLarge', {max: MAX_CANVAS_SIZE, width: Math.round(finalWidth), height: Math.round(finalHeight)}));
             return;
         }
         
         if (finalWidth * finalHeight > MAX_CANVAS_AREA) {
-            alert(`导出图片像素过多！最大支持 ${(MAX_CANVAS_AREA / 1000000).toFixed(1)} 百万像素。\n当前：${((finalWidth * finalHeight) / 1000000).toFixed(1)} 百万像素\n请降低缩放倍数。`);
+            alert(getI18nTextWithVars('alertExportPixelsTooMany', {max: (MAX_CANVAS_AREA / 1000000).toFixed(1), current: ((finalWidth * finalHeight) / 1000000).toFixed(1)}));
             return;
         }
         
@@ -3555,7 +3646,7 @@ class PixelArtGenerator {
             displayWidth = this.canvasBounds.right - this.canvasBounds.left;
             displayHeight = this.canvasBounds.bottom - this.canvasBounds.top;
         }
-        this.customEditInfo.textContent = `编辑尺寸: ${this.perlerWidth} × ${this.perlerHeight} | 显示: ${displayWidth} × ${displayHeight}`;
+        this.customEditInfo.textContent = `${getI18nText('customEditSize')}: ${this.perlerWidth} × ${this.perlerHeight} | ${getI18nText('displaySizeLabel')}: ${displayWidth} × ${displayHeight}`;
         
         // 更新手柄位置
         if (this.currentEditTool === 'canvasBounds') {
@@ -3609,10 +3700,9 @@ class PixelArtGenerator {
                 const hex = this.rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
                 this.removeColorPicker.value = hex;
                 this.removeColorValue.textContent = hex;
-                // 去掉弹窗，改为在控制台显示
-                console.log(`已选择颜色: ${hex}`);
             }
             this.pickRemoveColorMode = false;
+            this.pickRemoveColorBtn.classList.remove('color-pick-active');
             return;
         }
         
@@ -3703,7 +3793,7 @@ class PixelArtGenerator {
 
     removeSelectedColor() {
         if (!this.customEditData) {
-            alert('请先加载可编辑的像素图！');
+            alert(getI18nText('alertNoEditableImage'));
             return;
         }
         
@@ -3719,7 +3809,7 @@ class PixelArtGenerator {
         const targetColor = findClosestColor([r, g, b], colorSet, mappingMethod);
         
         if (!targetColor || targetColor.isTransparent) {
-            alert('请选择有效的颜色！');
+            alert(getI18nText('alertInvalidColor'));
             return;
         }
         
@@ -3735,7 +3825,7 @@ class PixelArtGenerator {
         }
         
         if (count === 0) {
-            alert('没有找到要剔除的颜色！');
+            alert(getI18nText('alertNoColorToRemove'));
             return;
         }
         
@@ -3948,7 +4038,7 @@ class PixelArtGenerator {
         const targetHex = this.colorConvertTargetColor.value;
         
         if (sourceHex === targetHex) {
-            alert('源颜色和目标颜色不能相同！');
+            alert(getI18nText('alertSourceTargetSameColor'));
             return;
         }
         
@@ -3963,7 +4053,7 @@ class PixelArtGenerator {
         const targetColor = findClosestColor(targetRgb, colorSet, mappingMethod);
         
         if (sourceColor.name === targetColor.name) {
-            alert('源颜色和目标颜色在当前色板中是同一个颜色！');
+            alert(getI18nText('alertSourceTargetSameInPalette'));
             return;
         }
         
@@ -3981,9 +4071,9 @@ class PixelArtGenerator {
         if (convertedCount > 0) {
             this.saveCustomEditHistory();
             this.drawCustomEditCanvas();
-            alert(`成功转换 ${convertedCount} 个豆粒！`);
+            alert(getI18nTextWithVars('alertColorConvertSuccess', {count: convertedCount}));
         } else {
-            alert('没有找到匹配的颜色！');
+            alert(getI18nText('alertNoMatchingColor'));
         }
     }
     
@@ -3995,7 +4085,7 @@ class PixelArtGenerator {
     // colorHex: '#xxxxxx'，用户选择的颜色，会自动映射到当前色板中最接近的颜色
     applyStroke(type, thickness, colorHex) {
         if (!this.customEditData) {
-            alert('请先加载图像或创建新画布！');
+            alert(getI18nText('alertNoImageLoaded'));
             return;
         }
         if (thickness < 1) thickness = 1;
@@ -4104,9 +4194,9 @@ class PixelArtGenerator {
         
         if (totalChanged > 0) {
             const mappedHex = this.rgbToHex(closestColor.rgb[0], closestColor.rgb[1], closestColor.rgb[2]);
-            alert(`描边完成！\n选择颜色: ${colorHex.toUpperCase()}\n已映射到: ${closestColor.name} (${mappedHex.toUpperCase()})\n共修改 ${totalChanged} 个豆粒。`);
+            alert(getI18nTextWithVars('alertStrokeDone', {color: colorHex.toUpperCase(), mapped: closestColor.name + ' (' + mappedHex.toUpperCase() + ')', count: totalChanged}));
         } else {
-            alert('没有可修改的格子，可能图像中没有足够的边缘。');
+            alert(getI18nText('alertNoStrokableCells'));
         }
     }
 
@@ -4203,7 +4293,7 @@ class PixelArtGenerator {
 
     openSmartOptimizeModal() {
         if (!this.perlerColors || !this.perlerColors.length) {
-            alert('请先渲染拼豆图纸！');
+            alert(getI18nText('alertNoPerlerRendered'));
             return;
         }
         
@@ -4459,13 +4549,13 @@ class PixelArtGenerator {
         if (this.isFullscreen) {
             this.smartOptimizeModal.classList.add('fullscreen');
             this.toggleFullscreenBtn.textContent = '🗖️';
-            this.toggleFullscreenBtn.title = '退出全屏';
+            this.toggleFullscreenBtn.title = getI18nText('toggleFullscreenOn');
             // 全屏模式下，确保头部始终可见
             document.body.style.overflow = 'hidden';
         } else {
             this.smartOptimizeModal.classList.remove('fullscreen');
             this.toggleFullscreenBtn.textContent = '🔍';
-            this.toggleFullscreenBtn.title = '全屏切换';
+            this.toggleFullscreenBtn.title = getI18nText('toggleFullscreenOff');
             document.body.style.overflow = '';
         }
         
@@ -4625,6 +4715,55 @@ class PixelArtGenerator {
         const displayHeight = this.canvasBounds.bottom - this.canvasBounds.top;
         this.canvasBoundsCurrentSize.textContent = `${displayWidth} × ${displayHeight}`;
     }
+
+    applyCanvasBounds(newLeft, newRight, newTop, newBottom) {
+        if (!this.customEditData) return;
+
+        const currentWidth = this.perlerWidth;
+        const currentHeight = this.perlerHeight;
+
+        let addLeft = 0, addRight = 0, addTop = 0, addBottom = 0;
+        if (newLeft < 0) addLeft = -newLeft;
+        if (newRight > currentWidth) addRight = newRight - currentWidth;
+        if (newTop < 0) addTop = -newTop;
+        if (newBottom > currentHeight) addBottom = newBottom - currentHeight;
+
+        const needsExpand = (addLeft + addRight + addTop + addBottom) > 0;
+
+        if (needsExpand) {
+            const newWidth = currentWidth + addLeft + addRight;
+            const newHeight = currentHeight + addTop + addBottom;
+
+            const transparentColor = { name: '', rgb: [255, 255, 255], isTransparent: true, displayName: '' };
+
+            const newData = [];
+            for (let y = 0; y < newHeight; y++) {
+                const row = [];
+                for (let x = 0; x < newWidth; x++) {
+                    const origX = x - addLeft;
+                    const origY = y - addTop;
+                    if (origX >= 0 && origX < currentWidth && origY >= 0 && origY < currentHeight) {
+                        row.push({ ...this.customEditData[origY][origX] });
+                    } else {
+                        row.push({ ...transparentColor });
+                    }
+                }
+                newData.push(row);
+            }
+
+            this.customEditData = newData;
+            this.perlerColors = newData.map(row => row.map(cell => ({ ...cell })));
+            this.perlerWidth = newWidth;
+            this.perlerHeight = newHeight;
+            this.canvasBounds.originalWidth = newWidth;
+            this.canvasBounds.originalHeight = newHeight;
+        }
+
+        this.canvasBounds.left = newLeft + addLeft;
+        this.canvasBounds.right = newRight + addLeft;
+        this.canvasBounds.top = newTop + addTop;
+        this.canvasBounds.bottom = newBottom + addTop;
+    }
     
     resetCanvasBounds() {
         if (!this.canvasBounds) return;
@@ -4717,9 +4856,8 @@ class PixelArtGenerator {
             const clientX = e.clientX - rect.left - coordSize;
             const clientY = e.clientY - rect.top - coordSize;
             
-            // 计算网格对齐的位置
-            const gridX = Math.max(0, Math.min(this.canvasBounds.originalWidth, Math.round(clientX / cellSize)));
-            const gridY = Math.max(0, Math.min(this.canvasBounds.originalHeight, Math.round(clientY / cellSize)));
+            const gridX = Math.round(clientX / cellSize);
+            const gridY = Math.round(clientY / cellSize);
             
             let newLeft = this.canvasBounds.left;
             let newRight = this.canvasBounds.right;
@@ -4756,15 +4894,12 @@ class PixelArtGenerator {
                     newLeft = Math.min(gridX, this.canvasBounds.right - 1);
                     break;
             }
-            
-            this.canvasBounds.left = newLeft;
-            this.canvasBounds.right = newRight;
-            this.canvasBounds.top = newTop;
-            this.canvasBounds.bottom = newBottom;
-            
+
+            this.applyCanvasBounds(newLeft, newRight, newTop, newBottom);
             this.updateCanvasBoundsInputs();
             this.updateCanvasBoundsDisplay();
             this.drawCustomEditCanvas();
+            this.updateCanvasBoundsHandlesPosition();
         });
         
         document.addEventListener('mouseup', () => {
@@ -4784,7 +4919,7 @@ class PixelArtGenerator {
             this.isFullscreen = false;
             this.smartOptimizeModal.classList.remove('fullscreen');
             this.toggleFullscreenBtn.textContent = '🔍';
-            this.toggleFullscreenBtn.title = '全屏切换';
+            this.toggleFullscreenBtn.title = getI18nText('toggleFullscreenOff');
         }
         if (this.originalPerlerColors && restoreOriginal) {
             this.perlerColors = this.originalPerlerColors.map(row => [...row]);
@@ -5143,7 +5278,7 @@ class PixelArtGenerator {
     
     renderSuggestionsList() {
         if (this.colorSuggestions.length === 0) {
-            this.suggestionsList.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">没有可优化的建议</p>';
+            this.suggestionsList.innerHTML = '<p style="color: #888; text-align: center; padding: 20px;">' + getI18nText('noOptimizationSuggestions') + '</p>';
             return;
         }
         
@@ -5332,7 +5467,7 @@ class PixelArtGenerator {
         const acceptedCount = this.acceptedSuggestions.size;
         const description = acceptedCount > 0 
             ? `替换了 ${acceptedCount} 个颜色（${this.erasedBlocks.size} 个方块保留原样）` 
-            : '未做任何修改';
+            : getI18nText('noChanges');
         
         this.saveUnifiedSnapshot('smart', description);
         this.closeSmartOptimizeModal(false);
@@ -5451,7 +5586,7 @@ class PixelArtGenerator {
             item.className = 'snapshot-item';
             
             const typeIcon = snapshot.type === 'custom' ? '🎨' : '🔧';
-            const typeText = snapshot.type === 'custom' ? '自定义' : '智能优化';
+            const typeText = snapshot.type === 'custom' ? getI18nText('snapshotTypeCustom') : getI18nText('snapshotTypeOptimize');
             
             const colorChangeClass = snapshot.colorChange > 0 ? 'change-negative' : 'change-positive';
             const beansChangeClass = snapshot.beansChange > 0 ? 'change-negative' : 'change-positive';
@@ -5882,6 +6017,267 @@ class PixelArtGenerator {
         }
     }
 
+    setWorkspaceMode(mode) {
+        this.isBlankCanvasMode = (mode === 'blank');
+
+        if (this.isBlankCanvasMode) {
+            if (this.originalSection) this.originalSection.style.display = 'none';
+            if (this.pixelatedSection) this.pixelatedSection.style.display = 'none';
+            if (this.modeSwitch) this.modeSwitch.style.display = 'none';
+            if (this.perlerSection) this.perlerSection.style.display = '';
+            if (this.customEditSection) this.customEditSection.style.display = '';
+        } else {
+            if (this.originalSection) this.originalSection.style.display = '';
+            if (this.pixelatedSection) this.pixelatedSection.style.display = '';
+            if (this.modeSwitch) this.modeSwitch.style.display = '';
+            if (this.perlerSection) this.perlerSection.style.display = '';
+            if (this.customEditSection) this.customEditSection.style.display = '';
+        }
+    }
+
+    openBlankCanvasModal() {
+        if (this.blankCanvasModal) {
+            document.querySelectorAll('.blank-size-btn').forEach(b => b.classList.remove('active'));
+            this.blankCanvasWidth.value = 52;
+            this.blankCanvasHeight.value = 52;
+            this.blankCanvasModal.style.display = 'block';
+        }
+    }
+
+    closeBlankCanvasModal() {
+        if (this.blankCanvasModal) {
+            this.blankCanvasModal.style.display = 'none';
+        }
+    }
+
+    createBlankCanvas(width, height) {
+        if (!width || !height || width < 8 || height < 8) {
+            alert(getI18nText('alertCanvasTooSmall'));
+            return;
+        }
+        if (width > 256 || height > 256) {
+            alert(getI18nText('alertCanvasTooLarge'));
+            return;
+        }
+
+        this.closeBlankCanvasModal();
+
+        this.hideAllInitialSections();
+        if (this.workspace) {
+            this.workspace.style.display = 'block';
+        }
+
+        this.perlerWidth = width;
+        this.perlerHeight = height;
+
+        const transparentColor = {
+            name: '',
+            rgb: [255, 255, 255],
+            isTransparent: true,
+            displayName: ''
+        };
+
+        this.perlerColors = [];
+        for (let y = 0; y < height; y++) {
+            const row = [];
+            for (let x = 0; x < width; x++) {
+                row.push({ ...transparentColor });
+            }
+            this.perlerColors.push(row);
+        }
+
+        this.colorCounts = {};
+
+        const colorSetName = this.colorSetSelect.value;
+        this.drawPerlerChart(this.perlerColors, width, height, colorSetName);
+        this.drawColorLegend();
+        this.perlerSize.textContent = `${getI18nText('perlerSize')}: ${width} × ${height} ${getI18nText('beans')}`;
+        this.initCustomEditData();
+
+        this.setWorkspaceMode('blank');
+    }
+
+    openStrokePanel() {
+        if (this.strokePanel) {
+            document.querySelectorAll('input[name="strokeType"][value="outer"]').forEach(r => r.checked = true);
+            this.strokeThickness.value = 1;
+            this.strokeThicknessValue.textContent = '1';
+            this.strokeColor.value = '#000000';
+            this.strokeColorValue.textContent = '#000000';
+            this.strokePanel.style.display = 'block';
+        }
+    }
+
+    closeStrokePanel() {
+        if (this.strokePanel) {
+            this.strokePanel.style.display = 'none';
+        }
+    }
+
+    openColorRemovePanel() {
+        if (this.colorRemovePanel) {
+            this.colorRemovePanel.style.display = 'block';
+        }
+    }
+
+    closeColorRemovePanel() {
+        if (this.colorRemovePanel) {
+            this.colorRemovePanel.style.display = 'none';
+            this.pickRemoveColorMode = false;
+            this.pickRemoveColorBtn.classList.remove('color-pick-active');
+        }
+    }
+
+    openColorConvertPanel() {
+        if (this.colorConvertPanel) {
+            this.colorConvertPanel.style.display = 'block';
+        }
+    }
+
+    closeColorConvertPanel() {
+        if (this.colorConvertPanel) {
+            this.colorConvertPanel.style.display = 'none';
+            this.colorConvertPickMode = null;
+            this.pickSourceColorBtn.classList.remove('color-pick-active');
+            this.pickTargetColorBtn.classList.remove('color-pick-active');
+        }
+    }
+
+    initColorConvertPanelDrag() {
+        if (!this.colorConvertPanel || !this.colorConvertPanelHeader) return;
+
+        const panel = this.colorConvertPanel;
+        const header = this.colorConvertPanelHeader;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target === this.closeColorConvertBtn) return;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            panel.style.right = 'auto';
+            panel.style.left = startLeft + 'px';
+            panel.style.top = startTop + 'px';
+
+            this.colorConvertPanelDragState = { dragging: true };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.colorConvertPanelDragState || !this.colorConvertPanelDragState.dragging) return;
+
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+
+            const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+            const maxTop = window.innerHeight - panel.offsetHeight - 10;
+
+            panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+            panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.colorConvertPanelDragState) {
+                this.colorConvertPanelDragState.dragging = false;
+            }
+        });
+    }
+
+    initStrokePanelDrag() {
+        if (!this.strokePanel || !this.strokePanelHeader) return;
+
+        const panel = this.strokePanel;
+        const header = this.strokePanelHeader;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target === this.closeStrokePanelBtn) return;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            panel.style.right = 'auto';
+            panel.style.left = startLeft + 'px';
+            panel.style.top = startTop + 'px';
+
+            this.strokePanelDragState = { dragging: true };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.strokePanelDragState || !this.strokePanelDragState.dragging) return;
+
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+
+            const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+            const maxTop = window.innerHeight - panel.offsetHeight - 10;
+
+            panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+            panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.strokePanelDragState) {
+                this.strokePanelDragState.dragging = false;
+            }
+        });
+    }
+
+    initColorRemovePanelDrag() {
+        if (!this.colorRemovePanel || !this.colorRemovePanelHeader) return;
+
+        const panel = this.colorRemovePanel;
+        const header = this.colorRemovePanelHeader;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target === this.closeColorRemoveBtn) return;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            panel.style.right = 'auto';
+            panel.style.left = startLeft + 'px';
+            panel.style.top = startTop + 'px';
+
+            this.colorRemovePanelDragState = { dragging: true };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.colorRemovePanelDragState || !this.colorRemovePanelDragState.dragging) return;
+
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+
+            const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+            const maxTop = window.innerHeight - panel.offsetHeight - 10;
+
+            panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+            panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.colorRemovePanelDragState) {
+                this.colorRemovePanelDragState.dragging = false;
+            }
+        });
+    }
+
     initShowcase() {
         if (!this.showcaseGrid || !this.showcaseSection) return;
 
@@ -5964,7 +6360,7 @@ class PixelArtGenerator {
         const info = document.createElement('div');
         info.className = 'showcase-info';
         const colorCount = Object.keys(sample.colorCounts).length;
-        info.textContent = `${sample.width} × ${sample.height} · ${colorCount} 种颜色`;
+        info.textContent = `${sample.width} × ${sample.height} · ${colorCount} ${getI18nText('colorCountText')}`;
 
         card.appendChild(preview);
         card.appendChild(info);
@@ -5991,11 +6387,11 @@ class PixelArtGenerator {
 
         const msg = document.createElement('div');
         msg.style.cssText = 'color: #d9534f; margin-bottom: 12px; font-size: 14px;';
-        msg.textContent = '⚠️ 示例图纸加载失败，请检查网络后重试';
+        msg.textContent = getI18nText('sampleLoadFailed');
 
         const retryBtn = document.createElement('button');
         retryBtn.className = 'btn';
-        retryBtn.textContent = '🔄 重新加载';
+        retryBtn.textContent = getI18nText('reloadSample');
         retryBtn.style.cssText = 'background: #667eea; color: #fff; border-color: #667eea; padding: 8px 20px; cursor: pointer;';
         retryBtn.addEventListener('click', () => {
             wrapper.remove();
@@ -6063,7 +6459,7 @@ function initMatrixTimer() {
 
     function goToHomePage() {
         navBtns.forEach(b => b.classList.remove('active'));
-        const homeBtn = Array.from(navBtns).find(b => b.textContent === '图转拼豆');
+        const homeBtn = Array.from(navBtns).find(b => b.dataset.section === 'imageToPerler');
         if (homeBtn) homeBtn.classList.add('active');
         uploadSection.style.display = 'block';
         if (showcaseSection) showcaseSection.style.display = '';
@@ -6077,12 +6473,12 @@ function initMatrixTimer() {
             navBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            if (btn.textContent === '图转拼豆') {
+            if (btn.dataset.section === 'imageToPerler') {
                 uploadSection.style.display = 'block';
                 if (showcaseSection) showcaseSection.style.display = '';
                 workspace.style.display = 'none';
                 timerSection.style.display = 'none';
-            } else if (btn.textContent === '矩阵计时') {
+            } else if (btn.dataset.section === 'timer') {
                 uploadSection.style.display = 'none';
                 if (showcaseSection) showcaseSection.style.display = 'none';
                 workspace.style.display = 'none';
@@ -6121,10 +6517,10 @@ function initMatrixTimer() {
     document.getElementById('confirmAddTimerBtn').addEventListener('click', () => {
         const hours = parseInt(document.getElementById('modal-hours').value) || 0;
         const minutes = parseInt(document.getElementById('modal-minutes').value) || 1;
-        const title = document.getElementById('modal-title').value || `计时器 ${timerCount + 1}`;
+        const title = document.getElementById('modal-title').value || `${getI18nText('timerTitlePlaceholder')} ${timerCount + 1}`;
         
         if (hours <= 0 && minutes <= 0) {
-            alert('请设置倒计时时间！');
+            alert(getI18nText('alertTimerNotSet'));
             return;
         }
         
@@ -6191,7 +6587,7 @@ function initTimer(timerId, initialHours, initialMinutes, initialSeconds) {
             isRunning = false;
             startBtn.classList.remove('active');
             pauseBtn.classList.remove('active');
-            alert('倒计时结束！');
+            alert(getI18nText('alertTimerFinished'));
         }
     }
     
@@ -6202,7 +6598,7 @@ function initTimer(timerId, initialHours, initialMinutes, initialSeconds) {
             }
             
             if (remainingTime <= 0) {
-                alert('请设置倒计时时间！');
+                alert(getI18nText('alertTimerNotSet'));
                 return;
             }
             

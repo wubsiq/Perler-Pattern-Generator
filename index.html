@@ -11,14 +11,14 @@
 </head>
 <body>
     <!-- 悬浮快照按钮 -->
-    <div class="snapshot-float-btn" id="snapshotFloatBtn" title="查看操作历史">
+    <div class="snapshot-float-btn" id="snapshotFloatBtn" data-i18n-title="viewHistory" title="查看操作历史">
         📜
     </div>
     
     <!-- 悬浮快照面板 -->
     <div class="snapshot-panel" id="snapshotPanel">
         <div class="snapshot-panel-header">
-            <h3>📜 操作历史快照</h3>
+            <h3 data-i18n="snapshotTitle">📜 操作历史快照</h3>
             <button class="close-btn" id="closeSnapshotPanel">&times;</button>
         </div>
         <div class="snapshot-panel-content" id="snapshotsContainer">
@@ -30,12 +30,12 @@
         <header>
             <div class="header-content">
                 <div class="header-title">
-                    <h1 class="brand-title" id="brandTitle">豆师傅</h1>
+                    <h1 class="brand-title" id="brandTitle" data-i18n="brandName">豆师傅</h1>
                 </div>
                 <nav class="nav-bar">
-                    <button class="nav-btn active">图转拼豆</button>
-                    <button class="nav-btn">矩阵计时</button>
-                    <button class="nav-btn" id="importInfoPaperBtn">导入图纸</button>
+                    <button class="nav-btn active" data-section="imageToPerler" data-i18n="navImageToPerler">图转拼豆</button>
+                    <button class="nav-btn" data-section="timer" data-i18n="navTimer">矩阵计时</button>
+                    <button class="nav-btn" id="importInfoPaperBtn" data-section="import" data-i18n="navImportPaper">导入图纸</button>
                 </nav>
                 <div class="language-switch">
                     <button id="langZh" class="lang-btn active">中文</button>
@@ -45,25 +45,144 @@
         </header>
 
         <section class="upload-section" id="uploadSection">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📷</div>
-                <p data-i18n="uploadTitle">点击或拖拽图片到此处上传</p>
-                <p class="upload-hint" data-i18n="uploadHint">支持 JPG、PNG、GIF 格式</p>
-                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            <div class="upload-areas">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📷</div>
+                    <p data-i18n="uploadTitle">导入图像</p>
+                    <p class="upload-hint" data-i18n="uploadHint">点击或拖拽图片到此处上传<br>支持 JPG、PNG、GIF 格式</p>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+                <div class="upload-area blank-canvas-area" id="blankCanvasArea">
+                    <div class="upload-icon">✏️</div>
+                    <p data-i18n="blankCanvasTitle">空白画布</p>
+                    <p class="upload-hint" data-i18n="blankCanvasHint">从空白开始创作<br>自由发挥你的想象力</p>
+                </div>
             </div>
         </section>
 
+        <div class="modal" id="blankCanvasModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 data-i18n="createBlankCanvas">创建空白画布</h2>
+                    <button class="close-btn" id="closeBlankCanvasModalBtn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label style="font-weight: 600; margin-bottom: 12px; display: block;" data-i18n="selectCanvasSize">选择画布大小：</label>
+                    <div class="blank-sizes">
+                        <button class="blank-size-btn" data-width="52" data-height="52">52 × 52</button>
+                        <button class="blank-size-btn" data-width="78" data-height="78">78 × 78</button>
+                        <button class="blank-size-btn" data-width="104" data-height="104">104 × 104</button>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                        <label style="font-weight: 600; margin-bottom: 10px; display: block;" data-i18n="customSizeLabel">自定义尺寸：</label>
+                        <div class="blank-custom-size">
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label data-i18n="width">宽度：</label>
+                                <input type="number" id="blankCanvasWidth" min="8" max="256" value="64">
+                            </div>
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label data-i18n="height">高度：</label>
+                                <input type="number" id="blankCanvasHeight" min="8" max="256" value="64">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="confirmBlankCanvasBtn" data-i18n="createBtn">创建</button>
+                    <button class="btn btn-secondary" id="cancelBlankCanvasBtn" data-i18n="cancelBtn">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="floating-panel" id="strokePanel" style="display: none;">
+            <div class="floating-panel-header" id="strokePanelHeader">
+                <span data-i18n="strokeTool">✏️ 描边</span>
+                <button class="floating-panel-close" id="closeStrokePanelBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="strokeTypeLabel">描边类型：</label>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border: 2px solid #ddd; border-radius: 6px; transition: all 0.2s; font-size: 0.85em;">
+                            <input type="radio" name="strokeType" value="outer" checked>
+                            <span data-i18n="strokeOuter">外描边（向外扩散）</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border: 2px solid #ddd; border-radius: 6px; transition: all 0.2s; font-size: 0.85em;">
+                            <input type="radio" name="strokeType" value="inner">
+                            <span data-i18n="strokeInner">内描边（向内侵蚀）</span>
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="strokeThicknessLabel">描边厚度：<span id="strokeThicknessValue" style="color: #667eea;">1</span> <span data-i18n="strokeThicknessUnit">格</span></label>
+                    <input type="range" id="strokeThickness" min="1" max="10" step="1" value="1" style="width: 100%;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="strokeColorLabel">描边颜色：</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="color" id="strokeColor" value="#000000" style="width: 36px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                        <span id="strokeColorValue" style="font-family: monospace; font-size: 0.85em;">#000000</span>
+                    </div>
+                </div>
+                <button id="executeStrokeBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em;" data-i18n="executeStroke">▶ 执行描边</button>
+            </div>
+        </div>
+
+        <div class="floating-panel" id="colorConvertPanel" style="display: none;">
+            <div class="floating-panel-header" id="colorConvertPanelHeader">
+                <span data-i18n="colorConvertTool">🔄 颜色转换</span>
+                <button class="floating-panel-close" id="closeColorConvertBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="sourceColorLabel">源颜色（要替换的颜色）：</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="color" id="colorConvertSourceColor" value="#ffffff" style="width: 36px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                        <span id="colorConvertSourceColorValue" style="font-family: monospace; font-size: 0.85em;">#ffffff</span>
+                        <button id="pickSourceColorBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.85em; margin-left: auto;" data-i18n="pickColor">取色</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="targetColorLabel">目标颜色（替换后的颜色）：</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="color" id="colorConvertTargetColor" value="#000000" style="width: 36px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                        <span id="colorConvertTargetColorValue" style="font-family: monospace; font-size: 0.85em;">#000000</span>
+                        <button id="pickTargetColorBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.85em; margin-left: auto;" data-i18n="pickColor">取色</button>
+                    </div>
+                </div>
+                <button id="executeColorConvertBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em;" data-i18n="executeColorConvert">▶ 执行颜色转换</button>
+            </div>
+        </div>
+
+        <div class="floating-panel" id="colorRemovePanel" style="display: none;">
+            <div class="floating-panel-header" id="colorRemovePanelHeader">
+                <span data-i18n="colorRemoveTool">🚫 颜色剔除</span>
+                <button class="floating-panel-close" id="closeColorRemoveBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="removeColorLabel">要剔除的颜色：</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="color" id="removeColorPicker" value="#ff0000" style="width: 36px; height: 30px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                        <span id="removeColorValue" style="font-family: monospace; font-size: 0.85em;">#ff0000</span>
+                        <button id="pickRemoveColorBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.85em; margin-left: auto;" data-i18n="pickColor">取色</button>
+                    </div>
+                </div>
+                <button id="removeColorBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border: none;" data-i18n="executeColorRemove">🚫 剔除选中颜色</button>
+            </div>
+        </div>
+
         <section class="showcase-section" id="showcaseSection">
-            <h2 class="showcase-title">🎨 示例图纸</h2>
-            <p class="showcase-subtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
+            <h2 class="showcase-title" data-i18n="showcaseTitle">🎨 示例图纸</h2>
+            <p class="showcase-subtitle" data-i18n="showcaseSubtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
             <div class="showcase-grid" id="showcaseGrid">
             </div>
         </section>
 
         <section class="timer-section" id="timerSection" style="display: none;">
             <div class="timer-header">
-                <h2>⏱️ 矩阵计时</h2>
-                <button class="btn btn-primary" id="addTimerBtn">+ 添加计时器</button>
+                <h2 data-i18n="timerTitle">⏱️ 矩阵计时</h2>
+                <button class="btn btn-primary" id="addTimerBtn" data-i18n="addTimer">+ 添加计时器</button>
             </div>
             <div class="timers-grid" id="timersGrid">
                 <!-- 计时器会动态生成在这里 -->
@@ -73,33 +192,33 @@
         <div class="modal" id="timerModal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>添加计时器</h2>
+                    <h2 data-i18n="addTimerModalTitle">添加计时器</h2>
                     <button class="close-btn" id="closeTimerModalBtn">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="modal-hours">小时:</label>
+                        <label for="modal-hours" data-i18n="hours">小时:</label>
                         <input type="number" id="modal-hours" min="0" max="23" value="0">
                     </div>
                     <div class="form-group">
-                        <label for="modal-minutes">分钟:</label>
+                        <label for="modal-minutes" data-i18n="minutes">分钟:</label>
                         <input type="number" id="modal-minutes" min="0" max="59" value="0">
                     </div>
                     <div class="form-group">
-                        <label for="modal-title">标题:</label>
-                        <input type="text" id="modal-title" placeholder="计时器标题">
+                        <label for="modal-title" data-i18n="timerTitleLabel">标题:</label>
+                        <input type="text" id="modal-title" data-i18n-placeholder="timerTitlePlaceholder" placeholder="计时器标题">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" id="confirmAddTimerBtn">确认添加</button>
-                    <button class="btn btn-secondary" id="cancelAddTimerBtn">取消</button>
+                    <button class="btn btn-primary" id="confirmAddTimerBtn" data-i18n="confirmAddTimer">确认添加</button>
+                    <button class="btn btn-secondary" id="cancelAddTimerBtn" data-i18n="cancelBtn">取消</button>
                 </div>
             </div>
         </div>
 
         <section class="workspace" id="workspace" style="display: none;">
             
-            <div class="preview-section">
+            <div class="preview-section" id="originalSection">
                 <div class="preview-left">
                     <div class="preview-panel">
                         <h3 data-i18n="originalPreview">原图预览</h3>
@@ -154,30 +273,30 @@
                             </label>
                         </div>
                         <div class="control-group">
-                            <label>图片裁切</label>
+                            <label data-i18n="imageCropLabel">图片裁切</label>
                             <div class="crop-buttons">
-                                <button id="cropBtn" class="btn crop-btn">✂️ 裁切图片</button>
-                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;">↺ 重置图片</button>
-                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;">✓ 确认裁切</button>
-                                <button id="cancelCropBtn" class="btn crop-btn cancel" style="display: none;">✕ 取消</button>
+                                <button id="cropBtn" class="btn crop-btn" data-i18n="cropImage">✂️ 裁切图片</button>
+                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;" data-i18n="resetImage">↺ 重置图片</button>
+                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;" data-i18n="confirmCrop">✓ 确认裁切</button>
+                                <button id="cancelCropBtn" class="btn crop-btn cancel" style="display: none;" data-i18n="cancelCrop">✕ 取消</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mode-switch">
-                <button id="simpleModeBtn" class="mode-btn active">简单模式</button>
-                <button id="advancedModeBtn" class="mode-btn">高级模式</button>
+            <div class="mode-switch" id="modeSwitch">
+                <button id="simpleModeBtn" class="mode-btn active" data-i18n="simpleMode">简单模式</button>
+                <button id="advancedModeBtn" class="mode-btn" data-i18n="advancedMode">高级模式</button>
             </div>
 
-            <div class="preview-section">
+            <div class="preview-section" id="pixelatedSection">
                 <div class="preview-left">
                     <div class="preview-panel">
                         <h3 data-i18n="pixelatedPreview">像素化预览</h3>
                         <div class="pixel-mode-switch">
-                            <button id="pixelModeBtn" class="mode-btn active">批量像素化</button>
-                            <button id="carveModeBtn" class="mode-btn">雕刻分裂</button>
+                            <button id="pixelModeBtn" class="mode-btn active" data-i18n="batchPixelate">批量像素化</button>
+                            <button id="carveModeBtn" class="mode-btn" data-i18n="carveSplit">雕刻分裂</button>
                         </div>
                         <div class="canvas-wrapper">
                             <canvas id="pixelatedCanvas"></canvas>
@@ -186,7 +305,7 @@
                         <p id="pixelatedGridCount" class="size-info"></p>
                         <div class="canvas-zoom-control">
                             <label>
-                                <span>缩放：</span>
+                                <span data-i18n="zoomLabel">缩放：</span>
                                 <span id="pixelatedZoomValue">100%</span>
                             </label>
                             <input type="range" id="pixelatedZoomSlider" min="25" max="200" value="100">
@@ -215,12 +334,12 @@
                             <div class="flex-item checkbox-item">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="showPixelGrid" checked>
-                                    <span>显示像素划分线</span>
+                                    <span data-i18n="showPixelGridLine">显示像素划分线</span>
                                 </label>
                             </div>
                             <div class="flex-item color-item">
                                 <label>
-                                    <span>像素划分线颜色：</span>
+                                    <span data-i18n="pixelGridLineColor">像素划分线颜色：</span>
                                 </label>
                                 <input type="color" id="pixelGridColor" value="#000000">
                             </div>
@@ -235,14 +354,14 @@
                         <div class="control-group flex-row">
                             <div class="flex-item slider-half">
                                 <label>
-                                    <span>X轴偏移：</span>
+                                    <span data-i18n="offsetX">X轴偏移：</span>
                                     <span id="pixelGridOffsetXValue">0px</span>
                                 </label>
                                 <input type="range" id="pixelGridOffsetX" min="0" max="63" value="0">
                             </div>
                             <div class="flex-item slider-half">
                                 <label>
-                                    <span>Y轴偏移：</span>
+                                    <span data-i18n="offsetY">Y轴偏移：</span>
                                     <span id="pixelGridOffsetYValue">0px</span>
                                 </label>
                                 <input type="range" id="pixelGridOffsetY" min="0" max="63" value="0">
@@ -250,7 +369,7 @@
                         </div>
                         <div class="control-group advanced-only" id="quantizedPixelControls">
                             <label>
-                                <span>目标颜色数量：</span>
+                                <span data-i18n="targetColorCount">目标颜色数量：</span>
                                 <span id="targetColorCountValue">32</span>
                             </label>
                             <div class="color-count-inputs">
@@ -295,7 +414,7 @@
                             <div class="flex-item checkbox-item">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="enableNeighborSmooth">
-                                    <span>邻域平滑</span>
+                                    <span data-i18n="neighborhoodSmoothing">邻域平滑</span>
                                 </label>
                             </div>
                             <div class="flex-item checkbox-item">
@@ -308,9 +427,9 @@
                         <div class="control-group advanced-only flex-row">
                             <div class="flex-item full-width">
                                 <label>
-                                    <span>保留颜色数量：</span>
+                                    <span data-i18n="keepColorCount">保留颜色数量：</span>
                                     <span id="colorCountValue">8</span>
-                                    <span style="color: #888; margin-left: 8px;">(图片实际颜色: <span id="imageTotalColors">0</span>)</span>
+                                    <span style="color: #888; margin-left: 8px;">(<span data-i18n="imageActualColors">图片实际颜色</span>: <span id="imageTotalColors">0</span>)</span>
                                 </label>
                                 <div class="color-count-inputs">
                                     <input type="range" id="colorCountSlider" min="2" max="256" step="1" value="8">
@@ -335,14 +454,14 @@
                     <div id="carveControls" class="controls-section" style="display: none;">
                         <div class="control-group">
                             <label>
-                                <span>初始块大小：</span>
+                                <span data-i18n="initialBlockSize">初始块大小：</span>
                                 <span id="initialBlockSizeValue">200px</span>
                             </label>
                             <input type="range" id="initialBlockSizeSlider" min="50" max="400" step="20" value="200">
                         </div>
                         <div class="control-group">
                             <label>
-                                <span>最小块大小：</span>
+                                <span data-i18n="minBlockSize">最小块大小：</span>
                                 <span id="minBlockSizeValue">40px</span>
                             </label>
                             <input type="range" id="minBlockSizeSlider" min="10" max="100" value="40">
@@ -350,21 +469,21 @@
                         <div class="control-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="showCarveGrid" checked>
-                                <span>显示分裂网格</span>
+                                <span data-i18n="showSplitGrid">显示分裂网格</span>
                             </label>
                         </div>
                         <div class="control-group">
                             <div class="action-buttons" style="margin-bottom: 10px;">
-                                <button id="resetCarveBtn" class="btn btn-secondary">重置雕刻</button>
-                                <button id="splitAllBtn" class="btn btn-secondary">分裂全部</button>
+                                <button id="resetCarveBtn" class="btn btn-secondary" data-i18n="resetCarve">重置雕刻</button>
+                                <button id="splitAllBtn" class="btn btn-secondary" data-i18n="splitAll">分裂全部</button>
                             </div>
                             <div class="action-buttons">
-                                <button id="mergeSelectedBtn" class="btn btn-secondary">合并选中</button>
+                                <button id="mergeSelectedBtn" class="btn btn-secondary" data-i18n="mergeSelected">合并选中</button>
                             </div>
                         </div>
                         <div class="control-group">
                             <label>
-                                <span>提示：点击色块进行分裂</span>
+                                <span data-i18n="carveHint">提示：点击色块进行分裂</span>
                             </label>
                         </div>
                     </div>
@@ -388,7 +507,7 @@
                                     <p id="perlerSize" class="size-info" style="display:none;"></p>
                                     <div class="canvas-zoom-control">
                                         <label>
-                                            <span>缩放：</span>
+                                            <span data-i18n="zoomLabel">缩放：</span>
                                             <span id="perlerZoomValue">100%</span>
                                         </label>
                                         <input type="range" id="perlerZoomSlider" min="25" max="200" value="100">
@@ -463,7 +582,7 @@
                             </div>
                             <div class="flex-item slider-half">
                                 <label>
-                                    <span>拼豆大小（导出）：</span>
+                                    <span data-i18n="beadSizeExport">拼豆大小（导出）：</span>
                                     <span id="exportBeadSizeValue">32px</span>
                                 </label>
                                 <input type="range" id="exportBeadSizeSlider" min="3" max="96" step="1" value="32">
@@ -497,21 +616,21 @@
                             <div class="flex-item checkbox-item">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="showLargeGridLines">
-                                    <span>显示大格子线</span>
+                                    <span data-i18n="showLargeGridLines">显示大格子线</span>
                                 </label>
                             </div>
                             <div class="flex-item color-item">
-                                <label>大格子线颜色：</label>
+                                <label><span data-i18n="largeGridLineColor">大格子线颜色：</span></label>
                                 <input type="color" id="largeGridLineColor" value="#8B4513">
                             </div>
                         </div>
                         <div class="control-group advanced-only flex-row">
                             <div class="flex-item number-item">
-                                <label>大格子大小（每N个小格子）：</label>
+                                <label><span data-i18n="largeGridSize">大格子大小（每N个小格子）：</span></label>
                                 <input type="number" id="largeGridSize" min="0" max="100" value="5" style="width: 80px;">
                             </div>
                             <div class="flex-item number-item">
-                                <label>大格子线粗度：</label>
+                                <label><span data-i18n="largeGridLineWidth">大格子线粗度：</span></label>
                                 <input type="number" id="largeGridLineWidth" min="0.5" max="5" step="0.5" value="2" style="width: 80px;">
                             </div>
                         </div>
@@ -531,7 +650,7 @@
                         </div>
                         <div class="control-group">
                             <label>
-                                <span>导出高清缩放：</span>
+                                <span data-i18n="exportHighResScale">导出高清缩放：</span>
                                 <span id="exportScaleValue">1×</span>
                             </label>
                             <div style="display: flex; gap: 10px; align-items: center;">
@@ -547,8 +666,8 @@
                             </select>
                         </div>
                         <div class="action-buttons" style="margin-top: 10px;">
-                            <button id="exportInfoPaperCompressedBtn" class="btn" style="flex: 2; background: #ed8936; border-color: #ed8936; color: white;">📦 导出图纸信息</button>
-                            <button id="exportInfoPaperCompressedFileBtn" class="btn" style="flex: 1; min-width: 80px; max-width: 100px; background: #dd6b20; border-color: #dd6b20; color: white;">下载</button>
+                            <button id="exportInfoPaperCompressedBtn" class="btn" style="flex: 2; background: #ed8936; border-color: #ed8936; color: white;" data-i18n="exportPaperInfo">📦 导出图纸信息</button>
+                            <button id="exportInfoPaperCompressedFileBtn" class="btn" style="flex: 1; min-width: 80px; max-width: 100px; background: #dd6b20; border-color: #dd6b20; color: white;" data-i18n="download">下载</button>
                         </div>
                     </div>
                 </div>
@@ -591,16 +710,17 @@
                                 <button class="edit-tool-btn" data-tool="chainRazor" data-i18n="toolChainRazor">连锁剃刀</button>
                                 <button class="edit-tool-btn" data-tool="fill" data-i18n="toolFill">填充</button>
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
-                                <button class="edit-tool-btn" data-tool="colorConvert">🔄 颜色转换</button>
-                                <button class="edit-tool-btn" data-tool="canvasBounds">📐 画布边界</button>
-                                <button class="edit-tool-btn" data-tool="stroke">✏️ 描边</button>
+                                <button class="edit-tool-btn" data-tool="colorConvert" data-i18n="colorConvertTool">🔄 颜色转换</button>
+                                <button class="edit-tool-btn" data-tool="colorRemove" data-i18n="colorRemoveTool">🚫 颜色剔除</button>
+                                <button class="edit-tool-btn" data-tool="canvasBounds" data-i18n="toolCanvasBounds">📐 画布边界</button>
+                                <button class="edit-tool-btn" data-tool="stroke" data-i18n="strokeTool">✏️ 描边</button>
                             </div>
                         </div>
                         <div class="control-group">
-                            <label>图像翻转：</label>
+                            <label data-i18n="imageFlip">图像翻转：</label>
                             <div style="display: flex; gap: 10px;">
-                                <button id="flipHorizontalBtn" class="btn btn-secondary">↔️ 左右翻转</button>
-                                <button id="flipVerticalBtn" class="btn btn-secondary">↕️ 上下翻转</button>
+                                <button id="flipHorizontalBtn" class="btn btn-secondary" data-i18n="flipHorizontal">↔️ 左右翻转</button>
+                                <button id="flipVerticalBtn" class="btn btn-secondary" data-i18n="flipVertical">↕️ 上下翻转</button>
                             </div>
                         </div>
                         <div class="control-group flex-row">
@@ -620,14 +740,14 @@
                         </div>
                         <div class="control-group flex-row">
                             <div class="flex-item color-item">
-                                <label>橡皮擦颜色：</label>
+                                <label><span data-i18n="eraserColor">橡皮擦颜色：</span></label>
                                 <div class="current-color-wrapper">
                                     <input type="color" id="eraserColor" value="#ffffff">
                                     <span id="eraserColorValue">#ffffff</span>
                                 </div>
                             </div>
                             <div class="flex-item color-item">
-                                <label>剃刀工具底色：</label>
+                                <label data-i18n="razorBgColor">剃刀工具底色：</label>
                                 <div class="current-color-wrapper">
                                     <input type="color" id="razorBgColor" value="#00ff00">
                                     <span id="razorBgColorValue">#00ff00</span>
@@ -635,16 +755,7 @@
                             </div>
                         </div>
                         <div class="control-group">
-                            <label>颜色剔除：</label>
-                            <div class="current-color-wrapper">
-                                <input type="color" id="removeColorPicker" value="#ff0000">
-                                <span id="removeColorValue">#ff0000</span>
-                                <button id="pickRemoveColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
-                                <button id="removeColorBtn" class="btn btn-danger" style="margin-left: 10px;">剔除选中颜色</button>
-                            </div>
-                        </div>
-                        <div class="control-group">
-                            <label>连锁最大色块：</label>
+                            <label data-i18n="chainRazorMax">连锁最大色块：</label>
                             <div class="current-color-wrapper">
                                 <input type="number" id="chainRazorMax" value="1000" min="1" max="10000" style="width: 100px;">
                             </div>
@@ -653,7 +764,7 @@
                             <div class="flex-item checkbox-item">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="exportTransparentBackground">
-                                    <span>导出透明背景</span>
+                                    <span data-i18n="exportTransparentBg">导出透明背景</span>
                                 </label>
                             </div>
                             <div class="flex-item">
@@ -665,93 +776,42 @@
                                 <button id="undoCustomEditBtn" class="btn btn-secondary" data-i18n="undoEdit" style="width: 100%;">↩ 撤销</button>
                             </div>
                             <div class="flex-item">
-                                <button id="saveSnapshotBtn" class="btn btn-secondary" style="width: 100%;">💾 保存快照</button>
+                                <button id="saveSnapshotBtn" class="btn btn-secondary" data-i18n="saveSnapshot" style="width: 100%;">💾 保存快照</button>
                             </div>
                             <div class="flex-item">
-                                <button id="exportPixelImageBtn" class="btn btn-primary" style="width: 100%;">📥 导出像素图</button>
-                            </div>
-                        </div>
-                        <div class="control-group" id="colorConvertControls" style="display: none;">
-                            <label>颜色转换设置：</label>
-                            <div style="margin-top: 10px;">
-                                <div style="margin-bottom: 10px;">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">源颜色（要替换的颜色）：</label>
-                                    <div class="current-color-wrapper">
-                                        <input type="color" id="colorConvertSourceColor" value="#ffffff">
-                                        <span id="colorConvertSourceColorValue">#ffffff</span>
-                                        <button id="pickSourceColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 10px;">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">目标颜色（替换后的颜色）：</label>
-                                    <div class="current-color-wrapper">
-                                        <input type="color" id="colorConvertTargetColor" value="#000000">
-                                        <span id="colorConvertTargetColorValue">#000000</span>
-                                        <button id="pickTargetColorBtn" class="btn btn-secondary" style="margin-left: 10px;">取色</button>
-                                    </div>
-                                </div>
-                                <button id="executeColorConvertBtn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">▶ 执行颜色转换</button>
+                                <button id="exportPixelImageBtn" class="btn btn-primary" data-i18n="exportPixelImage" style="width: 100%;">📥 导出像素图</button>
                             </div>
                         </div>
                         <div class="control-group" id="canvasBoundsControls" style="display: none;">
-                            <label>📐 画布边界调整：</label>
+                            <label data-i18n="canvasBoundsLabel">📐 画布边界调整：</label>
                             <div class="flex-row" style="margin-top: 10px;">
                                 <div class="flex-item">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">左边界：</label>
-                                    <input type="number" id="canvasBoundsLeft" min="0" value="0" style="width: 100%;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;" data-i18n="canvasBoundsLeft">左边界：</label>
+                                    <input type="number" id="canvasBoundsLeft" value="0" style="width: 100%;">
                                 </div>
                                 <div class="flex-item">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">右边界：</label>
-                                    <input type="number" id="canvasBoundsRight" min="1" value="64" style="width: 100%;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;" data-i18n="canvasBoundsRight">右边界：</label>
+                                    <input type="number" id="canvasBoundsRight" value="64" style="width: 100%;">
                                 </div>
                             </div>
                             <div class="flex-row" style="margin-top: 10px;">
                                 <div class="flex-item">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">上边界：</label>
-                                    <input type="number" id="canvasBoundsTop" min="0" value="0" style="width: 100%;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;" data-i18n="canvasBoundsTop">上边界：</label>
+                                    <input type="number" id="canvasBoundsTop" value="0" style="width: 100%;">
                                 </div>
                                 <div class="flex-item">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">下边界：</label>
-                                    <input type="number" id="canvasBoundsBottom" min="1" value="64" style="width: 100%;">
+                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;" data-i18n="canvasBoundsBottom">下边界：</label>
+                                    <input type="number" id="canvasBoundsBottom" value="64" style="width: 100%;">
                                 </div>
                             </div>
                             <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                                当前显示尺寸：<span id="canvasBoundsCurrentSize">64 × 64</span>
+                                <span data-i18n="canvasBoundsCurrentSize">当前显示尺寸：</span><span id="canvasBoundsCurrentSize">64 × 64</span>
                             </div>
-                            <button id="resetCanvasBoundsBtn" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">重置边界</button>
+                            <button id="resetCanvasBoundsBtn" class="btn btn-secondary" data-i18n="resetCanvasBounds" style="width: 100%; margin-top: 10px;">重置边界</button>
                         </div>
-                        <div class="control-group" id="strokeControls" style="display: none;">
-                            <label>✏️ 描边设置：</label>
-                            <div style="margin-top: 10px;">
-                                <div style="margin-bottom: 12px;">
-                                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">描边类型：</label>
-                                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                            <input type="radio" name="strokeType" value="outer" checked>
-                                            <span>外描边（向外扩散）</span>
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                                            <input type="radio" name="strokeType" value="inner">
-                                            <span>内描边（向内侵蚀）</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 12px;">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">描边厚度：<span id="strokeThicknessValue">1</span> 格</label>
-                                    <input type="range" id="strokeThickness" min="1" max="10" step="1" value="1" style="width: 100%;">
-                                </div>
-                                <div style="margin-bottom: 12px;">
-                                    <label style="font-weight: 600; margin-bottom: 5px; display: block;">描边颜色：</label>
-                                    <div class="current-color-wrapper">
-                                        <input type="color" id="strokeColor" value="#000000">
-                                        <span id="strokeColorValue">#000000</span>
-                                    </div>
-                                </div>
-                                <button id="executeStrokeBtn" class="btn btn-primary" style="width: 100%; margin-top: 5px;">▶ 执行描边</button>
-                            </div>
-                        </div>
+
                         <div class="control-group" id="snapshotsList" style="display: none;">
-                            <label>保存的快照：</label>
+                            <label data-i18n="savedSnapshots">保存的快照：</label>
                             <div id="snapshotsContainer" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #f8f9fa;"></div>
                         </div>
                     </div>
