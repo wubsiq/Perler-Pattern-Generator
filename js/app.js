@@ -6040,7 +6040,7 @@ class PixelArtGenerator {
             document.querySelectorAll('.blank-size-btn').forEach(b => b.classList.remove('active'));
             this.blankCanvasWidth.value = 52;
             this.blankCanvasHeight.value = 52;
-            this.blankCanvasModal.style.display = 'block';
+            this.blankCanvasModal.style.display = 'flex';
         }
     }
 
@@ -6495,7 +6495,7 @@ function initMatrixTimer() {
     // 添加计时器
     addTimerBtn.addEventListener('click', () => {
         const modal = document.getElementById('timerModal');
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
         
         // 重置表单
         document.getElementById('modal-hours').value = '0';
