@@ -260,6 +260,7 @@ class PixelArtGenerator {
         this.edgeColorThresholdSlider = document.getElementById('edgeColorThresholdSlider');
         this.edgeColorThresholdValue = document.getElementById('edgeColorThresholdValue');
         this.regenerateDebounceTimer = null;
+        this.transparentColorDebounceTimer = null;
         
         this.pixelatedZoomSlider = document.getElementById('pixelatedZoomSlider');
         this.pixelatedZoomValue = document.getElementById('pixelatedZoomValue');
@@ -492,14 +493,18 @@ class PixelArtGenerator {
                 this.refreshPerlerChartDisplay();
             }
         });
-        this.transparentCellColor.addEventListener('input', () => {
-            if (this.transparentCellColorValue) {
-                this.transparentCellColorValue.textContent = this.transparentCellColor.value;
-            }
-            if (Object.keys(this.colorCounts).length > 0) {
-                this.refreshPerlerChartDisplay();
-            }
-        });
+        if (this.transparentCellColor) {
+            const transparentColorHandler = () => {
+                if (this.transparentCellColorValue) {
+                    this.transparentCellColorValue.textContent = this.transparentCellColor.value;
+                }
+                if (Object.keys(this.colorCounts).length > 0) {
+                    this.debouncedRefreshPerlerChart();
+                }
+            };
+            this.transparentCellColor.addEventListener('input', transparentColorHandler);
+            this.transparentCellColor.addEventListener('change', transparentColorHandler);
+        }
         this.gridLineWidth.addEventListener('input', () => {
             if (Object.keys(this.colorCounts).length > 0) {
                 this.refreshPerlerChartDisplay();
@@ -1800,6 +1805,15 @@ class PixelArtGenerator {
     refreshPerlerChartDisplay() {
         if (!this.perlerColors || !this.perlerColors.length) return;
         this.drawPerlerChartSync(this.perlerColors, this.perlerWidth, this.perlerHeight, this.colorSetSelect.value);
+    }
+
+    debouncedRefreshPerlerChart() {
+        if (this.transparentColorDebounceTimer) {
+            clearTimeout(this.transparentColorDebounceTimer);
+        }
+        this.transparentColorDebounceTimer = setTimeout(() => {
+            this.refreshPerlerChartDisplay();
+        }, 150);
     }
 
     updatePerlerChart() {
