@@ -634,7 +634,6 @@ input[type="range"]::-moz-range-thumb {
 
 /* 隐藏旧版快照功能（已被新的操作历史面板替代） */
 #saveSnapshotBtn,
-#exportPixelImageBtn,
 #snapshotsList {
     display: none !important;
 }
