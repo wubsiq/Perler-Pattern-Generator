@@ -42,7 +42,12 @@ class PixelArtGenerator {
         
         this.initElements();
         this.initEventListeners();
-        this.initShowcase();
+        // 延迟初始化示例区域，避免阻塞首屏渲染影响 LCP
+        if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(() => this.initShowcase(), { timeout: 1000 });
+        } else {
+            setTimeout(() => this.initShowcase(), 100);
+        }
     }
 
     initElements() {
@@ -6326,6 +6331,14 @@ class PixelArtGenerator {
             const preview = document.createElement('div');
             preview.className = 'showcase-preview showcase-skeleton-preview';
 
+            const name = document.createElement('div');
+            name.className = 'showcase-name showcase-skeleton-info';
+            name.style.height = '20px';
+            name.style.lineHeight = '20px';
+            name.style.width = '60%';
+            name.style.margin = '4px auto 4px';
+            name.style.borderRadius = '4px';
+
             const info = document.createElement('div');
             info.className = 'showcase-info showcase-skeleton-info';
             info.style.height = '18px';
@@ -6335,6 +6348,7 @@ class PixelArtGenerator {
             info.style.borderRadius = '4px';
 
             card.appendChild(preview);
+            card.appendChild(name);
             card.appendChild(info);
             container.appendChild(card);
         }

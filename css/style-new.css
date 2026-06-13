@@ -228,6 +228,7 @@ header h1 {
     display: flex;
     gap: 15px;
     align-items: stretch;
+    min-height: 320px;
 }
 
 .upload-area {
@@ -236,13 +237,14 @@ header h1 {
     padding: 60px 20px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
     background: #ffffff;
     flex: 1;
-    min-height: 200px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    box-sizing: border-box;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
@@ -2030,11 +2032,13 @@ input[type="color"]:focus {
 
     .upload-areas {
         flex-direction: column;
+        min-height: 280px;
     }
 
     .upload-area {
         padding: 30px 15px;
-        min-height: 120px;
+        min-height: 130px;
+        box-sizing: border-box;
     }
 
     .upload-icon {
