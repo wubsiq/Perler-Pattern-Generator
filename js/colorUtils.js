@@ -794,73 +794,64 @@ function sharpenImage(imageData, strength) {
 
 function quantizeColors(imageData, colorCount, excludedColors = new Set(), strategy = 'top-level') {
     const data = imageData.data;
-    const width = imageData.width;
-    const height = imageData.height;
-    const colors = [];
-    const colorMap = new Map();
     
-    // 1. 统计每种颜色的出现次数
+    // 1. 收集所有不被排除的唯一颜色
+    const uniqueColors = [];
+    const colorKeySet = new Set();
+    
     for (let i = 0; i < data.length; i += 4) {
-        const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
-        if (!colorMap.has(key)) {
-            colorMap.set(key, { r: data[i], g: data[i + 1], b: data[i + 2], count: 0 });
-            colors.push(colorMap.get(key));
-        }
-        colorMap.get(key).count++;
-    }
-    
-    // 2. 按出现次数从高到低排序
-    colors.sort((a, b) => b.count - a.count);
-    
-    // 3. 筛选出不被排除的颜色
-    let includedColors = colors.filter(color => !excludedColors.has(`${color.r},${color.g},${color.b}`));
-    
-    // 4. 确定目标颜色（前N种颜色）
-    let targetColors;
-    if (includedColors.length > 0) {
-        if (includedColors.length > colorCount) {
-            targetColors = includedColors.slice(0, colorCount);
-        } else {
-            targetColors = includedColors;
-        }
-    } else {
-        targetColors = colors.slice(0, Math.max(2, colorCount));
-    }
-    
-    // 5. 根据策略替换颜色
-    for (let i = 0; i < data.length; i += 4) {
-        let targetColor;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const key = `${r},${g},${b}`;
         
-        if (strategy === 'top-level') {
-            // 策略1：所有颜色都替换成第1种颜色（出现次数最多的颜色）
-            targetColor = targetColors[0];
-        } else if (strategy === 'layered') {
-            // 策略2：按层级替换，每种颜色替换成对应的层级颜色
-            const currentKey = `${data[i]},${data[i + 1]},${data[i + 2]}`;
-            const currentColor = colorMap.get(currentKey);
-            const colorIndex = colors.indexOf(currentColor);
-            const layerIndex = Math.min(Math.floor(colorIndex / (colors.length / targetColors.length)), targetColors.length - 1);
-            targetColor = targetColors[layerIndex];
-        } else {
-            // 默认策略：替换成最接近的颜色
-            let minDist = Infinity;
-            targetColor = targetColors[0];
-            
-            for (const color of targetColors) {
-                const dist = weightedRgbDistance(
-                    [data[i], data[i + 1], data[i + 2]],
-                    [color.r, color.g, color.b]
-                );
-                if (dist < minDist) {
-                    minDist = dist;
-                    targetColor = color;
-                }
+        if (excludedColors.has(key)) continue;
+        
+        if (!colorKeySet.has(key)) {
+            colorKeySet.add(key);
+            uniqueColors.push([r, g, b]);
+        }
+    }
+    
+    // 2. 使用 Median Cut 算法选择 N 个有代表性的颜色
+    //    （根据颜色空间的分布来选，确保覆盖所有色调，而不是只取高频色）
+    let palette;
+    if (uniqueColors.length > colorCount) {
+        palette = medianCutQuantize(uniqueColors, colorCount);
+    } else if (uniqueColors.length > 0) {
+        palette = uniqueColors;
+    } else {
+        // Fallback: 如果所有颜色都被排除，从原始数据取前 N 种
+        const fallbackColors = [];
+        const fallbackSet = new Set();
+        for (let i = 0; i < data.length && fallbackColors.length < Math.max(2, colorCount); i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            const key = `${r},${g},${b}`;
+            if (!fallbackSet.has(key)) {
+                fallbackSet.add(key);
+                fallbackColors.push([r, g, b]);
             }
         }
+        palette = fallbackColors;
+    }
+    
+    // 3. 将每个像素映射到调色板中最接近的颜色
+    //    缓存优化：同一种颜色不必重复计算最近距离
+    const mappingCache = new Map();
+    
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const key = `${r},${g},${b}`;
         
-        data[i] = targetColor.r;
-        data[i + 1] = targetColor.g;
-        data[i + 2] = targetColor.b;
+        let closest;
+        if (mappingCache.has(key)) {
+            closest = mappingCache.get(key);
+        } else {
+            closest = findClosestInPalette([r, g, b], palette);
+            mappingCache.set(key, closest);
+        }
+        
+        data[i] = closest[0];
+        data[i + 1] = closest[1];
+        data[i + 2] = closest[2];
     }
     
     return imageData;
