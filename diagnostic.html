@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>诊断: 我的图纸功能诊断</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }
+        h1 { color: #333; }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 8px; margin-top: 30px; }
+        .test-box { background: white; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #ddd; }
+        .ok { color: #28a745; font-weight: bold; }
+        .bad { color: #dc3545; font-weight: bold; }
+        .warn { color: #ffc107; font-weight: bold; }
+        button { padding: 8px 16px; font-size: 14px; cursor: pointer; margin: 5px; border: 1px solid #ccc; background: #007bff; color: white; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .log { background: #222; color: #0f0; padding: 15px; font-family: monospace; border-radius: 6px; max-height: 400px; overflow-y: auto; font-size: 12px; white-space: pre-wrap; }
+        .section-title { font-size: 1.1em; font-weight: bold; margin: 15px 0 10px 0; color: #333; }
+        code { background: #eee; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        iframe { width: 100%; height: 800px; border: 2px solid #ccc; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 我的图纸功能诊断工具</h1>
+
+    <div class="test-box">
+        <h2>步骤1：诊断当前页面</h2>
+        <p>点击下方按钮，直接在当前页面运行诊断：</p>
+        <button onclick="runDiagnostics()">运行诊断</button>
+        <button onclick="clearLog()">清空日志</button>
+        <button onclick="openInNewTab()">在新标签页打开 index.html</button>
+        <button onclick="testStorage()">测试 localStorage</button>
+    </div>
+
+    <div class="test-box">
+        <h2>诊断日志</h2>
+        <div class="log" id="log">等待运行诊断...</div>
+    </div>
+
+    <div class="test-box">
+        <h2>步骤2：打开真正的 index.html</h2>
+        <p>下方是真正的应用。在其中操作后，可以回到本页面查看诊断结果。</p>
+        <iframe id="testFrame" src="index.html"></iframe>
+    </div>
+
+    <script>
+        function log(msg, level = 'info') {
+            const logDiv = document.getElementById('log');
+            const prefix = level === 'ok' ? '✅' : level === 'bad' ? '❌' : level === 'warn' ? '⚠️' : 'ℹ️';
+            const color = level === 'ok' ? '#28a745' : level === 'bad' ? '#ff4444' : level === 'warn' ? '#ffaa00' : '#00ff00';
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<span style="color:${color}">[${time}] ${prefix} ${msg}</span>\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('日志已清空');
+        }
+
+        function openInNewTab() {
+            window.open('index.html', '_blank');
+            log('在新标签页打开了 index.html');
+        }
+
+        function testStorage() {
+            try {
+                localStorage.setItem('__test__', '1');
+                localStorage.removeItem('__test__');
+                log('localStorage 可用', 'ok');
+            } catch (e) {
+                log('localStorage 不可用: ' + e.message, 'bad');
+            }
+        }
+
+        function checkElement(id, description) {
+            const el = document.getElementById(id);
+            if (el) {
+                log(`${description} - 找到元素`, 'ok');
+                return el;
+            } else {
+                log(`${description} - 未找到元素`, 'bad');
+                return null;
+            }
+        }
+
+        async function runDiagnostics() {
+            document.getElementById('log').innerHTML = '';
+            log('========== 开始诊断 ==========');
+
+            // 1. 检查关键函数是否定义
+            log('--- 检查关键对象 ---');
+            const checks = [
+                ['MyDesignsManager', 'MyDesignsManager 类'],
+                ['InfoPaperConverter', 'InfoPaperConverter'],
+                ['InfoPaperCompressor', 'InfoPaperCompressor'],
+                ['PixelArtGenerator', 'PixelArtGenerator'],
+                ['getI18nText', '翻译函数'],
+            ];
+
+            checks.forEach(([name, desc]) => {
+                if (typeof window[name] !== 'undefined') {
+                    log(`${desc} 已定义`, 'ok');
+                } else {
+                    log(`${desc} 未定义 (${name})`, 'bad');
+                }
+            });
+
+            // 2. 检查 DOM 元素
+            log('--- 检查 DOM 元素 ---');
+            checkElement('saveToMyDesignsBtn', '保存按钮');
+            checkElement('myDesignsSection', '我的图纸 section');
+            checkElement('myDesignsGrid', '图纸列表网格');
+            checkElement('myDesignsEmpty', '空状态提示');
+            checkElement('importDesignBtn', '导入按钮');
+            checkElement('importDesignFile', '导入文件输入');
+
+            // 3. 检查导航按钮
+            log('--- 检查导航按钮 ---');
+            const navBtns = document.querySelectorAll('.nav-btn');
+            log(`找到 ${navBtns.length} 个导航按钮`);
+            navBtns.forEach((btn, i) => {
+                log(`导航按钮 ${i+1}: data-section="${btn.dataset.section}", text="${btn.textContent.trim()}"`);
+            });
+
+            // 4. 测试保存按钮
+            log('--- 测试保存按钮 ---');
+            const saveBtn = document.getElementById('saveToMyDesignsBtn');
+            if (saveBtn) {
+                saveBtn.click();
+                log('已触发保存按钮点击', 'ok');
+            }
+
+            // 5. 测试导航
+            log('--- 测试导航切换 ---');
+            const myDesignsBtn = Array.from(navBtns).find(b => b.dataset.section === 'myDesigns');
+            if (myDesignsBtn) {
+                myDesignsBtn.click();
+                const section = document.getElementById('myDesignsSection');
+                log(`点击我的图纸导航按钮后, myDesignsSection 的 display: ${section ? section.style.display : '未找到 section'}`, section && section.style.display === 'block' ? 'ok' : 'bad');
+            } else {
+                log('未找到 data-section="myDesigns" 的导航按钮', 'bad');
+            }
+
+            // 6. 测试 MyDesignsManager 功能
+            log('--- 测试 MyDesignsManager ---');
+            if (typeof MyDesignsManager !== 'undefined') {
+                try {
+                    const manager = new MyDesignsManager();
+                    log('MyDesignsManager 实例创建成功', 'ok');
+                    const designs = manager.getAllDesigns();
+                    log(`当前保存的图纸数量: ${designs.length}`, 'ok');
+
+                    // 测试保存/删除
+                    const testColors = [{ code: 'H1', count: 10 }];
+                    await manager.saveDesign(testColors, 5, 5, 'artkal');
+                    const afterSave = manager.getAllDesigns();
+                    log(`测试保存后图纸数量: ${afterSave.length}`, afterSave.length > 0 ? 'ok' : 'bad');
+
+                    if (afterSave.length > 0) {
+                        const lastId = afterSave[afterSave.length - 1].id;
+                        manager.deleteDesign(lastId);
+                        const afterDelete = manager.getAllDesigns();
+                        log(`测试删除后图纸数量: ${afterDelete.length}`, 'ok');
+                    }
+                } catch (e) {
+                    log('MyDesignsManager 出错: ' + e.message, 'bad');
+                    log('堆栈: ' + e.stack, 'bad');
+                }
+            }
+
+            log('========== 诊断完成 ==========');
+        }
+
+        window.addEventListener('load', () => {
+            log('页面加载完成');
+            log('提示: 直接在真正的页面中打开本工具，然后在其中测试功能');
+        });
+    </script>
+</body>
+</html>

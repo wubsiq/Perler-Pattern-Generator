@@ -2296,3 +2296,150 @@ input[type="color"]:focus {
         font-size: 0.95em;
     }
 }
+
+/* ============ 我的图纸 ============ */
+.my-designs-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.my-designs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.my-designs-header h2 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 1.5em;
+}
+
+.my-designs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.my-design-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.my-design-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.my-design-thumb {
+    width: 100%;
+    height: 160px;
+    object-fit: contain;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: block;
+}
+
+.my-design-thumb-placeholder {
+    width: 100%;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3em;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.my-design-info {
+    padding: 12px 15px;
+    flex: 1;
+}
+
+.my-design-size {
+    font-size: 1em;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+}
+
+.my-design-meta {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.my-design-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 15px;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.my-design-actions .btn {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 0.85em;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333 0%, #b21f2d 100%);
+}
+
+.my-designs-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .my-designs-section {
+        padding: 15px;
+    }
+
+    .my-designs-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .my-designs-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .my-design-thumb,
+    .my-design-thumb-placeholder {
+        height: 130px;
+    }
+
+    .my-design-actions {
+        flex-direction: column;
+    }
+
+    .my-design-actions .btn {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+}

@@ -5,14 +5,15 @@ class InfoPaperConverter {
 
     buildColorIndexMap(colorSetName) {
         if (!colorSets[colorSetName]) {
-            throw new Error(`未知的色系: ${colorSetName}`);
+            console.warn(`[InfoPaperConverter] 未知的颜色集: ${colorSetName}, 使用 mard291 作为回退`);
+            colorSetName = 'mard291';
         }
         const colorSet = colorSets[colorSetName];
         const colorToIndex = new Map();
         const indexToColor = new Map();
 
         colorToIndex.set('transparent', 0);
-        indexToColor.set(0, { name: 'transparent', rgb: [0, 0, 0], isTransparent: true });
+        indexToColor.set(0, { name: 'transparent', rgb: [255, 255, 255], isTransparent: true });
 
         colorSet.forEach((color, index) => {
             const colorKey = `${color.rgb[0]},${color.rgb[1]},${color.rgb[2]}`;
@@ -21,7 +22,7 @@ class InfoPaperConverter {
             indexToColor.set(index + 1, { ...color, isTransparent: false });
         });
 
-        return { colorToIndex, indexToColor };
+        return { colorToIndex, indexToColor, colorSetName: colorSetName };
     }
 
     toInfoPaper(perlerColors, colorSetName, width, height) {
@@ -29,7 +30,7 @@ class InfoPaperConverter {
             throw new Error('无效的拼豆数据');
         }
 
-        const { colorToIndex } = this.buildColorIndexMap(colorSetName);
+        const { colorToIndex, colorSetName: actualColorSet } = this.buildColorIndexMap(colorSetName);
 
         const pixelData = [];
         const colorCounts = {};
@@ -73,7 +74,7 @@ class InfoPaperConverter {
             metadata: {
                 width: width,
                 height: height,
-                colorSet: colorSetName,
+                colorSet: actualColorSet,
                 colorCounts: colorCounts
             },
             pixels: {

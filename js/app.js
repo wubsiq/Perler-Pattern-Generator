@@ -6482,7 +6482,7 @@ class PixelArtGenerator {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new PixelArtGenerator();
+    window._pixelArtGenerator = new PixelArtGenerator();
     initMatrixTimer();
 });
 
@@ -6492,11 +6492,241 @@ function initMatrixTimer() {
     const workspace = document.getElementById('workspace');
     const showcaseSection = document.getElementById('showcaseSection');
     const timerSection = document.getElementById('timerSection');
+    const myDesignsSection = document.getElementById('myDesignsSection');
     const addTimerBtn = document.getElementById('addTimerBtn');
     const timersGrid = document.getElementById('timersGrid');
     const brandTitle = document.getElementById('brandTitle');
-    
-    let timerCount = 0;
+
+    let myDesignsManager = new MyDesignsManager();
+
+    // 我的图纸 - 保存按钮
+    const saveToMyDesignsBtn = document.getElementById('saveToMyDesignsBtn');
+    if (saveToMyDesignsBtn) {
+        const originalText = saveToMyDesignsBtn.innerHTML;
+        saveToMyDesignsBtn.addEventListener('click', async () => {
+            const gen = window._pixelArtGenerator;
+            if (!gen || !gen.perlerColors || !gen.perlerColors.length) {
+                alert(getI18nText('alertNoPerlerRendered'));
+                return;
+            }
+            if (!myDesignsManager) myDesignsManager = new MyDesignsManager();
+            
+            // 显示 loading 状态
+            saveToMyDesignsBtn.disabled = true;
+            saveToMyDesignsBtn.innerHTML = '⏳ 保存中...';
+            
+            try {
+                let colorSet = gen.colorSetSelect ? gen.colorSetSelect.value : 'mard291';
+                if (!colorSets[colorSet]) {
+                    colorSet = 'mard291';
+                }
+                await myDesignsManager.saveDesign(gen.perlerColors, gen.perlerWidth, gen.perlerHeight, colorSet);
+                
+                // 显示成功状态
+                saveToMyDesignsBtn.innerHTML = '✅ 保存成功！';
+                setTimeout(() => {
+                    const goToMyDesigns = confirm(
+                        `${getI18nText('alertSaveSuccess')}\n\n是否立即前往"我的图纸"查看？`
+                    );
+                    if (goToMyDesigns) {
+                        const myDesignsNavBtn = Array.from(navBtns).find(b => b.dataset.section === 'myDesigns');
+                        if (myDesignsNavBtn) myDesignsNavBtn.click();
+                    }
+                }, 300);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                // 恢复按钮状态
+                setTimeout(() => {
+                    saveToMyDesignsBtn.disabled = false;
+                    saveToMyDesignsBtn.innerHTML = originalText;
+                }, 1500);
+            }
+        });
+    }
+
+    // 我的图纸 - 导入按钮
+    const importDesignBtn = document.getElementById('importDesignBtn');
+    const importDesignFile = document.getElementById('importDesignFile');
+    if (importDesignBtn && importDesignFile) {
+        const originalImportText = importDesignBtn.innerHTML;
+        importDesignBtn.addEventListener('click', () => importDesignFile.click());
+        importDesignFile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!myDesignsManager) myDesignsManager = new MyDesignsManager();
+            
+            importDesignBtn.disabled = true;
+            importDesignBtn.innerHTML = '⏳ 导入中...';
+            
+            try {
+                await myDesignsManager.importDesignFromFile(file);
+                importDesignBtn.innerHTML = '✅ 导入成功';
+                renderMyDesigns();
+                alert(getI18nText('alertImportSuccess'));
+                setTimeout(() => {
+                    importDesignBtn.innerHTML = originalImportText;
+                    importDesignBtn.disabled = false;
+                }, 1200);
+            } catch (err) {
+                importDesignBtn.innerHTML = originalImportText;
+                importDesignBtn.disabled = false;
+                alert(err.message);
+            }
+            importDesignFile.value = '';
+        });
+    }
+
+    function formatDate(ts) {
+        const d = new Date(ts);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function renderMyDesigns() {
+        if (!myDesignsManager) myDesignsManager = new MyDesignsManager();
+        const grid = document.getElementById('myDesignsGrid');
+        const empty = document.getElementById('myDesignsEmpty');
+        const count = document.getElementById('myDesignsCount');
+        if (!grid || !empty || !count) return;
+
+        const designs = myDesignsManager.getAllDesigns();
+        count.textContent = `(${designs.length}/${myDesignsManager.maxDesigns})`;
+
+        if (designs.length === 0) {
+            grid.innerHTML = '';
+            grid.appendChild(empty);
+            empty.style.display = 'block';
+            return;
+        }
+
+        grid.innerHTML = '';
+        for (const design of designs) {
+            const card = document.createElement('div');
+            card.className = 'my-design-card';
+            card.dataset.id = design.id;
+
+            const thumbHtml = design.thumbnail
+                ? `<img src="${design.thumbnail}" class="my-design-thumb" alt="">`
+                : `<div class="my-design-thumb-placeholder">🎨</div>`;
+
+            card.innerHTML = `
+                ${thumbHtml}
+                <div class="my-design-info">
+                    <div class="my-design-size">${design.width} × ${design.height}</div>
+                    <div class="my-design-meta">${design.totalColors} ${getI18nText('colors')} · ${formatDate(design.timestamp)}</div>
+                </div>
+                <div class="my-design-actions">
+                    <button class="btn btn-primary my-design-load" data-id="${design.id}" data-i18n="loadDesign">载入</button>
+                    <button class="btn btn-secondary my-design-export" data-id="${design.id}" data-i18n="exportDesign">导出</button>
+                    <button class="btn btn-danger my-design-delete" data-id="${design.id}" data-i18n="deleteDesign">删除</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+
+        grid.querySelectorAll('.my-design-load').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '⏳ 载入中...';
+                
+                try {
+                    const result = await myDesignsManager.loadDesign(id);
+                    const generator = window._pixelArtGenerator;
+                    if (generator) {
+                        generator.perlerColors = result.perlerColors;
+                        generator.perlerWidth = result.width;
+                        generator.perlerHeight = result.height;
+                        if (generator.colorSetSelect) {
+                            if (colorSets[result.colorSet]) {
+                                generator.colorSetSelect.value = result.colorSet;
+                            } else {
+                                console.warn(`颜色集 ${result.colorSet} 不存在，使用 mard291`);
+                                generator.colorSetSelect.value = 'mard291';
+                            }
+                        }
+                        
+                        // 先切换到工作区，再渲染
+                        if (generator.workspace) generator.workspace.style.display = 'block';
+                        if (generator.uploadSection) generator.uploadSection.style.display = 'none';
+                        if (generator.showcaseSection) generator.showcaseSection.style.display = 'none';
+                        if (myDesignsSection) myDesignsSection.style.display = 'none';
+                        
+                        navBtns.forEach(b => b.classList.remove('active'));
+                        const homeBtn = Array.from(navBtns).find(b => b.dataset.section === 'imageToPerler');
+                        if (homeBtn) homeBtn.classList.add('active');
+                        
+                        // 更新摘要信息
+                        generator.updatePerlerSummary(result.width, result.height, result.colorSet || 'mard291');
+                        
+                        // 最后渲染图表
+                        setTimeout(() => {
+                            generator.drawPerlerChart(result.perlerColors, result.width, result.height, result.colorSet || 'mard291');
+                        }, 50);
+                    }
+                    btn.innerHTML = '✅ 载入成功';
+                    alert(getI18nText('alertLoadSuccess'));
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 1000);
+                } catch (err) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(getI18nText('alertLoadFailed') + ': ' + err.message);
+                }
+            });
+        });
+
+        grid.querySelectorAll('.my-design-export').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '⏳ 导出中...';
+                
+                try {
+                    const json = await myDesignsManager.exportDesignToJSON(id);
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `perler-design-${id}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    btn.innerHTML = '✅ 已导出';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 1000);
+                    alert(getI18nText('alertExportSuccess'));
+                } catch (err) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(err.message);
+                }
+            });
+        });
+
+        grid.querySelectorAll('.my-design-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.dataset.id;
+                if (!confirm(getI18nText('confirmDeleteDesign'))) return;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '🗑️';
+                try {
+                    myDesignsManager.deleteDesign(id);
+                    renderMyDesigns();
+                } catch (err) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(err.message);
+                }
+            });
+        });
+    }
 
     function goToHomePage() {
         navBtns.forEach(b => b.classList.remove('active'));
@@ -6506,24 +6736,36 @@ function initMatrixTimer() {
         if (showcaseSection) showcaseSection.style.display = '';
         workspace.style.display = 'none';
         timerSection.style.display = 'none';
+        if (myDesignsSection) myDesignsSection.style.display = 'none';
     }
-    
+
     // 导航切换
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             navBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             if (btn.dataset.section === 'imageToPerler') {
                 uploadSection.style.display = 'block';
                 if (showcaseSection) showcaseSection.style.display = '';
                 workspace.style.display = 'none';
                 timerSection.style.display = 'none';
+                if (myDesignsSection) myDesignsSection.style.display = 'none';
+            } else if (btn.dataset.section === 'myDesigns') {
+                uploadSection.style.display = 'none';
+                if (showcaseSection) showcaseSection.style.display = 'none';
+                workspace.style.display = 'none';
+                timerSection.style.display = 'none';
+                if (myDesignsSection) {
+                    myDesignsSection.style.display = 'block';
+                    renderMyDesigns();
+                }
             } else if (btn.dataset.section === 'timer') {
                 uploadSection.style.display = 'none';
                 if (showcaseSection) showcaseSection.style.display = 'none';
                 workspace.style.display = 'none';
                 timerSection.style.display = 'block';
+                if (myDesignsSection) myDesignsSection.style.display = 'none';
             }
         });
     });

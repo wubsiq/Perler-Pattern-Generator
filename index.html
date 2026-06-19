@@ -34,6 +34,7 @@
                 </div>
                 <nav class="nav-bar">
                     <button class="nav-btn active" data-section="imageToPerler" data-i18n="navImageToPerler">图转拼豆</button>
+                    <button class="nav-btn" data-section="myDesigns" data-i18n="navMyDesigns">📁 我的图纸</button>
                     <button class="nav-btn" data-section="timer" data-i18n="navTimer">矩阵计时</button>
                     <button class="nav-btn" id="importInfoPaperBtn" data-section="import" data-i18n="navImportPaper">导入图纸</button>
                 </nav>
@@ -176,6 +177,24 @@
             <h2 class="showcase-title" data-i18n="showcaseTitle">🎨 示例图纸</h2>
             <p class="showcase-subtitle" data-i18n="showcaseSubtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
             <div class="showcase-grid" id="showcaseGrid">
+            </div>
+        </section>
+
+        <section class="my-designs-section" id="myDesignsSection" style="display: none;">
+            <div class="my-designs-header">
+                <h2 data-i18n="myDesignsTitle">📁 我的图纸</h2>
+                <div style="display: flex; gap: 10px;">
+                    <span id="myDesignsCount" style="align-self: center; color: #666; font-size: 0.9em;">0</span>
+                    <button class="btn btn-secondary" id="importDesignBtn" data-i18n="importDesign">📥 导入</button>
+                    <input type="file" id="importDesignFile" accept=".json" style="display: none;">
+                </div>
+            </div>
+            <div class="my-designs-grid" id="myDesignsGrid">
+                <div class="my-designs-empty" id="myDesignsEmpty" style="text-align: center; padding: 60px 20px; color: #999;">
+                    <div style="font-size: 3em; margin-bottom: 15px;">📂</div>
+                    <p data-i18n="noDesigns">还没有保存的图纸</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;" data-i18n="saveDesignHint">在拼豆化模块点击"保存到我的图纸"即可保存</p>
+                </div>
             </div>
         </section>
 
@@ -675,6 +694,9 @@
                         <div class="action-buttons" style="margin-top: 10px;">
                             <button id="exportInfoPaperCompressedBtn" class="btn" style="flex: 2; background: #ed8936; border-color: #ed8936; color: white;" data-i18n="exportPaperInfo">📦 导出图纸信息</button>
                             <button id="exportInfoPaperCompressedFileBtn" class="btn" style="flex: 1; min-width: 80px; max-width: 100px; background: #dd6b20; border-color: #dd6b20; color: white;" data-i18n="download">下载</button>
+                        </div>
+                        <div class="action-buttons" style="margin-top: 10px;">
+                            <button id="saveToMyDesignsBtn" class="btn btn-primary" style="flex: 1; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); border: none;" data-i18n="saveToMyDesigns">💾 保存到我的图纸</button>
                         </div>
                     </div>
                 </div>
