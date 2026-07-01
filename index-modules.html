@@ -411,6 +411,9 @@
                     const r = data[i];
                     const g = data[i + 1];
                     const b = data[i + 2];
+                    const a = data[i + 3];
+                    
+                    if (a < 128) continue;
                     
                     let closest = colorSet[0];
                     let minDist = Infinity;
@@ -496,8 +499,9 @@
                 }
             }
 
+            const totalBeads = Object.values(colorCounts).reduce((a, b) => a + b, 0);
             document.getElementById('perlerSummary').innerHTML = 
-                `<strong>总豆子:</strong> ${width * height} 颗 · <strong>颜色数:</strong> ${Object.keys(colorCounts).length} 种`;
+                `<strong>总豆子:</strong> ${totalBeads} 颗 · <strong>颜色数:</strong> ${Object.keys(colorCounts).length} 种`;
             document.getElementById('perlerWatermark').textContent = 
                 '豆师傅 - 拼豆图纸生成器';
 

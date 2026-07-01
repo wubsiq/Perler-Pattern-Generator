@@ -1898,7 +1898,7 @@ class PixelArtGenerator {
     }
     
     updatePerlerSummary(perlerWidth, perlerHeight, colorSetName) {
-        const totalBeads = perlerWidth * perlerHeight;
+        const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
         const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
         const perlerSummaryElement = document.getElementById('perlerSummary');
         if (perlerSummaryElement) {
@@ -2140,7 +2140,7 @@ class PixelArtGenerator {
         }
         
         // 在导出的图像上绘制摘要（放在顶部预留空间）
-        const totalBeads = perlerWidth * perlerHeight;
+        const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
         const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
         const summaryFontSize = cellSize * 1.3;
         
@@ -6732,11 +6732,7 @@ function initMatrixTimer() {
         navBtns.forEach(b => b.classList.remove('active'));
         const homeBtn = Array.from(navBtns).find(b => b.dataset.section === 'imageToPerler');
         if (homeBtn) homeBtn.classList.add('active');
-        uploadSection.style.display = 'block';
-        if (showcaseSection) showcaseSection.style.display = '';
-        workspace.style.display = 'none';
-        timerSection.style.display = 'none';
-        if (myDesignsSection) myDesignsSection.style.display = 'none';
+        window.location.href = 'workbench.html';
     }
 
     // 导航切换
@@ -6746,11 +6742,7 @@ function initMatrixTimer() {
             btn.classList.add('active');
 
             if (btn.dataset.section === 'imageToPerler') {
-                uploadSection.style.display = 'block';
-                if (showcaseSection) showcaseSection.style.display = '';
-                workspace.style.display = 'none';
-                timerSection.style.display = 'none';
-                if (myDesignsSection) myDesignsSection.style.display = 'none';
+                window.location.href = 'workbench.html';
             } else if (btn.dataset.section === 'myDesigns') {
                 uploadSection.style.display = 'none';
                 if (showcaseSection) showcaseSection.style.display = 'none';
@@ -6766,6 +6758,8 @@ function initMatrixTimer() {
                 workspace.style.display = 'none';
                 timerSection.style.display = 'block';
                 if (myDesignsSection) myDesignsSection.style.display = 'none';
+            } else if (btn.dataset.section === 'workbench') {
+                window.location.href = 'workbench.html';
             }
         });
     });

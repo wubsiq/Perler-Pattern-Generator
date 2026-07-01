@@ -114,10 +114,12 @@ class PerlerGenerator {
             for (let y = 0; y < perlerHeight; y++) {
                 for (let x = 0; x < perlerWidth; x++) {
                     const color = finalColors[y][x];
-                    if (finalCounts[color.name]) {
-                        finalCounts[color.name]++;
-                    } else {
-                        finalCounts[color.name] = 1;
+                    if (!color.isTransparent) {
+                        if (finalCounts[color.name]) {
+                            finalCounts[color.name]++;
+                        } else {
+                            finalCounts[color.name] = 1;
+                        }
                     }
                 }
             }

@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>豆师傅 - 工作区（新设计）</title>
     <link rel="stylesheet" href="css/workbench.css">
+    <script src="js/colors.js"></script>
+    <script src="js/colorUtils.js"></script>
+    <script src="modules/Pixelator.js"></script>
+    <script src="modules/PerlerGenerator.js"></script>
+    <script src="modules/InfoPaperConverter.js"></script>
+    <script src="modules/InfoPaperCompressor.js"></script>
+    <script src="modules/MyDesignsManager.js"></script>
 </head>
 <body class="workbench-body">
 
@@ -61,144 +68,20 @@
                 <h2>🎨 色块列表</h2>
                 <button class="panel-toggle" id="toggleLeftPanel" title="收起/展开色块面板 (←)">◀</button>
             </div>
-            <div class="panel-subsection" style="padding: 10px 16px; border-bottom: 2px solid #000;">
-                <input type="text" placeholder="搜索颜色..." class="color-search-input">
-            </div>
             
-            <div class="color-stats">
+            <div class="color-stats" id="colorStats">
                 <div class="stat-item">
                     <span class="stat-label">颜色</span>
-                    <span class="stat-value">42</span>
+                    <span class="stat-value" id="statColorCount">0</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">拼豆</span>
-                    <span class="stat-value">2,704</span>
-                </div>
-            </div>
-
-            <!-- 颜色分布迷你图表 -->
-            <div class="color-distribution">
-                <div class="distribution-label">颜色分布</div>
-                <div class="distribution-bar">
-                    <div class="distribution-segment" style="width: 18%; background: #FF6B6B;" title="H1: 156颗"></div>
-                    <div class="distribution-segment" style="width: 16%; background: #4ECDC4;" title="H2: 142颗"></div>
-                    <div class="distribution-segment" style="width: 14%; background: #45B7D1;" title="H3: 128颗"></div>
-                    <div class="distribution-segment" style="width: 12%; background: #96CEB4;" title="H4: 115颗"></div>
-                    <div class="distribution-segment" style="width: 10%; background: #FFEAA7;" title="H5: 98颗"></div>
-                    <div class="distribution-segment" style="width: 30%; background: #e0e0e0;" title="其他颜色"></div>
-                </div>
-                <div class="distribution-info">
-                    <span>前5色占 70%</span>
-                </div>
-            </div>
-
-            <!-- 筛选/排序工具栏 -->
-            <div class="color-toolbar">
-                <div class="color-filter-group">
-                    <button class="filter-btn active">全部</button>
-                    <button class="filter-btn">前10</button>
-                    <button class="filter-btn">常用</button>
-                </div>
-                <div class="color-sort-group">
-                    <button class="sort-btn active" title="按数量降序">↓数量</button>
-                    <button class="sort-btn" title="按色号">色号</button>
-                    <button class="sort-btn" title="按色相">色相</button>
+                    <span class="stat-value" id="statBeadCount">0</span>
                 </div>
             </div>
 
             <!-- 色块网格（5列布局） -->
-            <div class="color-list" id="colorList">
-                <div class="color-item active" data-name="H1" data-code="#FF6B6B" data-count="156" data-percent="5.77%">
-                    <div class="color-swatch" style="background: #FF6B6B;"></div>
-                    <span class="color-name">H1</span>
-                    <span class="color-count">156</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 90%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H2" data-code="#4ECDC4" data-count="142" data-percent="5.25%">
-                    <div class="color-swatch" style="background: #4ECDC4;"></div>
-                    <span class="color-name">H2</span>
-                    <span class="color-count">142</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 82%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H3" data-code="#45B7D1" data-count="128" data-percent="4.73%">
-                    <div class="color-swatch" style="background: #45B7D1;"></div>
-                    <span class="color-name">H3</span>
-                    <span class="color-count">128</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 74%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H4" data-code="#96CEB4" data-count="115" data-percent="4.25%">
-                    <div class="color-swatch" style="background: #96CEB4;"></div>
-                    <span class="color-name">H4</span>
-                    <span class="color-count">115</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 66%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H5" data-code="#FFEAA7" data-count="98" data-percent="3.62%">
-                    <div class="color-swatch" style="background: #FFEAA7;"></div>
-                    <span class="color-name">H5</span>
-                    <span class="color-count">98</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 56%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H6" data-code="#F39C12" data-count="87" data-percent="3.22%">
-                    <div class="color-swatch" style="background: #F39C12;"></div>
-                    <span class="color-name">H6</span>
-                    <span class="color-count">87</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 50%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H7" data-code="#2C3E50" data-count="76" data-percent="2.81%">
-                    <div class="color-swatch" style="background: #2C3E50;"></div>
-                    <span class="color-name">H7</span>
-                    <span class="color-count">76</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 44%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H8" data-code="#8E44AD" data-count="65" data-percent="2.40%">
-                    <div class="color-swatch" style="background: #8E44AD;"></div>
-                    <span class="color-name">H8</span>
-                    <span class="color-count">65</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 37%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H9" data-code="#E74C3C" data-count="54" data-percent="2.00%">
-                    <div class="color-swatch" style="background: #E74C3C;"></div>
-                    <span class="color-name">H9</span>
-                    <span class="color-count">54</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 31%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H10" data-code="#16A085" data-count="43" data-percent="1.59%">
-                    <div class="color-swatch" style="background: #16A085;"></div>
-                    <span class="color-name">H10</span>
-                    <span class="color-count">43</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 25%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H11" data-code="#FF8787" data-count="38" data-percent="1.41%">
-                    <div class="color-swatch" style="background: #FF8787;"></div>
-                    <span class="color-name">H11</span>
-                    <span class="color-count">38</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 22%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H12" data-code="#F8B4B4" data-count="35" data-percent="1.29%">
-                    <div class="color-swatch" style="background: #F8B4B4;"></div>
-                    <span class="color-name">H12</span>
-                    <span class="color-count">35</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 20%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H13" data-code="#FFE4E4" data-count="30" data-percent="1.11%">
-                    <div class="color-swatch" style="background: #FFE4E4;"></div>
-                    <span class="color-name">H13</span>
-                    <span class="color-count">30</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 17%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H14" data-code="#FFB6C1" data-count="28" data-percent="1.04%">
-                    <div class="color-swatch" style="background: #FFB6C1;"></div>
-                    <span class="color-name">H14</span>
-                    <span class="color-count">28</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 16%;"></div></div>
-                </div>
-                <div class="color-item" data-name="H15" data-code="#D4A574" data-count="25" data-percent="0.92%">
-                    <div class="color-swatch" style="background: #D4A574;"></div>
-                    <span class="color-name">H15</span>
-                    <span class="color-count">25</span>
-                    <div class="color-mini-bar"><div class="color-mini-bar-fill" style="width: 14%;"></div></div>
-                </div>
-            </div>
+            <div class="color-list" id="colorList"></div>
 
             <!-- 色块悬停详情浮层 -->
             <div class="color-tooltip" id="colorTooltip">
@@ -222,6 +105,9 @@
                 </div>
             </div>
         </aside>
+
+        <!-- 隐藏的文件输入 -->
+        <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
 
         <!-- 中间：画布区域 -->
         <section class="canvas-area">
@@ -269,19 +155,12 @@
                     </button>
                 </div>
 
-                <div class="canvas-info">
-                    <span class="info-badge info-size">52 × 52</span>
-                    <span class="info-badge info-beads">2,704 颗</span>
-                    <span class="info-badge info-colors">42 色</span>
-                    <span class="info-badge info-zoom" id="zoomBadge">100%</span>
-                </div>
-
                 <div class="toolbar-right">
                     <button class="tool-btn active" id="toggleGrid" title="网格线 (G)">
                         <span>⊞</span>
                         <small>网格</small>
                     </button>
-                    <button class="tool-btn" id="toggleCoords" title="坐标显示 (C)">
+                    <button class="tool-btn active" id="toggleCoords" title="坐标显示 (C)">
                         <span>🔢</span>
                         <small>坐标</small>
                     </button>
@@ -304,19 +183,33 @@
                     <small>控制</small>
                     <span>◀</span>
                 </button>
-                <div class="canvas-transform" id="canvasTransform">
-                    <div class="perler-canvas" id="perlerCanvas">
-                        <div class="perler-grid" id="perlerGrid" style="
-                            display: grid;
-                            grid-template-columns: repeat(16, 1fr);
-                            gap: 1px;
-                            background: #000;
-                            padding: 1px;
-                            width: 400px;
-                            height: 400px;
-                        "></div>
+
+                <!-- 上传提示区域（仅在未上传图片时显示） -->
+                <div class="upload-prompt" id="uploadPrompt">
+                    <div class="upload-prompt-content">
+                        <div class="upload-prompt-icon">📷</div>
+                        <div class="upload-prompt-title">上传图片开始设计</div>
+                        <div class="upload-prompt-hint">支持 JPG、PNG、GIF 等格式</div>
+                        <button class="btn btn-primary" id="uploadBtn">📁 选择图片</button>
+                        <div class="upload-prompt-tips">
+                            <div>① 上传图片</div>
+                            <div>② 设置目标尺寸</div>
+                            <div>③ 像素化处理</div>
+                            <div>④ 拼豆配色</div>
+                            <div>⑤ 保存/导出</div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- 动态画布容器 -->
+                <div class="canvas-transform" id="canvasTransform" style="display: none;">
+                    <div class="perler-canvas" id="perlerCanvas">
+                        <canvas id="workCanvas" width="400" height="400"></canvas>
+                    </div>
+                </div>
+
+                <!-- 画笔预览 -->
+                <div id="brushCursor" class="brush-cursor"></div>
 
                 <!-- 坐标提示 -->
                 <div class="coords-hint" id="coordsHint">
@@ -337,47 +230,62 @@
             </div>
 
             <!-- 原图模式面板 -->
-            <div class="control-panel panel-original">
+            <div class="control-panel panel-original active">
                 <div class="panel-header">
                     <h2>🖼️ 原图设置</h2>
                 </div>
-                
+
+                <div class="control-group">
+                    <label>上传图片</label>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="uploadBtn2">📁 选择图片</button>
+                        <button class="btn btn-secondary" id="reuploadBtn" style="display:none;">🔄 重新上传</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>图片信息</label>
+                    <div class="info-block" id="imageInfo">
+                        <span>未上传图片</span>
+                    </div>
+                </div>
+
                 <div class="control-group">
                     <label>目标尺寸</label>
                     <div class="size-inputs">
-                        <input type="number" value="52" min="16">
+                        <input type="number" id="targetWidth" value="52" min="16" max="200">
                         <span>×</span>
-                        <input type="number" value="52" min="16">
+                        <input type="number" id="targetHeight" value="52" min="16" max="200">
                     </div>
                 </div>
 
                 <div class="control-group">
                     <label>预设尺寸</label>
                     <div class="preset-sizes">
-                        <button class="preset-btn active">52×52</button>
-                        <button class="preset-btn">64×64</button>
-                        <button class="preset-btn">100×100</button>
-                        <button class="preset-btn">128×128</button>
+                        <button class="preset-btn active" data-size="52">52×52</button>
+                        <button class="preset-btn" data-size="64">64×64</button>
+                        <button class="preset-btn" data-size="100">100×100</button>
+                        <button class="preset-btn" data-size="128">128×128</button>
                     </div>
                 </div>
 
                 <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" checked>
+                        <input type="checkbox" id="keepAspectRatio" checked>
                         <span>保持宽高比</span>
                     </label>
                 </div>
 
                 <div class="control-group">
-                    <label>图片裁切</label>
-                    <div class="action-buttons">
-                        <button class="btn btn-secondary">✂️ 裁切图片</button>
-                        <button class="btn btn-secondary">↺ 重置</button>
+                    <label>显示单元大小</label>
+                    <div class="slider-input">
+                        <input type="range" id="cellSizeSlider" min="6" max="30" value="12">
+                        <span class="slider-value" id="cellSizeValue">12 px/格</span>
                     </div>
                 </div>
 
                 <div class="control-group">
-                    <button class="btn btn-primary full-width">
+                    <button class="btn btn-primary full-width" id="goToPixelBtn">
                         ➡️ 继续到像素化
                     </button>
                 </div>
@@ -388,116 +296,339 @@
                 <div class="panel-header">
                     <h2>🔳 像素化设置</h2>
                 </div>
-                
-                <div class="control-group">
-                    <label>像素化方法</label>
-                    <select>
-                        <option>马赛克化（平均）</option>
-                        <option selected>主要颜色（推荐）</option>
-                        <option>量化像素化</option>
-                        <option>像素艺术</option>
-                    </select>
-                </div>
 
-                <div class="control-group">
-                    <label>颜色深度</label>
-                    <div class="slider-input">
-                        <input type="range" min="8" max="256" value="32">
-                        <span class="slider-value">32 色</span>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label>锐化强度</label>
-                    <div class="slider-input">
-                        <input type="range" min="0" max="100" value="50">
-                        <span class="slider-value">50%</span>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label>边缘增强</label>
-                    <div class="slider-input">
-                        <input type="range" min="0" max="100" value="30">
-                        <span class="slider-value">30%</span>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked>
-                        <span>保留细节</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox">
-                        <span>反锯齿处理</span>
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <button class="btn btn-primary full-width">
-                        ➡️ 继续到拼豆匹配
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle" data-section="pixel-params">
+                        <span class="toggle-icon">▼</span>
+                        <span>像素化参数</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- 拼豆模式面板 -->
-            <div class="control-panel panel-perler active">
-                <div class="panel-header">
-                    <h2>🔵 拼豆设置</h2>
-                </div>
-
-                <div class="control-group">
-                    <label>拼豆色板</label>
-                    <select>
-                        <option>豆豆专属色板（42色）</option>
-                        <option selected>标准拼豆色板（36色）</option>
-                        <option>艺术拼豆色板（24色）</option>
-                        <option>自定义色板</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>颜色匹配算法</label>
-                    <select>
-                        <option>最近距离匹配</option>
-                        <option selected>加权RGB匹配（推荐）</option>
-                        <option>LAB色彩空间</option>
-                        <option>感知色彩匹配</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>颜色容差</label>
-                    <div class="slider-input">
-                        <input type="range" min="0" max="100" value="20">
-                        <span class="slider-value">20%</span>
+                    <div class="section-content">
+                        <div class="control-group">
+                            <label>目标尺寸</label>
+                            <div class="size-inputs">
+                                <div>
+                                    <label>宽度：</label>
+                                    <input type="number" id="widthInput" min="16" max="4096">
+                                    <span>px</span>
+                                </div>
+                                <div>
+                                    <label>高度：</label>
+                                    <input type="number" id="heightInput" min="16" max="4096">
+                                    <span>px</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>预设尺寸</label>
+                            <div class="preset-sizes">
+                                <button class="preset-btn" data-width="64" data-height="64">64×64</button>
+                                <button class="preset-btn" data-width="128" data-height="128">128×128</button>
+                                <button class="preset-btn" data-width="256" data-height="256">256×256</button>
+                                <button class="preset-btn" data-width="512" data-height="512">512×512</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="keepRatioCheckbox" checked>
+                                <span>保持宽高比</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>像素化方法</label>
+                            <select id="pixelMethod">
+                                <option value="mosaic">马赛克化（平均）</option>
+                                <option value="majority" selected>主要颜色（推荐）</option>
+                                <option value="quantized">量化像素化</option>
+                                <option value="pixel-art">像素艺术</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>像素块大小：<span id="pixelSizeValue" class="slider-value-inline">16</span> <span id="gridCountValue" class="slider-value-inline" style="color: #666; font-weight: normal;">(0 × 0)</span></label>
+                            <input type="range" id="pixelSizeSlider" min="1" max="64" value="16">
+                        </div>
                     </div>
                 </div>
 
-                <div class="control-group">
-                    <label>最小色块尺寸</label>
-                    <div class="slider-input">
-                        <input type="range" min="1" max="10" value="1">
-                        <span class="slider-value">1 豆</span>
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle collapsed" data-section="pixel-grid">
+                        <span class="toggle-icon">▶</span>
+                        <span>像素划分线</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showPixelGrid" checked>
+                                <span>显示像素划分线</span>
+                            </label>
+                        </div>
+                        <div class="control-group grid-controls" data-grid-only="true">
+                            <label>像素划分线颜色</label>
+                            <input type="color" id="pixelGridColor" value="#000000">
+                        </div>
+                        <div class="control-group grid-controls" data-grid-only="true">
+                            <label>像素划分线粗度：<span id="gridThicknessValue" class="slider-value-inline">1</span></label>
+                            <input type="range" id="pixelGridThickness" min="1" max="4" step="1" value="1">
+                        </div>
                     </div>
                 </div>
 
-                <div class="control-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked>
-                        <span>使用白色作为背景</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox">
-                        <span>限制颜色种类</span>
-                    </label>
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle collapsed" data-section="pixel-offset">
+                        <span class="toggle-icon">▶</span>
+                        <span>网格偏移</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group">
+                            <label>X 轴偏移：<span id="offsetXValue" class="slider-value-inline">0</span></label>
+                            <input type="range" id="pixelGridOffsetX" min="0" max="31" value="0">
+                        </div>
+                        <div class="control-group">
+                            <label>Y 轴偏移：<span id="offsetYValue" class="slider-value-inline">0</span></label>
+                            <input type="range" id="pixelGridOffsetY" min="0" max="31" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle collapsed" data-section="pixel-postprocess">
+                        <span class="toggle-icon">▶</span>
+                        <span>像素化后处理</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableContrast" checked>
+                                <span>增强对比度</span>
+                            </label>
+                        </div>
+                        <div class="control-group post-process-controls" data-contrast-only="true">
+                            <label>对比度强度：<span id="contrastValue" class="slider-value-inline">1.3</span>x</label>
+                            <input type="range" id="contrastSlider" min="0.5" max="3" step="0.1" value="1.3">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableSharpen" checked>
+                                <span>图片锐化</span>
+                            </label>
+                        </div>
+                        <div class="control-group post-process-controls" data-sharpen-only="true">
+                            <label>锐化强度：<span id="sharpenStrengthValue" class="slider-value-inline">0.5</span></label>
+                            <input type="range" id="sharpenStrength" min="0.1" max="2.0" step="0.1" value="0.5">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableNeighborSmooth">
+                                <span>邻域平滑</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableColorQuantize">
+                                <span>颜色量化</span>
+                            </label>
+                        </div>
+                        <div class="control-group post-process-controls" data-quantize-only="true">
+                            <label>保留颜色数量：<span id="targetColorCountValue" class="slider-value-inline">8</span>（实际：<span id="pixelActualColors" class="slider-value-inline">-</span>）</label>
+                            <input type="range" id="targetColorCount" min="2" max="256" value="8">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="control-group">
                     <div class="action-buttons">
-                        <button class="btn btn-primary">🔄 重新计算</button>
-                        <button class="btn btn-secondary">📋 查看材料清单</button>
+                        <button class="btn btn-secondary" id="applyPixelBtn">🔄 重新像素化</button>
+                        <button class="btn btn-primary" id="goToPerlerBtn">➡️ 拼豆匹配</button>
+                        <button class="btn btn-tertiary" id="downloadPixelBtn">💾 下载像素图</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 拼豆模式面板 -->
+            <div class="control-panel panel-perler">
+                <div class="panel-header">
+                    <h2>💎 拼豆设置</h2>
+                </div>
+
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle perler-toggle" data-section="perler-color">
+                        <span class="toggle-icon">▼</span>
+                        <span>颜色匹配</span>
+                    </button>
+                    <div class="section-content">
+                        <div class="control-group">
+                            <label>颜色套装</label>
+                            <select id="colorSetSelect">
+                                <option value="mard221">Mard 221色</option>
+                                <option value="mard291" selected>Mard 291色 (默认)</option>
+                                <option value="mard291Refined">Mard 291色-精炼 (精简版)</option>
+                                <option value="mard24">Mard 24色</option>
+                                <option value="perler24">Perler 24色</option>
+                                <option value="perler48">Perler 48色</option>
+                                <option value="perler72">Perler 72色</option>
+                                <option value="hama">Hama (10色)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>颜色映射方法</label>
+                            <select id="colorMappingMethod">
+                                <option value="cie2000" selected>CIEDE2000 (最精确)</option>
+                                <option value="cie94">CIE94 (精确)</option>
+                                <option value="cie76">CIE76 (Lab)</option>
+                                <option value="weighted-rgb">加权RGB</option>
+                                <option value="hsl">HSL色彩空间</option>
+                                <option value="hsv">HSV色彩空间</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableNeighborSmooth" checked>
+                                <span>邻域平滑</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle perler-toggle collapsed" data-section="perler-appearance">
+                        <span class="toggle-icon">▶</span>
+                        <span>图纸外观</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group">
+                            <label>图纸样式</label>
+                            <select id="chartStyle">
+                                <option value="color" selected>彩色图纸</option>
+                                <option value="color-with-code">彩色图纸（带编号）</option>
+                                <option value="bw">黑白图纸（带编号）</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>拼豆形状</label>
+                            <select id="beadShape">
+                                <option value="square" selected>正方形</option>
+                                <option value="circle">圆形</option>
+                                <option value="ring">圆环</option>
+                                <option value="round-square">圆角正方形</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>透明格颜色</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="transparentCellColor" value="#ffffff" style="width: 40px; height: 28px;">
+                                <span id="transparentCellColorValue" style="font-size: 12px; color: #666;">#ffffff</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle perler-toggle collapsed" data-section="perler-grid">
+                        <span class="toggle-icon">▶</span>
+                        <span>网格与坐标</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group flex-row">
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showPerlerGrid" checked>
+                                    <span>显示网格线</span>
+                                </label>
+                            </div>
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showPerlerCoords" checked>
+                                    <span>显示坐标数字</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item">
+                                <label>网格线颜色</label>
+                                <input type="color" id="perlerGridColor" value="#000000" style="width: 100%; height: 28px;">
+                            </div>
+                            <div class="flex-item">
+                                <label>网格线粗度</label>
+                                <input type="number" id="perlerGridLineWidth" min="0" max="5" step="0.5" value="1" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item checkbox-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="showPerlerLargeGrid">
+                                    <span>显示大格子线</span>
+                                </label>
+                            </div>
+                            <div class="flex-item">
+                                <label>大格子线颜色</label>
+                                <input type="color" id="perlerLargeGridColor" value="#8B4513" style="width: 100%; height: 28px;">
+                            </div>
+                        </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item">
+                                <label>大格子大小（每N个）</label>
+                                <input type="number" id="perlerLargeGridSize" min="0" max="100" value="5" style="width: 100%;">
+                            </div>
+                            <div class="flex-item">
+                                <label>大格子线粗度</label>
+                                <input type="number" id="perlerLargeGridLineWidth" min="0.5" max="5" step="0.5" value="2" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>坐标数字颜色</label>
+                            <input type="color" id="perlerCoordNumberColor" value="#000000" style="width: 100%; height: 28px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pixel-section collapsible-section">
+                    <button class="section-toggle perler-toggle collapsed" data-section="perler-export">
+                        <span class="toggle-icon">▶</span>
+                        <span>水印与导出</span>
+                    </button>
+                    <div class="section-content collapsed">
+                        <div class="control-group">
+                            <label>水印文本</label>
+                            <input type="text" id="watermarkText" value="豆师傅- dsf666.pages.dev" style="width: 100%;">
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" id="applyPerlerBtn">🔄 渲染拼豆图纸</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary" id="smartOptimizeBtn">🧠 智能优化</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>导出高清缩放: <span id="exportScaleValue">1×</span></label>
+                            <input type="range" id="exportScaleSlider" min="1" max="16" step="0.5" value="1">
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" id="downloadPerlerPNGBtn" style="flex: 2;">💾 PNG 图纸</button>
+                                <button class="btn btn-secondary" id="downloadPerlerSVGBtn" style="flex: 2;">💾 SVG 图纸</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" id="downloadPerlerPNGLegendBtn" style="flex: 2;">📊 PNG (带色板)</button>
+                                <button class="btn btn-secondary" id="downloadPerlerSVGLegendBtn" style="flex: 2;">📊 SVG (带色板)</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <div class="action-buttons">
+                                <button class="btn btn-tertiary" id="exportInfoPaperBtn" style="flex: 2;">📦 导出图纸信息</button>
+                                <button class="btn btn-tertiary" id="downloadInfoPaperBtn" style="flex: 2;">⬇️ 下载信息</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>设计信息</label>
+                    <div class="info-block" id="perlerInfo">
+                        <span>等待计算...</span>
                     </div>
                 </div>
             </div>
@@ -508,71 +639,51 @@
                     <h2>✏️ 自定义编辑</h2>
                 </div>
 
-                <div class="control-group">
+                <div class="control-group-horizontal">
                     <label>绘图工具</label>
-                    <div class="tool-picker">
-                        <button class="tool-pick active" title="画笔">
-                            <span>✏️</span><small>画笔</small>
+                    <div class="tool-picker-horizontal">
+                        <button class="tool-pick-horizontal active" data-tool="brush">
+                            <span>✏️</span>
                         </button>
-                        <button class="tool-pick" title="橡皮">
-                            <span>🧽</span><small>橡皮</small>
+                        <button class="tool-pick-horizontal" data-tool="eraser">
+                            <span>🧽</span>
                         </button>
-                        <button class="tool-pick" title="填充">
-                            <span>🪣</span><small>填充</small>
-                        </button>
-                        <button class="tool-pick" title="取色">
-                            <span>💧</span><small>取色</small>
-                        </button>
-                        <button class="tool-pick" title="选区">
-                            <span>⬛</span><small>选区</small>
-                        </button>
-                        <button class="tool-pick" title="移动">
-                            <span>✋</span><small>移动</small>
+                        <button class="tool-pick-horizontal" data-tool="fill">
+                            <span>🪣</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="control-group">
+                <div class="control-group-horizontal">
+                    <label>画笔颜色</label>
+                    <div class="color-picker-wrapper">
+                        <input type="color" id="customBrushColor" value="#ff0000">
+                        <span id="customBrushColorLabel">红色</span>
+                    </div>
+                </div>
+
+                <div class="control-group-horizontal">
                     <label>画笔大小</label>
-                    <div class="brush-sizes">
-                        <button class="brush-size" data-size="1">
-                            <span class="brush-dot" style="width: 8px; height: 8px;"></span>
-                        </button>
-                        <button class="brush-size active" data-size="2">
-                            <span class="brush-dot" style="width: 14px; height: 14px;"></span>
-                        </button>
-                        <button class="brush-size" data-size="3">
-                            <span class="brush-dot" style="width: 20px; height: 20px;"></span>
-                        </button>
-                        <button class="brush-size" data-size="4">
-                            <span class="brush-dot" style="width: 26px; height: 26px;"></span>
-                        </button>
+                    <div class="brush-sizes-horizontal">
+                        <button class="brush-size-horizontal active" data-size="1">1</button>
+                        <button class="brush-size-horizontal" data-size="2">2</button>
+                        <button class="brush-size-horizontal" data-size="3">3</button>
+                        <button class="brush-size-horizontal" data-size="5">5</button>
                     </div>
                 </div>
 
                 <div class="control-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" checked>
-                        <span>吸附到网格</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox">
-                        <span>对称绘制</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox">
-                        <span>显示参考线</span>
+                        <input type="checkbox" id="autoSaveHistory" checked>
+                        <span>自动记录操作历史</span>
                     </label>
                 </div>
 
                 <div class="control-group">
                     <div class="action-buttons">
-                        <button class="btn btn-secondary">↶ 撤销</button>
-                        <button class="btn btn-secondary">↷ 重做</button>
+                        <button class="btn btn-secondary" id="exportJSONBtn">📥 导出 JSON</button>
+                        <button class="btn btn-primary" id="saveDesignBtn">💾 保存设计</button>
                     </div>
-                    <button class="btn btn-primary full-width" style="margin-top: 8px;">
-                        📥 导出图纸
-                    </button>
                 </div>
             </div>
         </aside>
@@ -581,75 +692,104 @@
     <!-- 底部状态栏 -->
     <footer class="workbench-footer">
         <div class="status-left">
-            <span class="status-item">📄 文件名：小熊图纸.png</span>
-            <span class="status-item">📐 尺寸：52 × 52</span>
+            <span class="status-item" id="statusFile">📄 未上传图片</span>
         </div>
         <div class="status-center">
-            <span class="status-badge">🟢 就绪</span>
-        </div>
-        <div class="status-right">
-            <span class="status-item">💾 自动保存已开启</span>
+            <span class="status-badge" id="statusBadge">🟢 就绪</span>
         </div>
     </footer>
 
     <!-- 交互脚本 -->
     <script>
-        // ========== 拼豆网格动态生成 ==========
-        const demoColors = [
-            '#FF6B6B', '#FF8787', '#F8B4B4', '#FFE4E4', '#FFFFFF',
-            '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#F39C12',
-            '#2C3E50', '#16A085', '#8E44AD', '#E74C3C', '#FFB6C1', '#D4A574'
-        ];
-
-        function generatePerlerGrid() {
-            const grid = document.getElementById('perlerGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            const cols = 16;
-            const rows = 16;
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    const cell = document.createElement('div');
-                    let color = '#FFFFFF';
-                    const cx = cols / 2, cy = rows / 2;
-                    const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-                    if (dist < 2) {
-                        color = '#FF6B6B';
-                    } else if (dist < 4) {
-                        color = '#F8B4B4';
-                    } else if (dist < 6) {
-                        color = '#FFEAA7';
-                    } else if (dist < 7) {
-                        color = '#96CEB4';
-                    }
-                    cell.style.background = color;
-                    cell.style.aspectRatio = '1';
-                    grid.appendChild(cell);
-                }
-            }
+        // ========== 工具函数 ==========
+        function rgbToHex(rgb) {
+            if (!rgb) return '#cccccc';
+            const r = Math.max(0, Math.min(255, rgb[0]));
+            const g = Math.max(0, Math.min(255, rgb[1]));
+            const b = Math.max(0, Math.min(255, rgb[2]));
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         }
-        generatePerlerGrid();
 
-        // ========== 画布缩放与平移 ==========
+        function hexToRgb(hex) {
+            if (!hex) return [204, 204, 204];
+            let h = hex.replace('#', '');
+            if (h.length === 3) {
+                h = h.split('').map(c => c + c).join('');
+            }
+            const num = parseInt(h, 16);
+            return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        }
+
+        // ========== 全局状态 ==========
+        const state = {
+            imageLoaded: false,
+            imageEl: null,
+            imageData: null,
+            pixelatedData: null,
+            perlerColors: null,
+            perlerWidth: 0,
+            perlerHeight: 0,
+            colorCounts: {},
+            currentMode: 'original',
+            currentTool: 'brush',
+            currentColor: null,
+            currentColorName: '',
+            brushSize: 1,
+            showGrid: true,
+            history: [],
+            historyIndex: -1,
+            fileName: '',
+            cellSize: 20
+        };
+
+        // ========== 初始化模块 ==========
+        let pixelator = null;
+        let perlerGenerator = null;
+        let myDesignsManager = null;
+
+        try {
+            if (typeof Pixelator !== 'undefined') pixelator = new Pixelator();
+            if (typeof PerlerGenerator !== 'undefined') perlerGenerator = new PerlerGenerator();
+            if (typeof MyDesignsManager !== 'undefined') myDesignsManager = new MyDesignsManager();
+        } catch (e) {
+            console.error('模块初始化失败:', e);
+        }
+
+        // ========== DOM 引用 ==========
         const canvasContainer = document.getElementById('canvasContainer');
         const canvasTransform = document.getElementById('canvasTransform');
+        const workCanvas = document.getElementById('workCanvas');
+        const ctx = workCanvas.getContext('2d');
+        const uploadPrompt = document.getElementById('uploadPrompt');
         const zoomValue = document.getElementById('zoomValue');
-        const zoomBadge = document.getElementById('zoomBadge');
         const zoomSlider = document.getElementById('zoomSlider');
+        const rightPanelTitle = document.getElementById('rightPanelTitle');
 
+        // ========== 画布缩放与平移 ==========
         let zoom = 100;
         let panX = 0;
         let panY = 0;
         let isDragging = false;
         let dragStartX = 0;
         let dragStartY = 0;
+        let isDrawing = false;
+        let naturalWidth = 0;
+        let naturalHeight = 0;
 
         function applyTransform() {
-            canvasTransform.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom / 100})`;
+            const scale = zoom / 100;
+            workCanvas.style.width = (naturalWidth * scale) + 'px';
+            workCanvas.style.height = (naturalHeight * scale) + 'px';
+            canvasTransform.style.transform = `translate(${panX}px, ${panY}px)`;
             canvasTransform.style.transformOrigin = 'center center';
             zoomValue.textContent = zoom + '%';
-            zoomBadge.textContent = zoom + '%';
             if (zoomSlider) zoomSlider.value = zoom;
+        }
+
+        function updateNaturalSize(width, height) {
+            naturalWidth = width;
+            naturalHeight = height;
+            applyTransform();
         }
 
         function setZoom(newZoom, centerX, centerY) {
@@ -666,92 +806,1913 @@
             applyTransform();
         }
 
-        document.getElementById('zoomIn').addEventListener('click', () => setZoom(zoom + 20));
-        document.getElementById('zoomOut').addEventListener('click', () => setZoom(zoom - 20));
-        document.getElementById('fitView').addEventListener('click', () => {
-            zoom = 100; panX = 0; panY = 0; applyTransform();
-        });
-        document.getElementById('resetView').addEventListener('click', () => {
-            zoom = 100; panX = 0; panY = 0; applyTransform();
-        });
-        if (zoomSlider) {
-            zoomSlider.addEventListener('input', (e) => setZoom(parseInt(e.target.value)));
+        // ========== 画布渲染 ==========
+        function renderCanvas() {
+            if (state.currentMode === 'original' && state.imageEl) {
+                renderOriginal();
+            } else if (state.currentMode === 'pixel' && state.pixelatedData) {
+                renderPixelated();
+            } else if ((state.currentMode === 'perler' || state.currentMode === 'custom') && state.perlerColors) {
+                renderPerler();
+            }
         }
 
-        // 滚轮缩放
-        canvasContainer.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const delta = e.deltaY < 0 ? 10 : -10;
-            setZoom(zoom + delta, e.clientX, e.clientY);
-        }, { passive: false });
+        function renderOriginal() {
+            const img = state.imageEl;
+            const maxSize = 600;
+            const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+            const displayWidth = Math.floor(img.width * ratio);
+            const displayHeight = Math.floor(img.height * ratio);
 
-        // 拖拽平移 - 鼠标左键按住空白区域即可拖动
-        canvasContainer.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.perler-canvas') || e.target.closest('.coords-hint')) {
+            workCanvas.width = displayWidth;
+            workCanvas.height = displayHeight;
+            updateNaturalSize(displayWidth, displayHeight);
+            ctx.imageSmoothingEnabled = true;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
+            ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+            canvasTransform.style.display = 'block';
+        }
+
+        function renderPixelated() {
+            if (!state.pixelatedData) return;
+            const w = state.pixelatedData.width;
+            const h = state.pixelatedData.height;
+            const pixelSize = parseInt(document.getElementById('pixelSizeSlider').value);
+            const offsetX = parseInt(document.getElementById('pixelGridOffsetX').value);
+            const offsetY = parseInt(document.getElementById('pixelGridOffsetY').value);
+
+            workCanvas.width = w;
+            workCanvas.height = h;
+            updateNaturalSize(w, h);
+
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, workCanvas.width, workCanvas.height);
+
+            ctx.putImageData(state.pixelatedData, 0, 0);
+
+            const showGrid = document.getElementById('showPixelGrid');
+            if (showGrid && showGrid.checked) {
+                const gridColorEl = document.getElementById('pixelGridColor');
+                const gridColor = gridColorEl ? gridColorEl.value : '#000000';
+                const lineWidth = parseFloat(document.getElementById('pixelGridThickness').value) || 1;
+
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = lineWidth;
+                ctx.beginPath();
+
+                for (let x = offsetX; x < w; x += pixelSize) {
+                    if (x > 0) {
+                        ctx.moveTo(x - 0.5, 0);
+                        ctx.lineTo(x - 0.5, h);
+                    }
+                }
+
+                for (let y = offsetY; y < h; y += pixelSize) {
+                    if (y > 0) {
+                        ctx.moveTo(0, y - 0.5);
+                        ctx.lineTo(w, y - 0.5);
+                    }
+                }
+
+                ctx.stroke();
+
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = lineWidth;
+                ctx.strokeRect(0, 0, w, h);
+            }
+            canvasTransform.style.display = 'block';
+        }
+
+        function renderPerler(options) {
+            if (!state.perlerColors) return;
+            const w = state.perlerWidth;
+            const h = state.perlerHeight;
+            const opts = options || {};
+
+            const cellSize = opts.cellSize || state.cellSize;
+            const withLegend = opts.withLegend === true;
+
+            const chartStyle = document.getElementById('chartStyle').value;
+            const beadShape = document.getElementById('beadShape').value;
+            const transparentColor = document.getElementById('transparentCellColor').value || '#ffffff';
+
+            const showGrid = document.getElementById('showPerlerGrid').checked;
+            const gridColor = document.getElementById('perlerGridColor').value || '#000000';
+            const gridLineWidth = parseFloat(document.getElementById('perlerGridLineWidth').value) || 1;
+
+            const showCoords = document.getElementById('showPerlerCoords').checked;
+            const coordColor = document.getElementById('perlerCoordNumberColor').value || '#000000';
+
+            const showLargeGrid = document.getElementById('showPerlerLargeGrid').checked;
+            const largeGridColor = document.getElementById('perlerLargeGridColor').value || '#8B4513';
+            const largeGridSize = parseInt(document.getElementById('perlerLargeGridSize').value) || 5;
+            const largeGridLineWidth = parseFloat(document.getElementById('perlerLargeGridLineWidth').value) || 2;
+
+            const watermarkText = document.getElementById('watermarkText').value || '';
+
+            const offsetX = showCoords ? cellSize : 0;
+            const offsetY = showCoords ? cellSize : 0;
+            let chartWidth = w * cellSize + offsetX;
+            let chartHeight = h * cellSize + offsetY;
+            let legendHeight = 0;
+
+            const colorNames = [];
+            if (withLegend) {
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const cell = state.perlerColors[y][x];
+                        if (cell && cell.name && !cell.isTransparent && colorNames.indexOf(cell.name) === -1) {
+                            colorNames.push(cell.name);
+                        }
+                    }
+                }
+                const legendCols = Math.max(2, Math.floor(chartWidth / 220));
+                legendHeight = Math.max(30, Math.ceil(colorNames.length / legendCols) * 28 + 30);
+            }
+
+            workCanvas.width = chartWidth;
+            workCanvas.height = chartHeight + legendHeight;
+            updateNaturalSize(chartWidth, chartHeight + legendHeight);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, workCanvas.width, workCanvas.height);
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const cell = state.perlerColors[y][x];
+                    const px = offsetX + x * cellSize;
+                    const py = offsetY + y * cellSize;
+
+                    let fillColor = transparentColor;
+                    let drawCode = false;
+                    let colorCode = '';
+
+                    if (cell && cell.isTransparent) {
+                        fillColor = transparentColor;
+                    } else if (cell && (cell.rgb || cell.hex)) {
+                        fillColor = cell.rgb ? rgbToHex(cell.rgb) : cell.hex;
+                        if (chartStyle === 'color-with-code') {
+                            drawCode = true;
+                            colorCode = cell.name || '';
+                        } else if (chartStyle === 'bw') {
+                            fillColor = '#ffffff';
+                            drawCode = true;
+                            colorCode = cell.name || '';
+                        }
+                    }
+
+                    if (beadShape === 'square') {
+                        ctx.fillStyle = fillColor;
+                        ctx.fillRect(px, py, cellSize, cellSize);
+                    } else if (beadShape === 'round-square') {
+                        ctx.fillStyle = fillColor;
+                        const r = Math.max(2, cellSize * 0.2);
+                        ctx.beginPath();
+                        ctx.moveTo(px + r, py);
+                        ctx.arcTo(px + cellSize, py, px + cellSize, py + cellSize, r);
+                        ctx.arcTo(px + cellSize, py + cellSize, px, py + cellSize, r);
+                        ctx.arcTo(px, py + cellSize, px, py, r);
+                        ctx.arcTo(px, py, px + cellSize, py, r);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (beadShape === 'circle') {
+                        const cx = px + cellSize / 2;
+                        const cy = py + cellSize / 2;
+                        const r = cellSize / 2 - Math.max(1, cellSize * 0.1);
+                        ctx.fillStyle = fillColor;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (beadShape === 'ring') {
+                        const cx = px + cellSize / 2;
+                        const cy = py + cellSize / 2;
+                        const r = cellSize / 2 - Math.max(1, cellSize * 0.1);
+                        const innerR = Math.max(1, cellSize * 0.25);
+                        ctx.fillStyle = fillColor;
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    if (drawCode && colorCode && cellSize >= 10) {
+                        const textColor = getContrastColor(fillColor);
+                        ctx.fillStyle = textColor;
+                        const fontSize = Math.max(8, Math.floor(cellSize * 0.35));
+                        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(colorCode, px + cellSize / 2, py + cellSize / 2);
+                    }
+                }
+            }
+
+            if (showGrid) {
+                ctx.strokeStyle = gridColor;
+                ctx.lineWidth = gridLineWidth;
+                for (let x = 0; x <= w; x++) {
+                    const gx = offsetX + x * cellSize;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, offsetY);
+                    ctx.lineTo(gx, offsetY + h * cellSize);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= h; y++) {
+                    const gy = offsetY + y * cellSize;
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, gy);
+                    ctx.lineTo(offsetX + w * cellSize, gy);
+                    ctx.stroke();
+                }
+            }
+
+            if (showLargeGrid && largeGridSize > 0) {
+                ctx.strokeStyle = largeGridColor;
+                ctx.lineWidth = largeGridLineWidth;
+                for (let x = 0; x <= w; x += largeGridSize) {
+                    const gx = offsetX + x * cellSize;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, offsetY);
+                    ctx.lineTo(gx, offsetY + h * cellSize);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= h; y += largeGridSize) {
+                    const gy = offsetY + y * cellSize;
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, gy);
+                    ctx.lineTo(offsetX + w * cellSize, gy);
+                    ctx.stroke();
+                }
+            }
+
+            if (showCoords) {
+                ctx.fillStyle = coordColor;
+                const coordFontSize = Math.max(8, Math.floor(cellSize * 0.5));
+                ctx.font = `${coordFontSize}px Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                for (let x = 0; x < w; x++) {
+                    if (x === 0 || (showLargeGrid && (x + 1) % largeGridSize === 0) || (!showLargeGrid && (x + 1) % 5 === 0)) {
+                        ctx.fillText((x + 1).toString(), offsetX + x * cellSize + cellSize / 2, cellSize / 2);
+                    }
+                }
+                for (let y = 0; y < h; y++) {
+                    if (y === 0 || (showLargeGrid && (y + 1) % largeGridSize === 0) || (!showLargeGrid && (y + 1) % 5 === 0)) {
+                        ctx.fillText((y + 1).toString(), cellSize / 2, offsetY + y * cellSize + cellSize / 2);
+                    }
+                }
+            }
+
+            if (withLegend && colorNames.length > 0) {
+                const legendY = chartHeight + 15;
+                const legendCols = Math.max(2, Math.floor(chartWidth / 220));
+                const legendItemW = chartWidth / legendCols;
+                const legendItemH = 24;
+
+                const sortedColors = colorNames.slice().sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
+
+                ctx.font = '12px Arial, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                sortedColors.forEach((name, idx) => {
+                    const col = idx % legendCols;
+                    const row = Math.floor(idx / legendCols);
+                    const lx = col * legendItemW + 12;
+                    const ly = legendY + row * legendItemH + legendItemH / 2;
+
+                    const cd = findColorByName(name);
+                    const swatchColor = cd ? cd.hex : '#cccccc';
+
+                    ctx.fillStyle = swatchColor;
+                    ctx.fillRect(lx, ly - 9, 18, 18);
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(lx, ly - 9, 18, 18);
+
+                    ctx.fillStyle = '#000000';
+                    ctx.fillText(name, lx + 26, ly);
+
+                    const count = state.colorCounts[name] || 0;
+                    ctx.fillStyle = '#666666';
+                    ctx.fillText('× ' + count, lx + 90, ly);
+                });
+            }
+
+            if (watermarkText) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.font = '10px Arial, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'top';
+                ctx.fillText(watermarkText, workCanvas.width - 10, workCanvas.height - 16);
+            }
+
+            canvasTransform.style.display = 'block';
+        }
+
+        // ========== 颜色统计更新 ==========
+        function updateColorStats(colorCount, beadCount) {
+            const colorStats = document.getElementById('colorStats');
+            const statColorCount = document.getElementById('statColorCount');
+            const statBeadCount = document.getElementById('statBeadCount');
+            
+            if (colorStats && statColorCount && statBeadCount) {
+                if (colorCount > 0 && beadCount > 0) {
+                    colorStats.style.display = 'flex';
+                    statColorCount.textContent = colorCount;
+                    statBeadCount.textContent = beadCount.toLocaleString();
+                } else {
+                    colorStats.style.display = 'none';
+                }
+            }
+        }
+
+        // ========== 判断颜色亮度（决定文字颜色） ==========
+        function getContrastColor(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5 ? '#000000' : '#ffffff';
+        }
+
+        // ========== 色块列表动态生成 ==========
+        function renderColorList() {
+            const colorList = document.getElementById('colorList');
+            if (!colorList) return;
+
+            let colorEntries = [];
+
+            if (state.currentMode === 'perler' || state.currentMode === 'custom') {
+                if (!state.colorCounts || Object.keys(state.colorCounts).length === 0) {
+                    colorList.innerHTML = '';
+                    updateColorStats(0, 0);
+                    return;
+                }
+                for (const [name, count] of Object.entries(state.colorCounts)) {
+                    const cd = findColorByName(name);
+                    const hex = cd ? cd.hex : '#cccccc';
+                    colorEntries.push({ key: name, name: name, hex: hex, count: count });
+                }
+            } else {
+                colorList.innerHTML = '';
+                updateColorStats(0, 0);
                 return;
             }
-            isDragging = true;
-            dragStartX = e.clientX - panX;
-            dragStartY = e.clientY - panY;
-            canvasContainer.style.cursor = 'grabbing';
-            canvasContainer.classList.add('is-dragging');
-            e.preventDefault();
-        });
-        window.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                panX = e.clientX - dragStartX;
-                panY = e.clientY - dragStartY;
-                applyTransform();
-                e.preventDefault();
-            }
-        });
-        window.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                canvasContainer.style.cursor = 'grab';
-                canvasContainer.classList.remove('is-dragging');
-            }
-        });
-        canvasContainer.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        // 坐标提示
-        const coordsHint = document.getElementById('coordsHint');
-        const coordX = document.getElementById('coordX');
-        const coordY = document.getElementById('coordY');
-        canvasContainer.addEventListener('mousemove', (e) => {
-            const rect = document.getElementById('perlerCanvas').getBoundingClientRect();
-            const relX = Math.floor((e.clientX - rect.left) / (rect.width / 16));
-            const relY = Math.floor((e.clientY - rect.top) / (rect.height / 16));
-            if (relX >= 0 && relX < 16 && relY >= 0 && relY < 16) {
-                coordX.textContent = `X: ${relX}`;
-                coordY.textContent = `Y: ${relY}`;
-            }
-        });
+            colorEntries.sort((a, b) => b.count - a.count);
+            colorEntries = colorEntries.slice(0, 64);
 
-        // 按钮：网格/坐标/全屏
-        const toggleGrid = document.getElementById('toggleGrid');
-        toggleGrid.addEventListener('click', () => {
-            toggleGrid.classList.toggle('active');
-            const grid = document.getElementById('perlerGrid');
-            if (grid) {
-                grid.style.gap = toggleGrid.classList.contains('active') ? '1px' : '0';
-                grid.style.padding = toggleGrid.classList.contains('active') ? '1px' : '0';
+            const total = colorEntries.reduce((sum, c) => sum + c.count, 0);
+            const maxCount = colorEntries.length > 0 ? colorEntries[0].count : 0;
+
+            updateColorStats(colorEntries.length, total);
+
+            colorList.innerHTML = '';
+
+            colorEntries.forEach((entry, idx) => {
+                const count = entry.count;
+                const percent = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+                const barWidth = maxCount > 0 ? Math.max(5, (count / maxCount) * 100) : 0;
+                const textColor = getContrastColor(entry.hex);
+
+                const item = document.createElement('div');
+                item.className = 'color-item';
+                item.dataset.name = entry.name;
+                item.dataset.code = entry.hex;
+                item.dataset.count = count;
+                item.dataset.percent = percent + '%';
+                if (idx === 0) item.classList.add('active');
+
+                item.innerHTML = `
+                    <div class="color-swatch" style="background: ${entry.hex}; color: ${textColor};">${entry.name}</div>
+                    <span class="color-count">×${count}</span>
+                `;
+
+                item.addEventListener('click', () => {
+                    colorList.querySelectorAll('.color-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    state.currentColor = entry.hex;
+                    state.currentColorName = entry.name;
+                    updateCurrentColorInfo();
+                });
+
+                colorList.appendChild(item);
+            });
+
+            if (colorEntries.length > 0 && !state.currentColor) {
+                state.currentColor = colorEntries[0].hex;
+                state.currentColorName = colorEntries[0].name;
+                updateCurrentColorInfo();
             }
-        });
-        document.getElementById('toggleCoords').addEventListener('click', (e) => {
-            e.currentTarget.classList.toggle('active');
-            coordsHint.style.display = e.currentTarget.classList.contains('active') ? 'flex' : 'none';
-        });
-        document.getElementById('toggleFullscreen').addEventListener('click', (e) => {
-            e.currentTarget.classList.toggle('active');
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
+        }
+
+        function findColorByName(name) {
+            if (typeof colorSets !== 'undefined' && colorSets) {
+                for (const setName in colorSets) {
+                    const colorSet = colorSets[setName];
+                    if (Array.isArray(colorSet)) {
+                        for (const c of colorSet) {
+                            if (c.name === name) {
+                                return { name: c.name, rgb: c.rgb, hex: rgbToHex(c.rgb) };
+                            }
+                        }
+                    } else if (colorSet && Array.isArray(colorSet.colors)) {
+                        for (const c of colorSet.colors) {
+                            if (c.name === name) {
+                                return { name: c.name, rgb: c.rgb || null, hex: c.hex || rgbToHex(c.rgb) };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function updateCurrentColorInfo() {
+            const info = document.getElementById('currentColorInfo');
+            if (info) {
+                if (state.currentColor) {
+                    info.innerHTML = `<span style="display: inline-block; width: 16px; height: 16px; background: ${state.currentColor}; border: 1px solid #333; vertical-align: middle; margin-right: 6px; border-radius: 3px;"></span>${state.currentColorName} (${state.currentColor})`;
+                } else {
+                    info.textContent = '从左侧色块列表选择';
+                }
+            }
+        }
+
+        // ========== 历史记录 ==========
+        function saveHistory() {
+            if (!state.perlerColors) return;
+            const snapshot = JSON.stringify(state.perlerColors);
+            if (state.historyIndex < state.history.length - 1) {
+                state.history = state.history.slice(0, state.historyIndex + 1);
+            }
+            state.history.push(snapshot);
+            if (state.history.length > 50) state.history.shift();
+            state.historyIndex = state.history.length - 1;
+            updateStatus('🟢 已记录操作');
+        }
+
+        function undo() {
+            if (state.historyIndex > 0) {
+                state.historyIndex--;
+                state.perlerColors = JSON.parse(state.history[state.historyIndex]);
+                recalcColorCounts();
+                renderCanvas();
+                renderColorList();
+                updateStatus('↶ 已撤销');
+            }
+        }
+
+        function redo() {
+            if (state.historyIndex < state.history.length - 1) {
+                state.historyIndex++;
+                state.perlerColors = JSON.parse(state.history[state.historyIndex]);
+                recalcColorCounts();
+                renderCanvas();
+                renderColorList();
+                updateStatus('↷ 已重做');
+            }
+        }
+
+        function recalcColorCounts() {
+            state.colorCounts = {};
+            if (!state.perlerColors) return;
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    const cell = state.perlerColors[y][x];
+                    if (cell && cell.name) {
+                        state.colorCounts[cell.name] = (state.colorCounts[cell.name] || 0) + 1;
+                    }
+                }
+            }
+        }
+
+        // ========== 图像处理流程 ==========
+        function loadImageFromFile(file) {
+            state.fileName = file.name;
+            document.getElementById('statusFile').textContent = `📄 ${file.name}`;
+            updateStatus('🟡 加载图片中...');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.imageEl = img;
+                    state.imageLoaded = true;
+                    document.getElementById('imageInfo').innerHTML = `
+                        <div>📐 原始尺寸：${img.width} × ${img.height}</div>
+                        <div>💾 文件大小：${(file.size / 1024).toFixed(1)} KB</div>
+                    `;
+                    document.getElementById('reuploadBtn').style.display = 'inline-block';
+
+                    const wInput = document.getElementById('widthInput');
+                    const hInput = document.getElementById('heightInput');
+                    wInput.value = img.width;
+                    hInput.value = img.height;
+
+                    const gridCountDisplay = document.getElementById('gridCountValue');
+                    if (gridCountDisplay) {
+                        const pixelSize = parseInt(document.getElementById('pixelSizeSlider').value) || 16;
+                        const gridWidth = Math.ceil(img.width / pixelSize);
+                        const gridHeight = Math.ceil(img.height / pixelSize);
+                        gridCountDisplay.textContent = `(${gridWidth} × ${gridHeight})`;
+                    }
+
+                    uploadPrompt.style.display = 'none';
+                    canvasTransform.style.display = 'block';
+                    renderCanvas();
+                    renderColorList();
+                    updateStatus('🟢 图片已加载');
+                };
+                img.onerror = () => updateStatus('🔴 图片加载失败');
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyPixelation() {
+            if (!state.imageEl) { alert('请先上传图片'); return; }
+            updateStatus('🟡 像素化处理中...');
+
+            setTimeout(() => {
+                try {
+                    const pixelSize = parseInt(document.getElementById('pixelSizeSlider').value);
+                    const method = document.getElementById('pixelMethod').value;
+                    const offsetX = parseInt(document.getElementById('pixelGridOffsetX').value);
+                    const offsetY = parseInt(document.getElementById('pixelGridOffsetY').value);
+
+                    const originalWidth = state.imageEl.naturalWidth || state.imageEl.width;
+                    const originalHeight = state.imageEl.naturalHeight || state.imageEl.height;
+
+                    const targetWidth = parseInt(document.getElementById('widthInput').value) || originalWidth;
+                    const targetHeight = parseInt(document.getElementById('heightInput').value) || originalHeight;
+
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.width = targetWidth;
+                    tempCanvas.height = targetHeight;
+                    tempCtx.imageSmoothingEnabled = false;
+                    tempCtx.mozImageSmoothingEnabled = false;
+                    tempCtx.webkitImageSmoothingEnabled = false;
+                    tempCtx.msImageSmoothingEnabled = false;
+                    tempCtx.drawImage(state.imageEl, 0, 0, targetWidth, targetHeight);
+
+                    let pixelResult;
+                    if (pixelator) {
+                        pixelResult = pixelator.process(
+                            tempCtx.getImageData(0, 0, targetWidth, targetHeight),
+                            {
+                                blockSize: pixelSize,
+                                offsetX: offsetX,
+                                offsetY: offsetY,
+                                method: method,
+                                targetColorCount: parseInt(document.getElementById('targetColorCount').value),
+                                enableContrast: document.getElementById('enableContrast').checked,
+                                contrastFactor: parseFloat(document.getElementById('contrastSlider').value),
+                                enableSharpen: document.getElementById('enableSharpen').checked,
+                                sharpenStrength: parseFloat(document.getElementById('sharpenStrength').value)
+                            }
+                        );
+
+                        if (document.getElementById('enableColorQuantize').checked) {
+                            const qc = Math.min(
+                                parseInt(document.getElementById('targetColorCount').value),
+                                (pixelResult.colorStats && pixelResult.colorStats.length) ? pixelResult.colorStats.length : 256
+                            );
+                            const rePixelated = quantizeColors(pixelResult.imageData, qc, new Set(), 'layered');
+                            const blocksX = Math.ceil((targetWidth + offsetX) / pixelSize);
+                            const blocksY = Math.ceil((targetHeight + offsetY) / pixelSize);
+                            pixelResult.grid = pixelator.extractGrid(rePixelated, blocksX, blocksY, pixelSize, offsetX, offsetY);
+                            pixelResult.imageData = rePixelated;
+                        }
+                    } else {
+                        const rawData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
+                        const blocksX = Math.ceil((targetWidth + offsetX) / pixelSize);
+                        const blocksY = Math.ceil((targetHeight + offsetY) / pixelSize);
+                        pixelResult = {
+                            imageData: rawData,
+                            grid: null,
+                            width: blocksX,
+                            height: blocksY,
+                            colorStats: []
+                        };
+                    }
+
+                    state.pixelatedData = pixelResult.imageData;
+                    state.pixelGrid = pixelResult.grid;
+
+                    const actualColors = new Set();
+                    const data = pixelResult.imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (data[i + 3] > 0) {
+                            const hex = '#' +
+                                data[i].toString(16).padStart(2, '0') +
+                                data[i + 1].toString(16).padStart(2, '0') +
+                                data[i + 2].toString(16).padStart(2, '0');
+                            actualColors.add(hex);
+                        }
+                    }
+                    const pixelActualColorsEl = document.getElementById('pixelActualColors');
+                    if (pixelActualColorsEl) pixelActualColorsEl.textContent = actualColors.size;
+                    const targetColorCountSlider = document.getElementById('targetColorCount');
+                    if (targetColorCountSlider) targetColorCountSlider.max = Math.max(2, actualColors.size);
+
+                    state.currentMode = 'pixel';
+                    switchTabMode('pixel');
+                    renderCanvas();
+                    updateStatus('🟢 像素化完成');
+                } catch (e) {
+                    console.error(e);
+                    updateStatus('🔴 像素化失败');
+                    alert('像素化处理失败：' + e.message);
+                }
+            }, 50);
+        }
+
+        function pixelatedToCanvas(imageData) {
+            const c = document.createElement('canvas');
+            c.width = imageData.width;
+            c.height = imageData.height;
+            c.getContext('2d').putImageData(imageData, 0, 0);
+            return c;
+        }
+
+        function applyPerlerMatching() {
+            if (!state.pixelatedData) {
+                if (state.imageEl) {
+                    applyPixelation();
+                    setTimeout(() => applyPerlerMatching(), 200);
+                    return;
+                }
+                alert('请先上传图片并像素化');
+                return;
+            }
+            updateStatus('🟡 拼豆匹配中...');
+
+            setTimeout(() => {
+                try {
+                    const colorSetName = document.getElementById('colorSetSelect').value;
+                    const mappingMethod = document.getElementById('colorMappingMethod').value;
+                    const enableNeighborSmooth = document.getElementById('enableNeighborSmooth').checked;
+
+                    const pixelSize = parseInt(document.getElementById('pixelSizeSlider').value);
+                    const offsetX = parseInt(document.getElementById('pixelGridOffsetX').value);
+                    const offsetY = parseInt(document.getElementById('pixelGridOffsetY').value);
+                    const targetWidth = parseInt(document.getElementById('widthInput').value) || 
+                        (state.imageEl ? (state.imageEl.naturalWidth || state.imageEl.width) : 512);
+                    const targetHeight = parseInt(document.getElementById('heightInput').value) || 
+                        (state.imageEl ? (state.imageEl.naturalHeight || state.imageEl.height) : 512);
+
+                    let perlerResult;
+                    const currentColorSet = colorSets[colorSetName] || [];
+                    const transparentCellColorInput = document.getElementById('transparentCellColor');
+                    const transparentHex = transparentCellColorInput ? transparentCellColorInput.value : '#ffffff';
+                    const transparentRgb = hexToRgb(transparentHex) || [255, 255, 255];
+                    const transparentColor = { name: '', rgb: transparentRgb, isTransparent: true, hex: transparentHex };
+                    const tempColors = [];
+
+                    let extractedData, perlerWidth, perlerHeight;
+                    if (perlerGenerator) {
+                        const extracted = perlerGenerator.extractFromImageData(
+                            state.pixelatedData,
+                            targetWidth,
+                            targetHeight,
+                            pixelSize,
+                            offsetX,
+                            offsetY
+                        );
+                        extractedData = extracted.processedData;
+                        perlerWidth = extracted.perlerWidth;
+                        perlerHeight = extracted.perlerHeight;
+                    } else {
+                        extractedData = state.pixelatedData;
+                        perlerWidth = state.pixelatedData.width;
+                        perlerHeight = state.pixelatedData.height;
+                    }
+
+                    for (let y = 0; y < perlerHeight; y++) {
+                        const row = [];
+                        for (let x = 0; x < perlerWidth; x++) {
+                            const idx = (y * perlerWidth + x) * 4;
+                            const r = extractedData.data[idx];
+                            const g = extractedData.data[idx + 1];
+                            const b = extractedData.data[idx + 2];
+                            const a = extractedData.data[idx + 3];
+
+                            let cell;
+                            if (a < 128) {
+                                cell = transparentColor;
+                            } else {
+                                const mapped = findClosestColor([r, g, b], currentColorSet, mappingMethod);
+                                cell = { ...mapped, rgb: mapped.rgb ? mapped.rgb : [r, g, b] };
+                                if (!cell.hex) cell.hex = rgbToHex(cell.rgb);
+                            }
+                            row.push(cell);
+                        }
+                        tempColors.push(row);
+                    }
+
+                    let finalColors = tempColors;
+                    if (enableNeighborSmooth && typeof mapWithNeighborConsistencyOnMatrix === 'function') {
+                        finalColors = mapWithNeighborConsistencyOnMatrix(tempColors, currentColorSet);
+                    }
+
+                    state.perlerColors = finalColors;
+                    state.perlerWidth = perlerWidth;
+                    state.perlerHeight = perlerHeight;
+                    state.colorCounts = {};
+
+                    for (let y = 0; y < state.perlerHeight; y++) {
+                        for (let x = 0; x < state.perlerWidth; x++) {
+                            const cell = state.perlerColors[y][x];
+                            if (cell && cell.name) {
+                                if (!cell.hex && cell.rgb) {
+                                    cell.hex = rgbToHex(cell.rgb);
+                                }
+                                if (!cell.rgb && cell.hex) {
+                                    cell.rgb = hexToRgb(cell.hex);
+                                }
+                                state.colorCounts[cell.name] = (state.colorCounts[cell.name] || 0) + 1;
+                            }
+                        }
+                    }
+
+                    const totalColors = Object.keys(state.colorCounts).length;
+                    const totalBeads = Object.values(state.colorCounts).reduce((a, b) => a + b, 0);
+                    document.getElementById('perlerInfo').innerHTML = `
+                        <div>📐 尺寸：${state.perlerWidth} × ${state.perlerHeight}</div>
+                        <div>🎨 颜色数：${totalColors}</div>
+                        <div>🟡 拼豆数：${totalBeads}</div>
+                        <div style="margin-top: 8px; font-size: 12px; color: #666;">色板：${colorSetName} · 算法：${mappingMethod}</div>
+                    `;
+
+                    state.currentMode = 'perler';
+                    switchTabMode('perler');
+                    renderCanvas();
+                    renderColorList();
+                    saveHistory();
+                    updateStatus('🟢 拼豆匹配完成');
+
+                    const firstColor = Object.keys(state.colorCounts)[0];
+                    if (firstColor) {
+                        const firstColorData = findColorByName(firstColor);
+                        state.currentColor = firstColorData ? firstColorData.hex : '#ccc';
+                        state.currentColorName = firstColor;
+                        updateCurrentColorInfo();
+                    }
+                } catch (e) {
+                    console.error(e);
+                    updateStatus('🔴 拼豆匹配失败');
+                    alert('拼豆匹配失败：' + e.message);
+                }
+            }, 50);
+        }
+
+        let smartOptimizeState = {
+            originalPerlerColors: null,
+            suggestions: [],
+            acceptedSuggestions: new Set(),
+            erasedBlocks: new Set(),
+            isFullscreen: false,
+            brushMode: 'erase',
+            brushSize: 1,
+            isDrawing: false
+        };
+
+        function smartOptimizePerler() {
+            if (!state.perlerColors) {
+                alert('请先进行拼豆匹配');
+                return;
+            }
+            
+            smartOptimizeState.originalPerlerColors = state.perlerColors.map(row => row.map(cell => ({...cell})));
+            smartOptimizeState.suggestions = [];
+            smartOptimizeState.acceptedSuggestions = new Set();
+            smartOptimizeState.erasedBlocks = new Set();
+            smartOptimizeState.isFullscreen = false;
+            smartOptimizeState.brushMode = 'erase';
+            smartOptimizeState.brushSize = 1;
+            smartOptimizeState.isDrawing = false;
+
+            document.getElementById('smartOptimizeModal').classList.add('show');
+            initSmartOptimizeEventListeners();
+            debouncedRegenerateSuggestions();
+        }
+
+        function initSmartOptimizeEventListeners() {
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+            const rejectAllBtn = document.getElementById('rejectAllBtn');
+            const applyAllBtn = document.getElementById('applyAllBtn');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const enableColorMerge = document.getElementById('enableColorMerge');
+            const colorMergeThresholdSlider = document.getElementById('colorMergeThresholdSlider');
+            const enableEdgeColorMerge = document.getElementById('enableEdgeColorMerge');
+            const edgeColorThresholdSlider = document.getElementById('edgeColorThresholdSlider');
+            const optimizeBrushSizeSlider = document.getElementById('optimizeBrushSizeSlider');
+            const brushModeErase = document.getElementById('brushModeErase');
+            const brushModeRestore = document.getElementById('brushModeRestore');
+            const clearErasedBlocks = document.getElementById('clearErasedBlocks');
+            const optimizationPreviewCanvas = document.getElementById('optimizationPreviewCanvas');
+
+            closeModalBtn.onclick = () => closeSmartOptimizeModal(true);
+            toggleFullscreenBtn.onclick = toggleSmartOptimizeFullscreen;
+            rejectAllBtn.onclick = rejectAllSuggestions;
+            applyAllBtn.onclick = acceptAllSuggestions;
+            confirmBtn.onclick = confirmOptimization;
+
+            enableColorMerge.onchange = debouncedRegenerateSuggestions;
+            colorMergeThresholdSlider.oninput = () => {
+                document.getElementById('colorMergeThresholdValue').textContent = colorMergeThresholdSlider.value + '%';
+                debouncedRegenerateSuggestions();
+            };
+            enableEdgeColorMerge.onchange = debouncedRegenerateSuggestions;
+            edgeColorThresholdSlider.oninput = () => {
+                document.getElementById('edgeColorThresholdValue').textContent = edgeColorThresholdSlider.value + '%';
+                debouncedRegenerateSuggestions();
+            };
+
+            optimizeBrushSizeSlider.oninput = () => {
+                document.getElementById('optimizeBrushSizeValue').textContent = optimizeBrushSizeSlider.value;
+                smartOptimizeState.brushSize = parseInt(optimizeBrushSizeSlider.value);
+                updateBrushCursorSize();
+            };
+
+            brushModeErase.onclick = () => {
+                smartOptimizeState.brushMode = 'erase';
+                brushModeErase.classList.add('active');
+                brushModeRestore.classList.remove('active');
+            };
+
+            brushModeRestore.onclick = () => {
+                smartOptimizeState.brushMode = 'restore';
+                brushModeRestore.classList.add('active');
+                brushModeErase.classList.remove('active');
+            };
+
+            clearErasedBlocks.onclick = () => {
+                smartOptimizeState.erasedBlocks = new Set();
+                renderOptimizationPreview();
+            };
+
+            optimizationPreviewCanvas.addEventListener('mousedown', startBrushDrawing);
+            optimizationPreviewCanvas.addEventListener('mousemove', brushDrawing);
+            optimizationPreviewCanvas.addEventListener('mouseup', stopBrushDrawing);
+            optimizationPreviewCanvas.addEventListener('mouseleave', stopBrushDrawing);
+            optimizationPreviewCanvas.addEventListener('mouseenter', updateBrushCursorPosition);
+        }
+
+        let debounceTimer = null;
+        function debouncedRegenerateSuggestions() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateColorSuggestions();
+            }, 300);
+        }
+
+        function generateColorSuggestions() {
+            const suggestions = [];
+            const colorSetName = document.getElementById('colorSetSelect').value;
+            const colorSet = colorSets[colorSetName] || [];
+            const enableMerge = document.getElementById('enableColorMerge').checked;
+            const mergeThreshold = parseInt(document.getElementById('colorMergeThresholdSlider').value);
+            const enableEdgeColorMerge = document.getElementById('enableEdgeColorMerge').checked;
+            const edgeColorThreshold = parseInt(document.getElementById('edgeColorThresholdSlider').value);
+
+            const colorUsage = new Map();
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    const color = state.perlerColors[y][x];
+                    if (color && color.name) {
+                        colorUsage.set(color.name, (colorUsage.get(color.name) || 0) + 1);
+                    }
+                }
+            }
+
+            const totalBeans = state.perlerWidth * state.perlerHeight;
+            const usageThreshold = Math.max(2, Math.floor(totalBeans * 0.005));
+
+            const colorsByUsage = Array.from(colorUsage.entries())
+                .sort((a, b) => a[1] - b[1]);
+
+            const highUsageColors = colorsByUsage
+                .filter(([_, count]) => count > usageThreshold * 2)
+                .map(([name]) => colorSet.find(c => c.name === name))
+                .filter(Boolean);
+
+            if (enableMerge) {
+                const mergeSuggestions = generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold);
+                suggestions.push(...mergeSuggestions);
+            }
+
+            const processedColors = new Set(suggestions.map(s => s.originalColor.name));
+
+            const edgeEffectiveThreshold = ((100 - edgeColorThreshold) / 100) * (255 * 3);
+            const normalEffectiveThreshold = ((100 - 85) / 100) * (255 * 3);
+
+            for (const [colorName, count] of colorsByUsage) {
+                if (processedColors.has(colorName)) continue;
+                if (count >= usageThreshold * 2) continue;
+
+                const originalColor = colorSet.find(c => c.name === colorName);
+                if (!originalColor) continue;
+
+                const isEdgeColor = isColorOnEdge(colorName);
+
+                if (isEdgeColor && !enableEdgeColorMerge) continue;
+
+                let bestReplacement = null;
+                let minDistance = Infinity;
+
+                for (const candidate of highUsageColors) {
+                    if (candidate.name === colorName) continue;
+                    const distance = getRgbDistance(originalColor.rgb, candidate.rgb);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        bestReplacement = candidate;
+                    }
+                }
+
+                const effectiveThreshold = isEdgeColor ? edgeEffectiveThreshold : normalEffectiveThreshold;
+
+                if (bestReplacement && minDistance <= effectiveThreshold) {
+                    suggestions.push({
+                        id: suggestions.length,
+                        originalColor,
+                        replacementColor: bestReplacement,
+                        beanCount: count,
+                        isEdgeColor,
+                        accepted: false,
+                        isMerge: false
+                    });
+                }
+            }
+
+            smartOptimizeState.suggestions = suggestions.sort((a, b) => {
+                if (a.isMerge && !b.isMerge) return -1;
+                if (!a.isMerge && b.isMerge) return 1;
+                return a.beanCount - b.beanCount;
+            });
+
+            smartOptimizeState.acceptedSuggestions = new Set(
+                smartOptimizeState.suggestions
+                    .filter(s => s.accepted)
+                    .map(s => s.id)
+            );
+
+            renderSuggestionsList();
+            renderOptimizationSummary();
+            renderOptimizationPreview();
+        }
+
+        function generateMergeSuggestions(colorsByUsage, colorSet, mergeThreshold) {
+            const suggestions = [];
+            const rgbDistanceThreshold = ((100 - mergeThreshold) / 100) * 255 * 3;
+
+            const candidates = [];
+            for (let i = 0; i < colorsByUsage.length; i++) {
+                const [nameA, countA] = colorsByUsage[i];
+                const colorA = colorSet.find(c => c.name === nameA);
+                if (!colorA) continue;
+
+                for (let j = i + 1; j < colorsByUsage.length; j++) {
+                    const [nameB, countB] = colorsByUsage[j];
+                    const colorB = colorSet.find(c => c.name === nameB);
+                    if (!colorB) continue;
+
+                    const distance = getRgbDistance(colorA.rgb, colorB.rgb);
+
+                    if (distance <= rgbDistanceThreshold) {
+                        candidates.push({
+                            colorA, nameA, countA,
+                            colorB, nameB, countB,
+                            distance
+                        });
+                    }
+                }
+            }
+
+            candidates.sort((a, b) => a.distance - b.distance);
+
+            const used = new Set();
+            for (const candidate of candidates) {
+                if (used.has(candidate.nameA) || used.has(candidate.nameB)) continue;
+
+                const keepColor = candidate.countA >= candidate.countB ? candidate.colorA : candidate.colorB;
+                const mergeColor = candidate.countA >= candidate.countB ? candidate.colorB : candidate.colorA;
+                const mergeCount = candidate.countA >= candidate.countB ? candidate.countB : candidate.countA;
+
+                suggestions.push({
+                    id: suggestions.length,
+                    originalColor: mergeColor,
+                    replacementColor: keepColor,
+                    beanCount: mergeCount,
+                    isEdgeColor: false,
+                    accepted: true,
+                    isMerge: true
+                });
+
+                used.add(candidate.nameA);
+                used.add(candidate.nameB);
+            }
+
+            return suggestions;
+        }
+
+        function getRgbDistance(rgb1, rgb2) {
+            const dr = rgb1[0] - rgb2[0];
+            const dg = rgb1[1] - rgb2[1];
+            const db = rgb1[2] - rgb2[2];
+            return Math.sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        function isColorOnEdge(colorName) {
+            let edgeCount = 0;
+            let totalCount = 0;
+
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    if (state.perlerColors[y][x].name === colorName) {
+                        totalCount++;
+
+                        let differentNeighbors = 0;
+                        const neighbors = [
+                            [y - 1, x], [y + 1, x],
+                            [y, x - 1], [y, x + 1]
+                        ];
+
+                        for (const [ny, nx] of neighbors) {
+                            if (ny >= 0 && ny < state.perlerHeight && nx >= 0 && nx < state.perlerWidth) {
+                                if (state.perlerColors[ny][nx].name !== colorName) {
+                                    differentNeighbors++;
+                                }
+                            }
+                        }
+
+                        if (differentNeighbors >= 2) {
+                            edgeCount++;
+                        }
+                    }
+                }
+            }
+
+            return totalCount > 0 && edgeCount / totalCount > 0.3;
+        }
+
+        function renderSuggestionsList() {
+            const list = document.getElementById('suggestionsList');
+            list.innerHTML = '';
+
+            if (smartOptimizeState.suggestions.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">没有优化建议</div>';
+                return;
+            }
+
+            for (const suggestion of smartOptimizeState.suggestions) {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item' + (smartOptimizeState.acceptedSuggestions.has(suggestion.id) ? ' accepted' : '');
+                
+                const originalColor = suggestion.originalColor;
+                const replacementColor = suggestion.replacementColor;
+
+                item.innerHTML = `
+                    <div class="suggestion-header">
+                        <span class="suggestion-check">
+                            <input type="checkbox" ${smartOptimizeState.acceptedSuggestions.has(suggestion.id) ? 'checked' : ''} 
+                                   data-id="${suggestion.id}">
+                        </span>
+                        <span class="suggestion-type">${suggestion.isMerge ? '近似色' : (suggestion.isEdgeColor ? '边缘色' : '普通')}</span>
+                    </div>
+                    <div class="suggestion-content">
+                        <div class="color-swatch-small" style="background-color: rgb(${originalColor.rgb.join(',')});"></div>
+                        <span class="color-name">${originalColor.name}</span>
+                        <span class="arrow">→</span>
+                        <div class="color-swatch-small" style="background-color: rgb(${replacementColor.rgb.join(',')});"></div>
+                        <span class="color-name">${replacementColor.name}</span>
+                    </div>
+                    <div class="suggestion-footer">
+                        <span class="bean-count">${suggestion.beanCount} 个豆</span>
+                    </div>
+                `;
+
+                item.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
+                    const id = parseInt(e.target.dataset.id);
+                    if (e.target.checked) {
+                        smartOptimizeState.acceptedSuggestions.add(id);
+                    } else {
+                        smartOptimizeState.acceptedSuggestions.delete(id);
+                    }
+                    item.classList.toggle('accepted');
+                    renderOptimizationSummary();
+                    renderOptimizationPreview();
+                });
+
+                list.appendChild(item);
+            }
+        }
+
+        function renderOptimizationSummary() {
+            const summary = document.getElementById('optimizationSummary');
+            const originalColors = new Set();
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    const color = state.perlerColors[y][x];
+                    if (color && color.name) {
+                        originalColors.add(color.name);
+                    }
+                }
+            }
+
+            const acceptedCount = smartOptimizeState.acceptedSuggestions.size;
+            const replacedColors = new Set();
+            let totalBeansSaved = 0;
+            for (const idx of smartOptimizeState.acceptedSuggestions) {
+                const suggestion = smartOptimizeState.suggestions.find(s => s.id === idx);
+                if (suggestion) {
+                    replacedColors.add(suggestion.originalColor.name);
+                    totalBeansSaved += suggestion.beanCount;
+                }
+            }
+
+            summary.innerHTML = `
+                <div class="summary-item">
+                    <span class="summary-label">原始颜色数</span>
+                    <span class="summary-value">${originalColors.size}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">优化建议数</span>
+                    <span class="summary-value">${smartOptimizeState.suggestions.length}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">已接受</span>
+                    <span class="summary-value">${acceptedCount}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">预计减少颜色</span>
+                    <span class="summary-value">${replacedColors.size}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">预计减少豆豆</span>
+                    <span class="summary-value">${totalBeansSaved}</span>
+                </div>
+            `;
+        }
+
+        function renderOptimizationPreview() {
+            const canvas = document.getElementById('optimizationPreviewCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = state.perlerWidth;
+            const h = state.perlerHeight;
+            
+            const container = document.querySelector('#smartOptimizeModal .preview-canvas-wrapper-large');
+            const maxWidth = container ? container.clientWidth - 40 : 600;
+            const maxHeight = container ? container.clientHeight - 40 : 400;
+            
+            const scaleX = maxWidth / w;
+            const scaleY = maxHeight / h;
+            const cellSize = Math.max(2, Math.min(16, Math.floor(Math.min(scaleX, scaleY))));
+
+            canvas.width = w * cellSize;
+            canvas.height = h * cellSize;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const highlightColor = document.getElementById('optimizeHighlightColor').value;
+            const erasedColor = document.getElementById('optimizeErasedColor').value;
+
+            const colorReplaceMap = new Map();
+            for (const idx of smartOptimizeState.acceptedSuggestions) {
+                const suggestion = smartOptimizeState.suggestions.find(s => s.id === idx);
+                if (suggestion) {
+                    colorReplaceMap.set(suggestion.originalColor.name, suggestion.replacementColor);
+                }
+            }
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const originalCell = state.perlerColors[y][x];
+                    let displayCell = originalCell;
+                    let isOptimized = false;
+                    let isErased = false;
+
+                    const blockKey = `${x},${y}`;
+                    isErased = smartOptimizeState.erasedBlocks.has(blockKey);
+
+                    if (!isErased && colorReplaceMap.has(originalCell.name)) {
+                        displayCell = colorReplaceMap.get(originalCell.name);
+                        isOptimized = true;
+                    }
+
+                    if (displayCell.isTransparent) {
+                        ctx.fillStyle = '#f0f0f0';
+                    } else {
+                        ctx.fillStyle = `rgb(${displayCell.rgb.join(',')})`;
+                    }
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+                    if (isOptimized) {
+                        ctx.fillStyle = highlightColor + '33';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                        ctx.strokeStyle = highlightColor;
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+
+                    if (isErased) {
+                        ctx.fillStyle = erasedColor + '33';
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                        ctx.strokeStyle = erasedColor;
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x <= w; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * cellSize, 0);
+                ctx.lineTo(x * cellSize, h * cellSize);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= h; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * cellSize);
+                ctx.lineTo(w * cellSize, y * cellSize);
+                ctx.stroke();
+            }
+        }
+
+        function startBrushDrawing(e) {
+            smartOptimizeState.isDrawing = true;
+            brushDrawing(e);
+        }
+
+        function brushDrawing(e) {
+            if (!smartOptimizeState.isDrawing) return;
+
+            const canvas = document.getElementById('optimizationPreviewCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / 16);
+            const y = Math.floor((e.clientY - rect.top) / 16);
+
+            const brushSize = smartOptimizeState.brushSize;
+            const halfSize = Math.floor(brushSize / 2);
+
+            for (let dy = -halfSize; dy <= halfSize; dy++) {
+                for (let dx = -halfSize; dx <= halfSize; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < state.perlerWidth && ny >= 0 && ny < state.perlerHeight) {
+                        const blockKey = `${nx},${ny}`;
+                        if (smartOptimizeState.brushMode === 'erase') {
+                            smartOptimizeState.erasedBlocks.add(blockKey);
+                        } else {
+                            smartOptimizeState.erasedBlocks.delete(blockKey);
+                        }
+                    }
+                }
+            }
+
+            renderOptimizationPreview();
+        }
+
+        function stopBrushDrawing() {
+            smartOptimizeState.isDrawing = false;
+        }
+
+        function updateBrushCursorPosition(e) {
+            const canvas = document.getElementById('optimizationPreviewCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const cursor = document.getElementById('brushCursor');
+            
+            if (cursor) {
+                cursor.style.left = (e.clientX - rect.left) + 'px';
+                cursor.style.top = (e.clientY - rect.top) + 'px';
+                cursor.style.display = 'block';
+            }
+        }
+
+        function updateBrushCursorSize() {
+            const cursor = document.getElementById('brushCursor');
+            if (cursor) {
+                const size = smartOptimizeState.brushSize * 16;
+                cursor.style.width = size + 'px';
+                cursor.style.height = size + 'px';
+            }
+        }
+
+        function toggleSmartOptimizeFullscreen() {
+            const modal = document.getElementById('smartOptimizeModal');
+            const btn = document.getElementById('toggleFullscreenBtn');
+            
+            smartOptimizeState.isFullscreen = !smartOptimizeState.isFullscreen;
+            if (smartOptimizeState.isFullscreen) {
+                modal.classList.add('fullscreen');
+                btn.textContent = '⛶';
             } else {
-                document.exitFullscreen();
+                modal.classList.remove('fullscreen');
+                btn.textContent = '🔍';
             }
-        });
+        }
 
-        // ========== 顶部标签页模式切换 ==========
+        function rejectAllSuggestions() {
+            smartOptimizeState.acceptedSuggestions = new Set();
+            renderSuggestionsList();
+            renderOptimizationSummary();
+            renderOptimizationPreview();
+        }
+
+        function acceptAllSuggestions() {
+            smartOptimizeState.acceptedSuggestions = new Set(
+                smartOptimizeState.suggestions.map(s => s.id)
+            );
+            renderSuggestionsList();
+            renderOptimizationSummary();
+            renderOptimizationPreview();
+        }
+
+        function closeSmartOptimizeModal(restoreOriginal = true) {
+            document.getElementById('smartOptimizeModal').classList.remove('show');
+            
+            if (smartOptimizeState.isFullscreen) {
+                smartOptimizeState.isFullscreen = false;
+                document.getElementById('smartOptimizeModal').classList.remove('fullscreen');
+            }
+            
+            if (smartOptimizeState.originalPerlerColors && restoreOriginal) {
+                state.perlerColors = smartOptimizeState.originalPerlerColors.map(row => row.map(cell => ({...cell})));
+                renderCanvas();
+                renderColorList();
+            }
+        }
+
+        function confirmOptimization() {
+            const colorReplaceMap = new Map();
+            for (const idx of smartOptimizeState.acceptedSuggestions) {
+                const suggestion = smartOptimizeState.suggestions.find(s => s.id === idx);
+                if (suggestion) {
+                    colorReplaceMap.set(suggestion.originalColor.name, suggestion.replacementColor);
+                }
+            }
+
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    const blockKey = `${x},${y}`;
+                    if (!smartOptimizeState.erasedBlocks.has(blockKey)) {
+                        const originalCell = state.perlerColors[y][x];
+                        if (colorReplaceMap.has(originalCell.name)) {
+                            const replacement = colorReplaceMap.get(originalCell.name);
+                            state.perlerColors[y][x] = {
+                                name: replacement.name,
+                                rgb: replacement.rgb,
+                                hex: rgbToHex(replacement.rgb)
+                            };
+                        }
+                    }
+                }
+            }
+
+            state.colorCounts = {};
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    const cell = state.perlerColors[y][x];
+                    if (cell && cell.name) {
+                        state.colorCounts[cell.name] = (state.colorCounts[cell.name] || 0) + 1;
+                    }
+                }
+            }
+
+            const totalColors = Object.keys(state.colorCounts).length;
+            const totalBeads = Object.values(state.colorCounts).reduce((a, b) => a + b, 0);
+            
+            if (document.getElementById('perlerInfo')) {
+                document.getElementById('perlerInfo').innerHTML = `
+                    <div>📐 尺寸：${state.perlerWidth} × ${state.perlerHeight}</div>
+                    <div>🎨 颜色数：${totalColors}</div>
+                    <div>🟡 拼豆数：${totalBeads}</div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #666;">✓ 已智能优化</div>
+                `;
+            }
+
+            renderCanvas();
+            renderColorList();
+            saveHistory();
+            updateStatus('🟢 智能优化完成');
+            
+            closeSmartOptimizeModal(false);
+        }
+
+        function downloadPerlerPNG(withLegend) {
+            if (!state.perlerColors) { alert('请先渲染拼豆图纸'); return; }
+            const scale = parseFloat(document.getElementById('exportScaleSlider').value) || 1;
+            const baseCellSize = 20;
+            const exportCellSize = Math.max(8, Math.round(baseCellSize * scale));
+
+            const savedCellSize = state.cellSize;
+            state.cellSize = exportCellSize;
+
+            renderPerler({ cellSize: exportCellSize, withLegend: withLegend === true });
+
+            const dataUrl = workCanvas.toDataURL('image/png');
+
+            state.cellSize = savedCellSize;
+            renderCanvas();
+
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `perler_pattern_${Date.now()}_${exportCellSize}px${withLegend ? '_legend' : ''}.png`;
+            a.click();
+            updateStatus('🟢 PNG 下载完成');
+        }
+
+        function downloadPerlerSVG(withLegend) {
+            if (!state.perlerColors) { alert('请先渲染拼豆图纸'); return; }
+            const scale = parseFloat(document.getElementById('exportScaleSlider').value) || 1;
+            const baseCellSize = 20;
+            const cellSize = Math.max(8, Math.round(baseCellSize * scale));
+
+            const w = state.perlerWidth;
+            const h = state.perlerHeight;
+            const showCoords = document.getElementById('showPerlerCoords').checked;
+            const showGrid = document.getElementById('showPerlerGrid').checked;
+            const showLargeGrid = document.getElementById('showPerlerLargeGrid').checked;
+            const chartStyle = document.getElementById('chartStyle').value;
+            const beadShape = document.getElementById('beadShape').value;
+            const transparentColor = document.getElementById('transparentCellColor').value || '#ffffff';
+            const gridColor = document.getElementById('perlerGridColor').value || '#000000';
+            const largeGridColor = document.getElementById('perlerLargeGridColor').value || '#8B4513';
+            const largeGridSize = parseInt(document.getElementById('perlerLargeGridSize').value) || 5;
+            const coordColor = document.getElementById('perlerCoordNumberColor').value || '#000000';
+            const watermarkText = document.getElementById('watermarkText').value || '';
+
+            const offsetX = showCoords ? cellSize : 0;
+            const offsetY = showCoords ? cellSize : 0;
+            let svgW = w * cellSize + offsetX;
+            let svgH = h * cellSize + offsetY;
+            let legendHeight = 0;
+            let legendContent = '';
+
+            if (withLegend) {
+                const colorNames = [];
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const cell = state.perlerColors[y][x];
+                        if (cell && cell.name && !cell.isTransparent && colorNames.indexOf(cell.name) === -1) {
+                            colorNames.push(cell.name);
+                        }
+                    }
+                }
+                const legendCols = Math.max(2, Math.floor(svgW / 220));
+                legendHeight = Math.max(30, Math.ceil(colorNames.length / legendCols) * 28 + 30);
+
+                const sortedColors = colorNames.slice().sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
+                const legendY = svgH + 15;
+                const legendItemW = svgW / legendCols;
+                const legendItemH = 24;
+
+                sortedColors.forEach((name, idx) => {
+                    const col = idx % legendCols;
+                    const row = Math.floor(idx / legendCols);
+                    const lx = col * legendItemW + 12;
+                    const ly = legendY + row * legendItemH;
+
+                    const cd = findColorByName(name);
+                    const swatchColor = cd ? cd.hex : '#cccccc';
+                    const count = state.colorCounts[name] || 0;
+
+                    legendContent += `  <rect x="${lx}" y="${ly - 9}" width="18" height="18" fill="${swatchColor}" stroke="#000000" stroke-width="1"/>\n`;
+                    legendContent += `  <text x="${lx + 26}" y="${ly + 5}" font-family="Arial" font-size="12" fill="#000000">${name}</text>\n`;
+                    legendContent += `  <text x="${lx + 90}" y="${ly + 5}" font-family="Arial" font-size="12" fill="#666666">× ${count}</text>\n`;
+                });
+            }
+
+            svgH += legendHeight;
+
+            let svgContent = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+            svgContent += `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">\n`;
+            svgContent += `  <rect width="${svgW}" height="${svgH}" fill="#ffffff"/>\n`;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const cell = state.perlerColors[y][x];
+                    const px = offsetX + x * cellSize;
+                    const py = offsetY + y * cellSize;
+
+                    let fillColor = transparentColor;
+                    let drawCode = false;
+                    let colorCode = '';
+
+                    if (cell && cell.isTransparent) {
+                        fillColor = transparentColor;
+                    } else if (cell && (cell.rgb || cell.hex)) {
+                        fillColor = cell.rgb ? rgbToHex(cell.rgb) : cell.hex;
+                        if (chartStyle === 'color-with-code' || chartStyle === 'bw') {
+                            drawCode = true;
+                            colorCode = cell.name || '';
+                            if (chartStyle === 'bw') fillColor = '#ffffff';
+                        }
+                    }
+
+                    if (beadShape === 'square') {
+                        svgContent += `  <rect x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" fill="${fillColor}"/>\n`;
+                    } else if (beadShape === 'round-square') {
+                        const r = Math.max(2, cellSize * 0.2);
+                        svgContent += `  <rect x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="${r}" ry="${r}" fill="${fillColor}"/>\n`;
+                    } else if (beadShape === 'circle') {
+                        const cx = px + cellSize / 2;
+                        const cy = py + cellSize / 2;
+                        const r = cellSize / 2 - Math.max(1, cellSize * 0.1);
+                        svgContent += `  <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fillColor}"/>\n`;
+                    } else if (beadShape === 'ring') {
+                        const cx = px + cellSize / 2;
+                        const cy = py + cellSize / 2;
+                        const r = cellSize / 2 - Math.max(1, cellSize * 0.1);
+                        const innerR = Math.max(1, cellSize * 0.25);
+                        svgContent += `  <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fillColor}"/>\n`;
+                        svgContent += `  <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#ffffff"/>\n`;
+                    }
+
+                    if (drawCode && colorCode && cellSize >= 12) {
+                        const fontSize = Math.max(8, Math.floor(cellSize * 0.35));
+                        const textColor = getContrastColor(fillColor);
+                        svgContent += `  <text x="${px + cellSize / 2}" y="${py + cellSize / 2}" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="${fontSize}" font-weight="bold" fill="${textColor}">${colorCode}</text>\n`;
+                    }
+                }
+            }
+
+            if (showGrid) {
+                svgContent += `  <g stroke="${gridColor}" stroke-width="1" fill="none">\n`;
+                for (let x = 0; x <= w; x++) {
+                    const gx = offsetX + x * cellSize;
+                    svgContent += `    <line x1="${gx}" y1="${offsetY}" x2="${gx}" y2="${offsetY + h * cellSize}"/>\n`;
+                }
+                for (let y = 0; y <= h; y++) {
+                    const gy = offsetY + y * cellSize;
+                    svgContent += `    <line x1="${offsetX}" y1="${gy}" x2="${offsetX + w * cellSize}" y2="${gy}"/>\n`;
+                }
+                svgContent += `  </g>\n`;
+            }
+
+            if (showLargeGrid && largeGridSize > 0) {
+                svgContent += `  <g stroke="${largeGridColor}" stroke-width="2" fill="none">\n`;
+                for (let x = 0; x <= w; x += largeGridSize) {
+                    const gx = offsetX + x * cellSize;
+                    svgContent += `    <line x1="${gx}" y1="${offsetY}" x2="${gx}" y2="${offsetY + h * cellSize}"/>\n`;
+                }
+                for (let y = 0; y <= h; y += largeGridSize) {
+                    const gy = offsetY + y * cellSize;
+                    svgContent += `    <line x1="${offsetX}" y1="${gy}" x2="${offsetX + w * cellSize}" y2="${gy}"/>\n`;
+                }
+                svgContent += `  </g>\n`;
+            }
+
+            if (showCoords) {
+                const coordFontSize = Math.max(8, Math.floor(cellSize * 0.5));
+                svgContent += `  <g font-family="Arial" font-size="${coordFontSize}" fill="${coordColor}" text-anchor="middle" dominant-baseline="central">\n`;
+                for (let x = 0; x < w; x++) {
+                    if (x === 0 || (showLargeGrid && (x + 1) % largeGridSize === 0) || (!showLargeGrid && (x + 1) % 5 === 0)) {
+                        svgContent += `    <text x="${offsetX + x * cellSize + cellSize / 2}" y="${cellSize / 2}">${x + 1}</text>\n`;
+                    }
+                }
+                for (let y = 0; y < h; y++) {
+                    if (y === 0 || (showLargeGrid && (y + 1) % largeGridSize === 0) || (!showLargeGrid && (y + 1) % 5 === 0)) {
+                        svgContent += `    <text x="${cellSize / 2}" y="${offsetY + y * cellSize + cellSize / 2}">${y + 1}</text>\n`;
+                    }
+                }
+                svgContent += `  </g>\n`;
+            }
+
+            if (withLegend && legendContent) {
+                svgContent += legendContent;
+            }
+
+            if (watermarkText) {
+                svgContent += `  <text x="${svgW - 10}" y="${svgH - 10}" font-family="Arial" font-size="10" fill="rgba(0,0,0,0.4)" text-anchor="end">${watermarkText}</text>\n`;
+            }
+
+            svgContent += `</svg>`;
+
+            const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `perler_pattern_${Date.now()}_${cellSize}px${withLegend ? '_legend' : ''}.svg`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            updateStatus('🟢 SVG 下载完成');
+        }
+
+        function exportInfoPaper() {
+            if (!state.perlerColors) { alert('请先渲染拼豆图纸'); return; }
+            const w = state.perlerWidth;
+            const h = state.perlerHeight;
+
+            const sortedColors = Object.keys(state.colorCounts)
+                .sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
+
+            let info = `===== 拼豆图纸信息 =====\n\n`;
+            info += `尺寸: ${w} × ${h}\n`;
+            info += `总拼豆数: ${Object.values(state.colorCounts).reduce((a, b) => a + b, 0)}\n`;
+            info += `颜色种类: ${sortedColors.length}\n`;
+            info += `颜色套装: ${document.getElementById('colorSetSelect').value}\n\n`;
+            info += `===== 颜色清单 =====\n\n`;
+
+            sortedColors.forEach((name, idx) => {
+                const count = state.colorCounts[name] || 0;
+                const cd = findColorByName(name);
+                const hex = cd ? cd.hex : '#cccccc';
+                info += `${String(idx + 1).padStart(3, ' ')}. ${name.padEnd(10)}  数量: ${String(count).padStart(5)}  (${hex})\n`;
+            });
+
+            info += `\n===== 位置信息（X, Y = 颜色编号）=====\n\n`;
+
+            const colorIndex = {};
+            sortedColors.forEach((name, idx) => { colorIndex[name] = idx + 1; });
+
+            for (let y = 0; y < h; y++) {
+                let row = '';
+                for (let x = 0; x < w; x++) {
+                    const cell = state.perlerColors[y][x];
+                    if (cell && cell.name && !cell.isTransparent) {
+                        row += String(colorIndex[cell.name] || 0).padStart(3, ' ') + ' ';
+                    } else {
+                        row += '  . ';
+                    }
+                }
+                info += row + '\n';
+            }
+
+            const blob = new Blob([info], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `perler_info_${Date.now()}.txt`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            updateStatus('🟢 图纸信息导出完成');
+        }
+
+        function simpleColorMatch(imageData, colorSetName) {
+            const palette = [];
+            if (typeof colorSets !== 'undefined' && colorSets && colorSets[colorSetName]) {
+                const colorSet = colorSets[colorSetName];
+                if (Array.isArray(colorSet)) {
+                    for (const c of colorSet) {
+                        if (c.rgb) {
+                            palette.push({
+                                name: c.name,
+                                r: c.rgb[0],
+                                g: c.rgb[1],
+                                b: c.rgb[2],
+                                hex: rgbToHex(c.rgb)
+                            });
+                        }
+                    }
+                } else if (colorSet && Array.isArray(colorSet.colors)) {
+                    for (const c of colorSet.colors) {
+                        const rgb = c.rgb;
+                        palette.push({
+                            name: c.name,
+                            r: rgb ? rgb[0] : parseInt(c.hex.substr(1, 2), 16),
+                            g: rgb ? rgb[1] : parseInt(c.hex.substr(3, 2), 16),
+                            b: rgb ? rgb[2] : parseInt(c.hex.substr(5, 2), 16),
+                            hex: c.hex || rgbToHex(c.rgb)
+                        });
+                    }
+                }
+            }
+            if (palette.length === 0) {
+                const basicColors = ['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+                for (let i = 0; i < basicColors.length; i++) {
+                    const hex = basicColors[i].replace('#', '');
+                    palette.push({ name: 'C' + (i + 1), r: parseInt(hex.substr(0, 2), 16), g: parseInt(hex.substr(2, 2), 16), b: parseInt(hex.substr(4, 2), 16), hex: basicColors[i] });
+                }
+            }
+
+            const w = imageData.width;
+            const h = imageData.height;
+            const result = [];
+            for (let y = 0; y < h; y++) {
+                result[y] = [];
+                for (let x = 0; x < w; x++) {
+                    const idx = (y * w + x) * 4;
+                    const r = imageData.data[idx];
+                    const g = imageData.data[idx + 1];
+                    const b = imageData.data[idx + 2];
+                    let bestMatch = palette[0];
+                    let bestDist = Infinity;
+                    for (const p of palette) {
+                        const dr = r - p.r, dg = g - p.g, db = b - p.b;
+                        const dist = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11;
+                        if (dist < bestDist) { bestDist = dist; bestMatch = p; }
+                    }
+                    result[y][x] = { name: bestMatch.name, rgb: [bestMatch.r, bestMatch.g, bestMatch.b], hex: bestMatch.hex };
+                }
+            }
+            return { perlerColors: result, perlerWidth: w, perlerHeight: h };
+        }
+
+        // ========== 自定义编辑 ==========
+        function mapToPerlerColor(hexColor) {
+            const rgb = hexToRgb(hexColor);
+            if (!rgb) return { name: '白色', hex: '#ffffff', rgb: [255, 255, 255] };
+            
+            const currentColorSet = colorSets['mard221'] || [];
+            if (currentColorSet.length === 0) return { name: '白色', hex: '#ffffff', rgb: [255, 255, 255] };
+            
+            const mapped = findClosestColor(rgb, currentColorSet, 'CIEDE2000');
+            return {
+                name: mapped.name || '白色',
+                hex: mapped.hex || '#ffffff',
+                rgb: mapped.rgb || [255, 255, 255]
+            };
+        }
+
+        function updateBrushCursor() {
+            const brushCursor = document.getElementById('brushCursor');
+            if (!brushCursor) return;
+            
+            brushCursor.classList.remove('brush-cursor-brush', 'brush-cursor-eraser', 'brush-cursor-fill');
+            
+            if (state.currentTool === 'brush') {
+                brushCursor.classList.add('brush-cursor-brush');
+                brushCursor.style.background = state.currentColor ? state.currentColor + '33' : 'rgba(0,0,0,0.2)';
+                brushCursor.style.borderColor = state.currentColor || 'rgba(0,0,0,0.5)';
+            } else if (state.currentTool === 'eraser') {
+                brushCursor.classList.add('brush-cursor-eraser');
+            } else if (state.currentTool === 'fill') {
+                brushCursor.classList.add('brush-cursor-fill');
+                brushCursor.style.background = state.currentColor ? state.currentColor + '33' : 'rgba(0,255,0,0.1)';
+                brushCursor.style.borderColor = state.currentColor || 'rgba(0,255,0,0.5)';
+            }
+            
+            const cellSize = workCanvas.width / state.perlerWidth;
+            const previewSize = state.brushSize * cellSize;
+            brushCursor.style.width = previewSize + 'px';
+            brushCursor.style.height = previewSize + 'px';
+        }
+
+        function getCanvasCoords(e) {
+            const rect = workCanvas.getBoundingClientRect();
+            const cellSize = workCanvas.width / state.perlerWidth;
+            const x = Math.floor((e.clientX - rect.left) / (rect.width / state.perlerWidth));
+            const y = Math.floor((e.clientY - rect.top) / (rect.height / state.perlerHeight));
+            return { x, y };
+        }
+
+        function paintCell(x, y) {
+            if (x < 0 || x >= state.perlerWidth || y < 0 || y >= state.perlerHeight) return;
+            if (!state.perlerColors) return;
+
+            const bs = state.brushSize;
+            const halfB = Math.floor(bs / 2);
+            let painted = false;
+            const currentRgb = state.currentColor ? hexToRgb(state.currentColor) : null;
+
+            for (let dy = -halfB; dy <= halfB; dy++) {
+                for (let dx = -halfB; dx <= halfB; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx < 0 || nx >= state.perlerWidth || ny < 0 || ny >= state.perlerHeight) continue;
+                    const currentName = state.perlerColors[ny][nx] ? state.perlerColors[ny][nx].name : null;
+
+                    if (state.currentTool === 'eraser') {
+                        if (state.perlerColors[ny][nx] && state.perlerColors[ny][nx].name) {
+                            state.colorCounts[state.perlerColors[ny][nx].name] = Math.max(0, (state.colorCounts[state.perlerColors[ny][nx].name] || 0) - 1);
+                        }
+                        state.perlerColors[ny][nx] = null;
+                        painted = true;
+                    } else if (state.currentTool === 'brush') {
+                        if (state.currentColor && state.currentColorName) {
+                            if (state.perlerColors[ny][nx] && state.perlerColors[ny][nx].name) {
+                                state.colorCounts[state.perlerColors[ny][nx].name] = Math.max(0, (state.colorCounts[state.perlerColors[ny][nx].name] || 0) - 1);
+                            }
+                            state.perlerColors[ny][nx] = { name: state.currentColorName, rgb: currentRgb, hex: state.currentColor };
+                            state.colorCounts[state.currentColorName] = (state.colorCounts[state.currentColorName] || 0) + 1;
+                            painted = true;
+                        }
+                    }
+                }
+            }
+            if (painted) {
+                renderCanvas();
+                renderColorList();
+            }
+        }
+
+        function floodFill(startX, startY) {
+            if (!state.perlerColors || !state.currentColor) return;
+            if (startX < 0 || startX >= state.perlerWidth || startY < 0 || startY >= state.perlerHeight) return;
+            const targetName = state.perlerColors[startY][startX] ? state.perlerColors[startY][startX].name : null;
+            const newName = state.currentColorName;
+            if (targetName === newName) return;
+            const currentRgb = hexToRgb(state.currentColor);
+
+            const stack = [[startX, startY]];
+            const visited = new Set();
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const key = x + ',' + y;
+                if (visited.has(key)) continue;
+                if (x < 0 || x >= state.perlerWidth || y < 0 || y >= state.perlerHeight) continue;
+                const currentName = state.perlerColors[y][x] ? state.perlerColors[y][x].name : null;
+                if (currentName !== targetName) continue;
+                visited.add(key);
+
+                if (currentName) state.colorCounts[currentName] = Math.max(0, (state.colorCounts[currentName] || 0) - 1);
+                state.perlerColors[y][x] = { name: newName, rgb: currentRgb, hex: state.currentColor };
+                state.colorCounts[newName] = (state.colorCounts[newName] || 0) + 1;
+
+                stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+            }
+
+            renderCanvas();
+            renderColorList();
+        }
+
+        // ========== 保存与导出 ==========
+        function saveDesign() {
+            if (!state.perlerColors) { alert('还没有可保存的设计'); return; }
+            updateStatus('🟡 保存中...');
+
+            (async () => {
+                try {
+                    if (myDesignsManager && typeof myDesignsManager.saveDesign === 'function') {
+                        const colorSetName = document.getElementById('colorSetSelect').value;
+                        await myDesignsManager.saveDesign(state.perlerColors, state.perlerWidth, state.perlerHeight, colorSetName);
+                        updateStatus('🟢 已保存到"我的图纸"');
+                        setTimeout(() => updateStatus('🟢 就绪'), 2000);
+                    } else {
+                        const data = {
+                            perlerColors: state.perlerColors,
+                            width: state.perlerWidth,
+                            height: state.perlerHeight,
+                            timestamp: Date.now(),
+                            fileName: state.fileName
+                        };
+                        const key = 'workbench_design_' + Date.now();
+                        localStorage.setItem(key, JSON.stringify(data));
+                        updateStatus('🟢 已保存到本地');
+                        setTimeout(() => updateStatus('🟢 就绪'), 2000);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    updateStatus('🔴 保存失败');
+                }
+            })();
+        }
+
+        function exportJSON() {
+            if (!state.perlerColors) { alert('还没有可导出的设计'); return; }
+            const data = {
+                version: '1.0',
+                perlerColors: state.perlerColors,
+                width: state.perlerWidth,
+                height: state.perlerHeight,
+                colorCounts: state.colorCounts,
+                sourceImage: state.fileName,
+                exportedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `拼豆设计_${state.perlerWidth}x${state.perlerHeight}_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            updateStatus('🟢 已导出 JSON');
+        }
+
+        function clearCanvas() {
+            if (!state.perlerColors) return;
+            if (!confirm('确定要清空当前画布吗？这会清除所有拼豆颜色。')) return;
+            for (let y = 0; y < state.perlerHeight; y++) {
+                for (let x = 0; x < state.perlerWidth; x++) {
+                    state.perlerColors[y][x] = null;
+                }
+            }
+            state.colorCounts = {};
+            renderCanvas();
+            renderColorList();
+            saveHistory();
+            updateStatus('🟢 画布已清空');
+        }
+
+        // ========== 状态栏更新 ==========
+        function updateStatus(text) {
+            const badge = document.getElementById('statusBadge');
+            if (badge) badge.textContent = text;
+        }
+
+        // ========== 顶部标签页切换 ==========
         const tabBtns = document.querySelectorAll('.tab-btn');
         const controlPanels = {
             'original': document.querySelector('.panel-original'),
@@ -765,127 +2726,610 @@
             'perler': '💎 拼豆设置',
             'custom': '✏️ 自定义设置'
         };
-        const rightPanelTitle = document.getElementById('rightPanelTitle');
 
-        function switchMode(mode) {
+        function switchTabMode(mode) {
+            state.currentMode = mode;
             tabBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
             Object.values(controlPanels).forEach(p => p.classList.remove('active'));
             if (controlPanels[mode]) controlPanels[mode].classList.add('active');
-            if (rightPanelTitles[mode] && rightPanelTitle) {
-                rightPanelTitle.textContent = rightPanelTitles[mode];
+            if (rightPanelTitle) rightPanelTitle.textContent = rightPanelTitles[mode] || '控制面板';
+            renderCanvas();
+            renderColorList();
+            
+            if (mode === 'custom' && state.perlerColors) {
+                updateBrushCursor();
+            } else {
+                const brushCursor = document.getElementById('brushCursor');
+                if (brushCursor) brushCursor.style.display = 'none';
             }
         }
 
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                if (btn.dataset.mode) switchMode(btn.dataset.mode);
-            });
-        });
-
-        // ========== 色块选择 + 悬停浮层 ==========
-        const colorItems = document.querySelectorAll('.color-item');
-        const colorTooltip = document.getElementById('colorTooltip');
-        const tooltipSwatch = document.getElementById('tooltipSwatch');
-        const tooltipName = document.getElementById('tooltipName');
-        const tooltipCode = document.getElementById('tooltipCode');
-        const tooltipCount = document.getElementById('tooltipCount');
-        const tooltipPercent = document.getElementById('tooltipPercent');
-        const tooltipBarFill = document.getElementById('tooltipBarFill');
-
-        let hideTooltipTimer = null;
-
-        colorItems.forEach(item => {
-            item.addEventListener('click', () => {
-                colorItems.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            });
-
-            item.addEventListener('mouseenter', () => {
-                if (hideTooltipTimer) { clearTimeout(hideTooltipTimer); hideTooltipTimer = null; }
-                const swatch = item.querySelector('.color-swatch');
-                const bgColor = swatch.style.background;
-                const miniBarFill = item.querySelector('.color-mini-bar-fill');
-                const barWidth = miniBarFill ? miniBarFill.style.width : '0%';
-
-                tooltipSwatch.style.background = bgColor;
-                tooltipName.textContent = item.dataset.name || '';
-                tooltipCode.textContent = item.dataset.code || '';
-                tooltipCount.textContent = item.dataset.count || '';
-                tooltipPercent.textContent = item.dataset.percent || '';
-                tooltipBarFill.style.width = barWidth;
-                tooltipBarFill.style.background = bgColor;
-
-                colorTooltip.classList.add('visible');
-                const panelRect = item.closest('.left-panel').getBoundingClientRect();
-                const itemRect = item.getBoundingClientRect();
-                const tooltipRect = colorTooltip.getBoundingClientRect();
-                let top = item.offsetTop + item.offsetHeight / 2 - tooltipRect.height / 2;
-                let left = item.offsetLeft + item.offsetWidth + 8;
-                if (top < 10) top = 10;
-                if (top + tooltipRect.height > panelRect.height - 10) {
-                    top = panelRect.height - tooltipRect.height - 10;
+                if (btn.dataset.mode) {
+                    if (btn.dataset.mode === 'pixel' && !state.pixelatedData) {
+                        if (!state.imageLoaded) { alert('请先上传图片'); return; }
+                        applyPixelation();
+                        return;
+                    }
+                    if (btn.dataset.mode === 'perler' && !state.perlerColors) {
+                        applyPerlerMatching();
+                        return;
+                    }
+                    if (btn.dataset.mode === 'custom' && !state.perlerColors) {
+                        if (!state.imageLoaded) { alert('请先上传图片'); return; }
+                        applyPerlerMatching();
+                        return;
+                    }
+                    switchTabMode(btn.dataset.mode);
                 }
-                if (top < 10) top = 10;
-                colorTooltip.style.left = left + 'px';
-                colorTooltip.style.top = top + 'px';
-                colorTooltip.style.right = 'auto';
-            });
-
-            item.addEventListener('mouseleave', () => {
-                hideTooltipTimer = setTimeout(() => {
-                    colorTooltip.classList.remove('visible');
-                }, 150);
             });
         });
 
-        if (colorTooltip) {
-            colorTooltip.addEventListener('mouseenter', () => {
-                if (hideTooltipTimer) { clearTimeout(hideTooltipTimer); hideTooltipTimer = null; }
-            });
-            colorTooltip.addEventListener('mouseleave', () => {
-                colorTooltip.classList.remove('visible');
-            });
+        // ========== 文件上传 ==========
+        const fileInput = document.getElementById('imageFileInput');
+        function triggerFileSelect() {
+            fileInput.click();
         }
 
-        // ========== 筛选/排序按钮 ==========
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-        document.querySelectorAll('.sort-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.parentElement.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) loadImageFromFile(e.target.files[0]);
         });
 
-        // ========== 工具按钮切换（自定义模式） ==========
-        document.querySelectorAll('.tool-pick').forEach(tool => {
-            tool.addEventListener('click', () => {
-                document.querySelectorAll('.tool-pick').forEach(t => t.classList.remove('active'));
-                tool.classList.add('active');
-            });
-        });
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) uploadBtn.addEventListener('click', triggerFileSelect);
+        const uploadBtn2 = document.getElementById('uploadBtn2');
+        if (uploadBtn2) uploadBtn2.addEventListener('click', triggerFileSelect);
+        const reuploadBtn = document.getElementById('reuploadBtn');
+        if (reuploadBtn) reuploadBtn.addEventListener('click', triggerFileSelect);
 
-        // ========== 画笔大小切换 ==========
-        document.querySelectorAll('.brush-size').forEach(size => {
-            size.addEventListener('click', () => {
-                document.querySelectorAll('.brush-size').forEach(s => s.classList.remove('active'));
-                size.classList.add('active');
-            });
-        });
-
-        // ========== 预设尺寸切换 ==========
+        // ========== 右侧控制面板按钮绑定 ==========
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 btn.parentElement.querySelectorAll('.preset-btn').forEach(s => s.classList.remove('active'));
                 btn.classList.add('active');
+                const size = parseInt(btn.dataset.size);
+                const tw = document.getElementById('targetWidth');
+                const th = document.getElementById('targetHeight');
+                if (state.imageEl) {
+                    const ratio = state.imageEl.width / state.imageEl.height;
+                    if (ratio >= 1) { tw.value = size; th.value = Math.round(size / ratio); }
+                    else { th.value = size; tw.value = Math.round(size * ratio); }
+                } else {
+                    tw.value = size; th.value = size;
+                }
+                if (state.imageLoaded && state.currentMode === 'original') renderCanvas();
             });
         });
 
+        const goToPixelBtn = document.getElementById('goToPixelBtn');
+        if (goToPixelBtn) goToPixelBtn.addEventListener('click', applyPixelation);
 
+        const applyPixelBtn = document.getElementById('applyPixelBtn');
+        if (applyPixelBtn) applyPixelBtn.addEventListener('click', applyPixelation);
+
+        const goToPerlerBtn = document.getElementById('goToPerlerBtn');
+        if (goToPerlerBtn) goToPerlerBtn.addEventListener('click', applyPerlerMatching);
+
+        const applyPerlerBtn = document.getElementById('applyPerlerBtn');
+        if (applyPerlerBtn) applyPerlerBtn.addEventListener('click', applyPerlerMatching);
+
+        const smartOptimizeBtn = document.getElementById('smartOptimizeBtn');
+        if (smartOptimizeBtn) smartOptimizeBtn.addEventListener('click', smartOptimizePerler);
+
+        const downloadPerlerPNGBtn = document.getElementById('downloadPerlerPNGBtn');
+        if (downloadPerlerPNGBtn) downloadPerlerPNGBtn.addEventListener('click', () => downloadPerlerPNG(false));
+
+        const downloadPerlerSVGBtn = document.getElementById('downloadPerlerSVGBtn');
+        if (downloadPerlerSVGBtn) downloadPerlerSVGBtn.addEventListener('click', () => downloadPerlerSVG(false));
+
+        const downloadPerlerPNGLegendBtn = document.getElementById('downloadPerlerPNGLegendBtn');
+        if (downloadPerlerPNGLegendBtn) downloadPerlerPNGLegendBtn.addEventListener('click', () => downloadPerlerPNG(true));
+
+        const downloadPerlerSVGLegendBtn = document.getElementById('downloadPerlerSVGLegendBtn');
+        if (downloadPerlerSVGLegendBtn) downloadPerlerSVGLegendBtn.addEventListener('click', () => downloadPerlerSVG(true));
+
+        const exportInfoPaperBtn = document.getElementById('exportInfoPaperBtn');
+        if (exportInfoPaperBtn) exportInfoPaperBtn.addEventListener('click', exportInfoPaper);
+
+        const downloadInfoPaperBtn = document.getElementById('downloadInfoPaperBtn');
+        if (downloadInfoPaperBtn) downloadInfoPaperBtn.addEventListener('click', exportInfoPaper);
+
+        const exportScaleSlider = document.getElementById('exportScaleSlider');
+        if (exportScaleSlider) {
+            exportScaleSlider.addEventListener('input', () => {
+                const val = document.getElementById('exportScaleValue');
+                if (val) val.textContent = exportScaleSlider.value + '×';
+            });
+        }
+
+        function debouncedRerenderPerler() {
+            if (state.currentMode !== 'perler' || !state.perlerColors) return;
+            if (window._perlerRerenderTimer) clearTimeout(window._perlerRerenderTimer);
+            window._perlerRerenderTimer = setTimeout(() => {
+                renderCanvas();
+            }, 100);
+        }
+
+        const beadSizeSlider = document.getElementById('beadSizeSlider');
+        if (beadSizeSlider) {
+            beadSizeSlider.addEventListener('input', () => {
+                const v = document.getElementById('beadSizeValue');
+                if (v) v.textContent = beadSizeSlider.value;
+                debouncedRerenderPerler();
+            });
+        }
+
+        const chartStyleSelect = document.getElementById('chartStyle');
+        if (chartStyleSelect) chartStyleSelect.addEventListener('change', debouncedRerenderPerler);
+
+        const legendPositionSelect = document.getElementById('legendPosition');
+        if (legendPositionSelect) legendPositionSelect.addEventListener('change', debouncedRerenderPerler);
+
+        const beadShapeSelect = document.getElementById('beadShape');
+        if (beadShapeSelect) beadShapeSelect.addEventListener('change', debouncedRerenderPerler);
+
+        const transparentCellColor = document.getElementById('transparentCellColor');
+        if (transparentCellColor) {
+            transparentCellColor.addEventListener('input', () => {
+                const v = document.getElementById('transparentCellColorValue');
+                if (v) v.textContent = transparentCellColor.value;
+                debouncedRerenderPerler();
+            });
+        }
+
+        const showPerlerGrid = document.getElementById('showPerlerGrid');
+        if (showPerlerGrid) showPerlerGrid.addEventListener('change', debouncedRerenderPerler);
+
+        const perlerGridColor = document.getElementById('perlerGridColor');
+        if (perlerGridColor) perlerGridColor.addEventListener('input', debouncedRerenderPerler);
+
+        const perlerGridLineWidth = document.getElementById('perlerGridLineWidth');
+        if (perlerGridLineWidth) perlerGridLineWidth.addEventListener('input', debouncedRerenderPerler);
+
+        const showPerlerCoords = document.getElementById('showPerlerCoords');
+        if (showPerlerCoords) showPerlerCoords.addEventListener('change', debouncedRerenderPerler);
+
+        const perlerCoordNumberColor = document.getElementById('perlerCoordNumberColor');
+        if (perlerCoordNumberColor) perlerCoordNumberColor.addEventListener('input', debouncedRerenderPerler);
+
+        const showPerlerLargeGrid = document.getElementById('showPerlerLargeGrid');
+        if (showPerlerLargeGrid) showPerlerLargeGrid.addEventListener('change', debouncedRerenderPerler);
+
+        const perlerLargeGridColor = document.getElementById('perlerLargeGridColor');
+        if (perlerLargeGridColor) perlerLargeGridColor.addEventListener('input', debouncedRerenderPerler);
+
+        const perlerLargeGridSize = document.getElementById('perlerLargeGridSize');
+        if (perlerLargeGridSize) perlerLargeGridSize.addEventListener('input', debouncedRerenderPerler);
+
+        const perlerLargeGridLineWidth = document.getElementById('perlerLargeGridLineWidth');
+        if (perlerLargeGridLineWidth) perlerLargeGridLineWidth.addEventListener('input', debouncedRerenderPerler);
+
+        const watermarkText = document.getElementById('watermarkText');
+        if (watermarkText) watermarkText.addEventListener('input', debouncedRerenderPerler);
+
+        // 防抖函数
+        let pixelationDebounceTimer = null;
+        function debouncedRePixelate() {
+            if (!state.imageEl) return;
+            clearTimeout(pixelationDebounceTimer);
+            pixelationDebounceTimer = setTimeout(() => {
+                applyPixelation();
+            }, 150);
+        }
+
+        // 滑条实时更新
+        const cellSizeSlider = document.getElementById('cellSizeSlider');
+        if (cellSizeSlider) cellSizeSlider.addEventListener('input', (e) => {
+            state.cellSize = parseInt(e.target.value);
+            const display = document.getElementById('cellSizeValue');
+            if (display) display.textContent = state.cellSize + ' px/格';
+            renderCanvas();
+        });
+
+        const pixelSizeSlider = document.getElementById('pixelSizeSlider');
+        if (pixelSizeSlider) pixelSizeSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('pixelSizeValue');
+            if (display) display.textContent = e.target.value;
+            
+            const gridCountDisplay = document.getElementById('gridCountValue');
+            if (gridCountDisplay && state.imageEl) {
+                const pixelSize = parseInt(e.target.value);
+                const targetWidth = parseInt(document.getElementById('widthInput').value) || (state.imageEl.naturalWidth || state.imageEl.width);
+                const targetHeight = parseInt(document.getElementById('heightInput').value) || (state.imageEl.naturalHeight || state.imageEl.height);
+                const gridWidth = Math.ceil(targetWidth / pixelSize);
+                const gridHeight = Math.ceil(targetHeight / pixelSize);
+                gridCountDisplay.textContent = `(${gridWidth} × ${gridHeight})`;
+            }
+            
+            debouncedRePixelate();
+        });
+
+        const offsetXSlider = document.getElementById('pixelGridOffsetX');
+        if (offsetXSlider) offsetXSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('offsetXValue');
+            if (display) display.textContent = e.target.value;
+            debouncedRePixelate();
+        });
+
+        const offsetYSlider = document.getElementById('pixelGridOffsetY');
+        if (offsetYSlider) offsetYSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('offsetYValue');
+            if (display) display.textContent = e.target.value;
+            debouncedRePixelate();
+        });
+
+        const widthInput = document.getElementById('widthInput');
+        const heightInput = document.getElementById('heightInput');
+        const keepRatioCheckbox = document.getElementById('keepRatioCheckbox');
+        
+        if (widthInput) widthInput.addEventListener('input', (e) => {
+            if (keepRatioCheckbox && keepRatioCheckbox.checked && state.imageEl) {
+                const ratio = (state.imageEl.naturalWidth || state.imageEl.width) / (state.imageEl.naturalHeight || state.imageEl.height);
+                heightInput.value = Math.round(parseInt(e.target.value) / ratio);
+            }
+            debouncedRePixelate();
+        });
+        
+        if (heightInput) heightInput.addEventListener('input', (e) => {
+            if (keepRatioCheckbox && keepRatioCheckbox.checked && state.imageEl) {
+                const ratio = (state.imageEl.naturalWidth || state.imageEl.width) / (state.imageEl.naturalHeight || state.imageEl.height);
+                widthInput.value = Math.round(parseInt(e.target.value) * ratio);
+            }
+            debouncedRePixelate();
+        });
+        
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetWidth = parseInt(btn.dataset.width);
+                const presetHeight = parseInt(btn.dataset.height);
+                
+                if (keepRatioCheckbox && keepRatioCheckbox.checked && state.imageEl) {
+                    const originalWidth = state.imageEl.naturalWidth || state.imageEl.width;
+                    const originalHeight = state.imageEl.naturalHeight || state.imageEl.height;
+                    const ratio = originalWidth / originalHeight;
+                    
+                    if (originalWidth >= originalHeight) {
+                        widthInput.value = presetWidth;
+                        heightInput.value = Math.round(presetWidth / ratio);
+                    } else {
+                        heightInput.value = presetHeight;
+                        widthInput.value = Math.round(presetHeight * ratio);
+                    }
+                } else {
+                    widthInput.value = presetWidth;
+                    heightInput.value = presetHeight;
+                }
+                
+                debouncedRePixelate();
+            });
+        });
+
+        const targetColorCountSlider = document.getElementById('targetColorCount');
+        if (targetColorCountSlider) targetColorCountSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('targetColorCountValue');
+            if (display) display.textContent = e.target.value;
+            debouncedRePixelate();
+        });
+
+        const contrastSlider = document.getElementById('contrastSlider');
+        if (contrastSlider) contrastSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('contrastValue');
+            if (display) display.textContent = parseFloat(e.target.value).toFixed(1);
+            debouncedRePixelate();
+        });
+
+        const sharpenStrengthSlider = document.getElementById('sharpenStrength');
+        if (sharpenStrengthSlider) sharpenStrengthSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('sharpenStrengthValue');
+            if (display) display.textContent = parseFloat(e.target.value).toFixed(1);
+            debouncedRePixelate();
+        });
+
+        const pixelMethodSelect = document.getElementById('pixelMethod');
+        if (pixelMethodSelect) pixelMethodSelect.addEventListener('change', debouncedRePixelate);
+
+        const enableContrastCb = document.getElementById('enableContrast');
+        if (enableContrastCb) enableContrastCb.addEventListener('change', () => {
+            const controls = document.querySelectorAll('[data-contrast-only]');
+            controls.forEach(c => c.classList.toggle('hidden-by-checkbox', !enableContrastCb.checked));
+            debouncedRePixelate();
+        });
+
+        const enableSharpenCb = document.getElementById('enableSharpen');
+        if (enableSharpenCb) enableSharpenCb.addEventListener('change', () => {
+            const controls = document.querySelectorAll('[data-sharpen-only]');
+            controls.forEach(c => c.classList.toggle('hidden-by-checkbox', !enableSharpenCb.checked));
+            debouncedRePixelate();
+        });
+
+        const enableColorQuantizeCb = document.getElementById('enableColorQuantize');
+        if (enableColorQuantizeCb) enableColorQuantizeCb.addEventListener('change', () => {
+            const controls = document.querySelectorAll('[data-quantize-only]');
+            controls.forEach(c => c.classList.toggle('hidden-by-checkbox', !enableColorQuantizeCb.checked));
+            debouncedRePixelate();
+        });
+
+        const enableNeighborSmoothCb = document.getElementById('enableNeighborSmooth');
+        if (enableNeighborSmoothCb) enableNeighborSmoothCb.addEventListener('change', debouncedRePixelate);
+
+        const showPixelGridCb = document.getElementById('showPixelGrid');
+        if (showPixelGridCb) showPixelGridCb.addEventListener('change', () => {
+            const gridControls = document.querySelectorAll('[data-grid-only]');
+            gridControls.forEach(c => c.classList.toggle('hidden-by-checkbox', !showPixelGridCb.checked));
+            if (state.currentMode === 'pixel') renderCanvas();
+        });
+
+        const pixelGridColorInput = document.getElementById('pixelGridColor');
+        if (pixelGridColorInput) pixelGridColorInput.addEventListener('input', () => {
+            if (state.currentMode === 'pixel') renderCanvas();
+        });
+
+        const pixelGridThicknessSlider = document.getElementById('pixelGridThickness');
+        if (pixelGridThicknessSlider) pixelGridThicknessSlider.addEventListener('input', (e) => {
+            const display = document.getElementById('gridThicknessValue');
+            if (display) display.textContent = e.target.value;
+            if (state.currentMode === 'pixel') renderCanvas();
+        });
+
+        const downloadPixelBtn = document.getElementById('downloadPixelBtn');
+        if (downloadPixelBtn) downloadPixelBtn.addEventListener('click', () => {
+            if (!state.pixelatedData) {
+                alert('请先像素化图片');
+                return;
+            }
+            const w = state.pixelatedData.width;
+            const h = state.pixelatedData.height;
+            const cellSize = state.cellSize;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = w * cellSize;
+            exportCanvas.height = h * cellSize;
+            const exportCtx = exportCanvas.getContext('2d');
+            exportCtx.fillStyle = '#fff';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            const srcData = state.pixelatedData.data;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = (y * w + x) * 4;
+                    exportCtx.fillStyle = `rgb(${srcData[idx]},${srcData[idx+1]},${srcData[idx+2]})`;
+                    exportCtx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+            const showGrid = document.getElementById('showPixelGrid');
+            if (showGrid && showGrid.checked) {
+                const gridColor = document.getElementById('pixelGridColor').value;
+                const gridThickness = parseInt(document.getElementById('pixelGridThickness').value);
+                exportCtx.strokeStyle = gridColor;
+                exportCtx.lineWidth = gridThickness;
+                exportCtx.beginPath();
+                for (let x = 0; x <= w; x++) {
+                    const px = x * cellSize + gridThickness / 2;
+                    exportCtx.moveTo(px, 0);
+                    exportCtx.lineTo(px, h * cellSize);
+                }
+                for (let y = 0; y <= h; y++) {
+                    const py = y * cellSize + gridThickness / 2;
+                    exportCtx.moveTo(0, py);
+                    exportCtx.lineTo(w * cellSize, py);
+                }
+                exportCtx.stroke();
+            }
+            exportCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pixelated_${w}x${h}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            });
+        });
+
+        // 工具按钮
+        document.querySelectorAll('.tool-pick-horizontal').forEach(tool => {
+            tool.addEventListener('click', () => {
+                document.querySelectorAll('.tool-pick-horizontal').forEach(t => t.classList.remove('active'));
+                tool.classList.add('active');
+                state.currentTool = tool.dataset.tool;
+                updateBrushCursor();
+            });
+        });
+
+        // 画笔大小
+        document.querySelectorAll('.brush-size-horizontal').forEach(size => {
+            size.addEventListener('click', () => {
+                document.querySelectorAll('.brush-size-horizontal').forEach(s => s.classList.remove('active'));
+                size.classList.add('active');
+                state.brushSize = parseInt(size.dataset.size);
+                updateBrushCursor();
+            });
+        });
+
+        // 画笔颜色选择器
+        const customBrushColor = document.getElementById('customBrushColor');
+        if (customBrushColor) {
+            customBrushColor.addEventListener('input', (e) => {
+                const color = e.target.value;
+                state.customBrushColor = color;
+                const mappedColor = mapToPerlerColor(color);
+                state.currentColor = mappedColor.hex;
+                state.currentColorName = mappedColor.name;
+                
+                const label = document.getElementById('customBrushColorLabel');
+                if (label) label.textContent = mappedColor.name;
+                
+                updateBrushCursor();
+            });
+            customBrushColor.dispatchEvent(new Event('input'));
+        }
+
+        // 保存/导出
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) saveBtn.addEventListener('click', saveDesign);
+        const saveDesignBtn = document.getElementById('saveDesignBtn');
+        if (saveDesignBtn) saveDesignBtn.addEventListener('click', saveDesign);
+        const exportJSONBtn = document.getElementById('exportJSONBtn');
+        if (exportJSONBtn) exportJSONBtn.addEventListener('click', exportJSON);
+
+        // 清空/撤销/重做
+        const clearBtn = document.getElementById('clearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', clearCanvas);
+        const undoBtn = document.getElementById('undoBtn');
+        if (undoBtn) undoBtn.addEventListener('click', undo);
+        const redoBtn = document.getElementById('redoBtn');
+        if (redoBtn) redoBtn.addEventListener('click', redo);
+
+        // ========== 画布鼠标事件（绘制/拖拽） ==========
+        workCanvas.addEventListener('mousedown', (e) => {
+            if (state.currentMode === 'custom' && state.perlerColors) {
+                isDrawing = true;
+                const coords = getCanvasCoords(e);
+                if (state.currentTool === 'fill') {
+                    floodFill(coords.x, coords.y);
+                    saveHistory();
+                } else {
+                    paintCell(coords.x, coords.y);
+                }
+            }
+        });
+
+        workCanvas.addEventListener('mousemove', (e) => {
+            if (isDrawing && state.currentMode === 'custom' && state.perlerColors) {
+                const coords = getCanvasCoords(e);
+                if (state.currentTool !== 'fill') paintCell(coords.x, coords.y);
+            }
+
+            if (state.perlerColors) {
+                const coords = getCanvasCoords(e);
+                document.getElementById('coordX').textContent = `X: ${coords.x}`;
+                document.getElementById('coordY').textContent = `Y: ${coords.y}`;
+            }
+
+            if (state.currentMode === 'custom' && state.perlerColors) {
+                const brushCursor = document.getElementById('brushCursor');
+                if (brushCursor) {
+                    brushCursor.style.display = 'block';
+                    brushCursor.style.left = e.clientX + 'px';
+                    brushCursor.style.top = e.clientY + 'px';
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDrawing) {
+                isDrawing = false;
+                if (state.currentMode === 'custom' && document.getElementById('autoSaveHistory').checked) saveHistory();
+            }
+        });
+
+        workCanvas.addEventListener('mouseleave', () => {
+            const brushCursor = document.getElementById('brushCursor');
+            if (brushCursor) brushCursor.style.display = 'none';
+        });
+
+        // ========== 缩放/平移控件绑定 ==========
+        const zoomInBtn = document.getElementById('zoomIn');
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoom + 20));
+        const zoomOutBtn = document.getElementById('zoomOut');
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoom - 20));
+        const fitViewBtn = document.getElementById('fitView');
+        if (fitViewBtn) fitViewBtn.addEventListener('click', () => { zoom = 100; panX = 0; panY = 0; applyTransform(); });
+        const resetViewBtn = document.getElementById('resetView');
+        if (resetViewBtn) resetViewBtn.addEventListener('click', () => { zoom = 100; panX = 0; panY = 0; applyTransform(); });
+        if (zoomSlider) zoomSlider.addEventListener('input', (e) => setZoom(parseInt(e.target.value)));
+
+        canvasContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 10 : -10;
+            setZoom(zoom + delta, e.clientX, e.clientY);
+        }, { passive: false });
+
+        // 画布空白区域拖拽平移
+        canvasContainer.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#workCanvas')) return;
+            isDragging = true;
+            dragStartX = e.clientX - panX;
+            dragStartY = e.clientY - panY;
+            canvasContainer.style.cursor = 'grabbing';
+            canvasContainer.classList.add('is-dragging');
+            e.preventDefault();
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                panX = e.clientX - dragStartX;
+                panY = e.clientY - dragStartY;
+                applyTransform();
+            }
+        });
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                canvasContainer.style.cursor = 'grab';
+                canvasContainer.classList.remove('is-dragging');
+            }
+        });
+        canvasContainer.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // 网格/坐标/全屏
+        const toggleGrid = document.getElementById('toggleGrid');
+        if (toggleGrid) toggleGrid.addEventListener('click', () => {
+            toggleGrid.classList.toggle('active');
+            if (showPerlerGrid) showPerlerGrid.checked = toggleGrid.classList.contains('active');
+            state.showGrid = toggleGrid.classList.contains('active');
+            if (state.perlerColors || state.pixelatedData) renderCanvas();
+        });
+        if (showPerlerGrid) showPerlerGrid.addEventListener('change', () => {
+            if (toggleGrid) toggleGrid.classList.toggle('active', showPerlerGrid.checked);
+            state.showGrid = showPerlerGrid.checked;
+            if (state.perlerColors || state.pixelatedData) renderCanvas();
+        });
+
+        const toggleCoordsBtn = document.getElementById('toggleCoords');
+        if (toggleCoordsBtn) toggleCoordsBtn.addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('active');
+            if (showPerlerCoords) showPerlerCoords.checked = e.currentTarget.classList.contains('active');
+            if (state.perlerColors || state.pixelatedData) renderCanvas();
+        });
+        if (showPerlerCoords) showPerlerCoords.addEventListener('change', () => {
+            if (toggleCoordsBtn) toggleCoordsBtn.classList.toggle('active', showPerlerCoords.checked);
+            if (state.perlerColors || state.pixelatedData) renderCanvas();
+        });
+        const toggleFullscreenBtn = document.getElementById('toggleFullscreen');
+        if (toggleFullscreenBtn) toggleFullscreenBtn.addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('active');
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+            else document.exitFullscreen();
+        });
+
+        // ========== 面板折叠 ==========
+        const body = document.body;
+        const leftToggle = document.getElementById('toggleLeftPanel');
+        const rightToggle = document.getElementById('toggleRightPanel');
+        if (leftToggle) leftToggle.addEventListener('click', () => {
+            body.classList.toggle('left-collapsed');
+            leftToggle.textContent = body.classList.contains('left-collapsed') ? '▶' : '◀';
+        });
+        if (rightToggle) rightToggle.addEventListener('click', () => {
+            body.classList.toggle('right-collapsed');
+            rightToggle.textContent = body.classList.contains('right-collapsed') ? '◀' : '▶';
+        });
+
+        const expandLeftBtn = document.getElementById('expandLeftBtn');
+        if (expandLeftBtn) expandLeftBtn.addEventListener('click', () => leftToggle.click());
+        const expandRightBtn = document.getElementById('expandRightBtn');
+        if (expandRightBtn) expandRightBtn.addEventListener('click', () => rightToggle.click());
+
+        // 操作历史按钮
+        const historyBtn = document.getElementById('historyBtn');
+        if (historyBtn) historyBtn.addEventListener('click', () => {
+            historyBtn.classList.toggle('active');
+            if (state.history.length > 0) {
+                alert(`操作历史：\n总操作数：${state.history.length}\n当前位置：${state.historyIndex + 1}\n\n提示：撤销=Ctrl+Z，重做=Ctrl+Y`);
+            } else {
+                alert('暂无操作历史。进行编辑操作后将自动记录。');
+            }
+        });
 
         // ========== 键盘快捷键 ==========
         window.addEventListener('keydown', (e) => {
@@ -893,67 +3337,144 @@
                 if (e.key === '=' || e.key === '+') { setZoom(zoom + 10); e.preventDefault(); }
                 else if (e.key === '-') { setZoom(zoom - 10); e.preventDefault(); }
                 else if (e.key === '0') { zoom = 100; panX = 0; panY = 0; applyTransform(); e.preventDefault(); }
-                else if (e.key === 'z' || e.key === 'Z') { document.getElementById('undoBtn').click(); e.preventDefault(); }
-                else if (e.key === 'y' || e.key === 'Y') { document.getElementById('redoBtn').click(); e.preventDefault(); }
-                else if (e.key === 's' || e.key === 'S') { document.getElementById('saveBtn').click(); e.preventDefault(); }
-                else if (e.key === 'h' || e.key === 'H') { document.getElementById('historyBtn').click(); e.preventDefault(); }
+                else if (e.key === 'z' || e.key === 'Z') { undo(); e.preventDefault(); }
+                else if (e.key === 'y' || e.key === 'Y') { redo(); e.preventDefault(); }
+                else if (e.key === 's' || e.key === 'S') { saveDesign(); e.preventDefault(); }
+                else if (e.key === 'h' || e.key === 'H') { if (historyBtn) historyBtn.click(); e.preventDefault(); }
             } else {
-                if (e.key === 'g' || e.key === 'G') { toggleGrid.click(); }
-                else if (e.key === 'c' || e.key === 'C') { document.getElementById('toggleCoords').click(); }
-                else if (e.key === 'f' || e.key === 'F') { document.getElementById('toggleFullscreen').click(); }
-                else if (e.key === 'ArrowLeft') { document.getElementById('toggleLeftPanel').click(); }
-                else if (e.key === 'ArrowRight') { document.getElementById('toggleRightPanel').click(); }
+                if (e.key === 'g' || e.key === 'G') { if (toggleGrid) toggleGrid.click(); }
+                else if (e.key === 'c' || e.key === 'C') { if (toggleCoordsBtn) toggleCoordsBtn.click(); }
+                else if (e.key === 'f' || e.key === 'F') { if (toggleFullscreenBtn) toggleFullscreenBtn.click(); }
+                else if (e.key === 'ArrowLeft') { if (leftToggle) leftToggle.click(); }
+                else if (e.key === 'ArrowRight') { if (rightToggle) rightToggle.click(); }
             }
         });
 
-        // ========== 面板折叠 ==========
-        const body = document.body;
-        const leftToggle = document.getElementById('toggleLeftPanel');
-        const rightToggle = document.getElementById('toggleRightPanel');
-        leftToggle.addEventListener('click', () => {
-            body.classList.toggle('left-collapsed');
-            leftToggle.textContent = body.classList.contains('left-collapsed') ? '▶' : '◀';
-        });
-        rightToggle.addEventListener('click', () => {
-            body.classList.toggle('right-collapsed');
-            rightToggle.textContent = body.classList.contains('right-collapsed') ? '◀' : '▶';
+        // ========== 折叠面板交互 ==========
+        document.querySelectorAll('.section-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                const icon = button.querySelector('.toggle-icon');
+                
+                button.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+                
+                if (content.classList.contains('collapsed')) {
+                    icon.textContent = '▶';
+                } else {
+                    icon.textContent = '▼';
+                }
+            });
         });
 
-        // ========== 画布工具栏按钮绑定 ==========
-        function bindAction(id, handler) {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    btn.classList.add('active');
-                    setTimeout(() => btn.classList.remove('active'), 200);
-                    handler();
-                });
+        document.querySelectorAll('.section-toggle').forEach((button, index) => {
+            if (index > 0) {
+                const content = button.nextElementSibling;
+                const icon = button.querySelector('.toggle-icon');
+                button.classList.add('collapsed');
+                content.classList.add('collapsed');
+                icon.textContent = '▶';
             }
-        }
-        bindAction('undoBtn', () => console.log('撤销操作'));
-        bindAction('redoBtn', () => console.log('重做操作'));
-        bindAction('clearBtn', () => {
-            if (confirm('确定要清空当前画布吗？')) console.log('清空画布');
-        });
-        bindAction('saveBtn', () => console.log('保存设计'));
-
-        // ========== 操作历史按钮 - 显示/隐藏历史面板 ==========
-        const historyBtn = document.getElementById('historyBtn');
-        historyBtn.addEventListener('click', () => {
-            historyBtn.classList.toggle('active');
-            console.log('打开/关闭操作历史面板');
-        });
-
-        // ========== 画布边缘浮动按钮 ==========
-        document.getElementById('expandLeftBtn').addEventListener('click', () => {
-            document.getElementById('toggleLeftPanel').click();
-        });
-        document.getElementById('expandRightBtn').addEventListener('click', () => {
-            document.getElementById('toggleRightPanel').click();
         });
 
         // 初始化
         applyTransform();
+        renderColorList();
     </script>
+
+    <!-- 智能优化模态框 -->
+    <div id="smartOptimizeModal" class="modal" style="display: none;">
+        <div class="modal-content smart-optimize-modal">
+            <div class="modal-header">
+                <h2>🧠 智能颜色优化</h2>
+                <div class="header-actions">
+                    <button id="toggleFullscreenBtn" class="close-btn" title="全屏切换">🔍</button>
+                    <button id="closeModalBtn" class="close-btn">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body smart-optimize-three-column">
+                <div class="smart-optimize-left-panel">
+                    <div class="optimization-summary" id="optimizationSummary"></div>
+                    <div class="optimization-settings">
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableColorMerge" checked>
+                                <span>近似色融合</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>近似色融合相似度：</span>
+                                <span id="colorMergeThresholdValue">90%</span>
+                            </label>
+                            <input type="range" id="colorMergeThresholdSlider" min="50" max="100" value="90">
+                        </div>
+                        <div class="control-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableEdgeColorMerge" checked>
+                                <span>边缘色融合</span>
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>边缘色融合相似度：</span>
+                                <span id="edgeColorThresholdValue">85%</span>
+                            </label>
+                            <input type="range" id="edgeColorThresholdSlider" min="50" max="100" value="85">
+                        </div>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+                    <div class="brush-tool-panel">
+                        <h3>🖌️ 取消优化画笔</h3>
+                        <div class="control-group">
+                            <label>
+                                <span>画笔大小：</span>
+                                <span id="optimizeBrushSizeValue">1</span>
+                            </label>
+                            <input type="range" id="optimizeBrushSizeSlider" min="1" max="10" value="1">
+                        </div>
+                        <div class="control-group">
+                            <div class="brush-mode-buttons">
+                                <button id="brushModeErase" class="btn btn-primary active" style="flex: 1;">擦除</button>
+                                <button id="brushModeRestore" class="btn btn-secondary" style="flex: 1;">恢复</button>
+                                <button id="clearErasedBlocks" class="btn btn-secondary" style="flex: 1;">清除</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>将要优化颜色：</span>
+                                <input type="color" id="optimizeHighlightColor" value="#ff0000" style="width: 40px; height: 30px; vertical-align: middle;">
+                            </label>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>取消优化颜色：</span>
+                                <input type="color" id="optimizeErasedColor" value="#27ae60" style="width: 40px; height: 30px; vertical-align: middle;">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="smart-optimize-center-panel">
+                    <div class="optimization-preview-large">
+                        <h3>预览效果</h3>
+                        <div class="preview-canvas-wrapper-large">
+                            <div class="canvas-container" style="position: relative; display: inline-block;">
+                                <canvas id="optimizationPreviewCanvas"></canvas>
+                                <div id="brushCursor" class="brush-cursor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="smart-optimize-right-panel">
+                    <div class="suggestions-list" id="suggestionsList"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="rejectAllBtn" class="btn btn-secondary">✗ 全部拒绝</button>
+                <button id="applyAllBtn" class="btn btn-primary">✓ 全部应用</button>
+                <button id="confirmBtn" class="btn btn-primary">确认</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

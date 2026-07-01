@@ -198,9 +198,20 @@ class MyDesignsManager {
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
                     const color = perlerColors[y] && perlerColors[y][x];
-                    if (color && !color.isTransparent && color.rgb) {
-                        ctx.fillStyle = `rgb(${color.rgb[0]},${color.rgb[1]},${color.rgb[2]})`;
-                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    if (color && !color.isTransparent && (color.rgb || color.hex)) {
+                        let rgb = color.rgb;
+                        if (!rgb && color.hex) {
+                            const h = color.hex.replace('#', '');
+                            rgb = [
+                                parseInt(h.substr(0, 2), 16),
+                                parseInt(h.substr(2, 2), 16),
+                                parseInt(h.substr(4, 2), 16)
+                            ];
+                        }
+                        if (rgb) {
+                            ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+                            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                        }
                     }
                 }
             }
@@ -218,7 +229,13 @@ class MyDesignsManager {
             for (let x = 0; x < perlerColors[y].length; x++) {
                 const color = perlerColors[y][x];
                 if (color && !color.isTransparent) {
-                    colorSet.add(color.name || `${color.rgb[0]},${color.rgb[1]},${color.rgb[2]}`);
+                    if (color.name) {
+                        colorSet.add(color.name);
+                    } else if (color.rgb) {
+                        colorSet.add(`${color.rgb[0]},${color.rgb[1]},${color.rgb[2]}`);
+                    } else if (color.hex) {
+                        colorSet.add(color.hex);
+                    }
                 }
             }
         }

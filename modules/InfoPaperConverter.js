@@ -43,15 +43,24 @@ class InfoPaperConverter {
                 if (color.isTransparent) {
                     colorIndex = 0;
                 } else {
-                    const colorKey = `${color.rgb[0]},${color.rgb[1]},${color.rgb[2]}`;
-                    colorIndex = colorToIndex.get(colorKey);
+                    let rgb = color.rgb;
+                    if (!rgb && color.hex) {
+                        const h = color.hex.replace('#', '');
+                        rgb = [
+                            parseInt(h.substr(0, 2), 16),
+                            parseInt(h.substr(2, 2), 16),
+                            parseInt(h.substr(4, 2), 16)
+                        ];
+                    }
+                    const colorKey = rgb ? `${rgb[0]},${rgb[1]},${rgb[2]}` : null;
+                    colorIndex = colorKey ? colorToIndex.get(colorKey) : undefined;
 
                     if (colorIndex === undefined) {
                         colorIndex = colorToIndex.get(color.name);
                     }
 
                     if (colorIndex === undefined) {
-                        console.warn(`未知颜色: ${color.name} (${color.rgb.join(',')})，使用透明色代替`);
+                        console.warn(`未知颜色: ${color.name} (${rgb ? rgb.join(',') : color.hex})，使用透明色代替`);
                         colorIndex = 0;
                     }
                 }
