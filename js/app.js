@@ -6498,6 +6498,7 @@ function initMatrixTimer() {
     const brandTitle = document.getElementById('brandTitle');
 
     let myDesignsManager = new MyDesignsManager();
+    let timerCount = 0;
 
     // 我的图纸 - 保存按钮
     const saveToMyDesignsBtn = document.getElementById('saveToMyDesignsBtn');
