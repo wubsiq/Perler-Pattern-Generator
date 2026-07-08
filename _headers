@@ -7,12 +7,12 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
 
-# 静态资源缓存 30 天（带 immutable，支持 minified 版本）
+# 静态资源缓存 1 天（带版本号控制，支持更新）
 /*.css
-  Cache-Control: public, max-age=2592000, immutable
+  Cache-Control: public, max-age=86400, must-revalidate
 
 /*.js
-  Cache-Control: public, max-age=2592000, immutable
+  Cache-Control: public, max-age=86400, must-revalidate
 
 /*.png
   Cache-Control: public, max-age=2592000, immutable
