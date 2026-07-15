@@ -6733,7 +6733,11 @@ function initMatrixTimer() {
         navBtns.forEach(b => b.classList.remove('active'));
         const homeBtn = Array.from(navBtns).find(b => b.dataset.section === 'imageToPerler');
         if (homeBtn) homeBtn.classList.add('active');
-        window.location.href = 'workbench.html';
+        uploadSection.style.display = 'block';
+        if (showcaseSection) showcaseSection.style.display = 'none';
+        if (workspace) workspace.style.display = 'none';
+        if (timerSection) timerSection.style.display = 'none';
+        if (myDesignsSection) myDesignsSection.style.display = 'none';
     }
 
     // 导航切换
@@ -6743,7 +6747,13 @@ function initMatrixTimer() {
             btn.classList.add('active');
 
             if (btn.dataset.section === 'imageToPerler') {
-                window.location.href = 'workbench.html';
+                uploadSection.style.display = 'block';
+                if (showcaseSection) showcaseSection.style.display = 'none';
+                if (workspace) workspace.style.display = 'none';
+                if (timerSection) timerSection.style.display = 'none';
+                if (myDesignsSection) myDesignsSection.style.display = 'none';
+            } else if (btn.dataset.section === 'circular') {
+                window.location.href = 'circular.html';
             } else if (btn.dataset.section === 'myDesigns') {
                 uploadSection.style.display = 'none';
                 if (showcaseSection) showcaseSection.style.display = 'none';

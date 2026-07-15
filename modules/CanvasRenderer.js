@@ -426,4 +426,123 @@ class CanvasRenderer {
         const brightness = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
         return brightness > 128 ? '#000000' : '#ffffff';
     }
+
+    /**
+     * 渲染圆形拼豆图表
+     * @param {HTMLCanvasElement} canvas - 画布元素
+     * @param {Array} perlerColors - 拼豆颜色数组（一维）
+     * @param {Array} beadPositions - 珠子位置数组
+     * @param {number} maxRing - 最大环数
+     * @param {number} totalBeads - 总珠子数
+     * @param {Object} options - 选项
+     */
+    renderCircularChart(canvas, perlerColors, beadPositions, maxRing, totalBeads, options = {}) {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const cellSize = options.cellSize || 24;
+        const chartStyle = options.chartStyle || 'color';
+        const beadShape = options.beadShape || 'circle';
+        const showGrid = options.showGrid !== false;
+        const showCoords = options.showCoords !== false;
+        const coordColor = options.coordColor || '#000000';
+        const gridLineWidth = options.gridLineWidth || 1;
+        const showSectorLines = options.showSectorLines !== false;
+        const transparentColor = options.transparentColor || '#ffffff';
+
+        const padding = cellSize * 2;
+        const maxRadius = (maxRing - 0.5) * cellSize;
+        const canvasSize = (maxRadius + cellSize) * 2 + padding * 2;
+        const center = canvasSize / 2;
+
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+        if (showSectorLines) {
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let sector = 0; sector < 6; sector++) {
+                const angle = sector * (Math.PI / 3);
+                ctx.moveTo(center, center);
+                ctx.lineTo(
+                    center + (maxRadius + cellSize) * Math.cos(angle),
+                    center + (maxRadius + cellSize) * Math.sin(angle)
+                );
+            }
+            ctx.stroke();
+        }
+
+        if (showGrid) {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = gridLineWidth;
+            ctx.beginPath();
+            for (let ring = 1; ring < maxRing; ring++) {
+                const radius = ring * cellSize;
+                ctx.beginPath();
+                ctx.arc(center, center, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.stroke();
+        }
+
+        if (showCoords) {
+            ctx.fillStyle = coordColor;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let ring = 1; ring < maxRing; ring++) {
+                const radius = ring * cellSize;
+                ctx.fillText(`R${ring}`, center + radius + cellSize / 2, center);
+            }
+
+            for (let sector = 0; sector < 6; sector++) {
+                const angle = sector * (Math.PI / 3);
+                const radius = maxRadius + cellSize;
+                const labelX = center + radius * Math.cos(angle);
+                const labelY = center + radius * Math.sin(angle);
+                ctx.fillText(`S${sector + 1}`, labelX, labelY);
+            }
+        }
+
+        for (let i = 0; i < totalBeads; i++) {
+            const color = perlerColors[i];
+            const pos = beadPositions[i];
+            
+            const px = center + pos.x - cellSize / 2;
+            const py = center + pos.y - cellSize / 2;
+
+            if (color.isTransparent) {
+                ctx.fillStyle = transparentColor;
+                if (beadShape === 'circle' || beadShape === 'ring') {
+                    ctx.beginPath();
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (beadShape === 'round-square') {
+                    const cornerRadius = Math.min(8, Math.floor(cellSize * 0.2));
+                    const actualSize = cellSize - 1;
+                    ctx.beginPath();
+                    ctx.moveTo(px + cornerRadius, py);
+                    ctx.lineTo(px + actualSize - cornerRadius, py);
+                    ctx.quadraticCurveTo(px + actualSize, py, px + actualSize, py + cornerRadius);
+                    ctx.lineTo(px + actualSize, py + actualSize - cornerRadius);
+                    ctx.quadraticCurveTo(px + actualSize, py + actualSize, px + actualSize - cornerRadius, py + actualSize);
+                    ctx.lineTo(px + cornerRadius, py + actualSize);
+                    ctx.quadraticCurveTo(px, py + actualSize, px, py + actualSize - cornerRadius);
+                    ctx.lineTo(px, py + cornerRadius);
+                    ctx.quadraticCurveTo(px, py, px + cornerRadius, py);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(px, py, cellSize - 1, cellSize - 1);
+                }
+                continue;
+            }
+
+            this.drawBead(ctx, color, px, py, cellSize, chartStyle, beadShape);
+        }
+    }
 }
