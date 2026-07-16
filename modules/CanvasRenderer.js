@@ -181,13 +181,14 @@ class CanvasRenderer {
      * @param {string} chartStyle - 图表样式
      * @param {string} beadShape - 珠子形状
      */
-    drawBead(ctx, color, x, y, cellSize, chartStyle, beadShape) {
+    drawBead(ctx, color, x, y, cellSize, chartStyle, beadShape, beadRadius) {
+        if (beadRadius === undefined) beadRadius = cellSize / 2 - 1;
         // 透明色
         if (!color || color.isTransparent) {
             ctx.fillStyle = '#ffffff';
             if (beadShape === 'circle' || beadShape === 'ring') {
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
@@ -210,7 +211,7 @@ class CanvasRenderer {
         if (beadShape === 'circle') {
             ctx.save();
             ctx.beginPath();
-            ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+            ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius, 0, Math.PI * 2);
             ctx.clip();
 
             if (chartStyle === 'color') {
@@ -247,22 +248,22 @@ class CanvasRenderer {
                 ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
                 ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1 - ringWidth, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius - ringWidth, 0, Math.PI * 2);
                 ctx.fill();
             } else if (chartStyle === 'color-with-code') {
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
                 ctx.fillStyle = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1 - ringWidth, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius - ringWidth, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = textFill;
                 ctx.font = `bold ${fontSize}px sans-serif`;
@@ -275,10 +276,10 @@ class CanvasRenderer {
                 ctx.strokeStyle = '#999';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2 - 1 - ringWidth, 0, Math.PI * 2);
+                ctx.arc(x + cellSize / 2, y + cellSize / 2, beadRadius - ringWidth, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.fillStyle = '#333';
                 ctx.font = `${fontSize}px sans-serif`;
@@ -448,6 +449,8 @@ class CanvasRenderer {
         const gridLineWidth = options.gridLineWidth || 1;
         const showSectorLines = options.showSectorLines !== false;
         const transparentColor = options.transparentColor || '#ffffff';
+        const beadScale = options.beadScale || 1.0;
+        const beadRadius = (cellSize / 2 - 1) * beadScale;
 
         const padding = cellSize * 2;
         const maxRadius = (maxRing - 0.5) * cellSize;
@@ -519,7 +522,7 @@ class CanvasRenderer {
                 ctx.fillStyle = transparentColor;
                 if (beadShape === 'circle' || beadShape === 'ring') {
                     ctx.beginPath();
-                    ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize / 2 - 1, 0, Math.PI * 2);
+                    ctx.arc(px + cellSize / 2, py + cellSize / 2, beadRadius, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (beadShape === 'round-square') {
                     const cornerRadius = Math.min(8, Math.floor(cellSize * 0.2));
@@ -542,7 +545,7 @@ class CanvasRenderer {
                 continue;
             }
 
-            this.drawBead(ctx, color, px, py, cellSize, chartStyle, beadShape);
+            this.drawBead(ctx, color, px, py, cellSize, chartStyle, beadShape, beadRadius);
         }
     }
 }

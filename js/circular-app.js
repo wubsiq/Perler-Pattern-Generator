@@ -95,6 +95,8 @@ class CircularPixelArtGenerator {
         this.beadSizeValue = document.getElementById('beadSizeValue');
         this.exportBeadSizeSlider = document.getElementById('exportBeadSizeSlider');
         this.exportBeadSizeValue = document.getElementById('exportBeadSizeValue');
+        this.beadScaleSlider = document.getElementById('beadScaleSlider');
+        this.beadScaleValue = document.getElementById('beadScaleValue');
         this.showGridLines = document.getElementById('showGridLines');
         this.showCoordNumbers = document.getElementById('showCoordNumbers');
         this.showSectorLinesCheckbox = document.getElementById('showSectorLines');
@@ -295,6 +297,15 @@ class CircularPixelArtGenerator {
             this.exportBeadSizeValue.textContent = exportSize + 'px';
         });
 
+        this.beadScaleSlider.addEventListener('input', () => {
+            const scale = parseInt(this.beadScaleSlider.value);
+            this.beadScaleValue.textContent = scale + '%';
+            this.refreshPerlerChartDisplay();
+            if (this.customEditData) {
+                this.renderCustomEditCanvas();
+            }
+        });
+
         this.simpleModeBtn.addEventListener('click', () => {
             this.simpleModeBtn.classList.add('active');
             this.advancedModeBtn.classList.remove('active');
@@ -338,7 +349,7 @@ class CircularPixelArtGenerator {
 
         this.perlerZoomSlider.addEventListener('input', (e) => {
             this.perlerZoomValue.textContent = e.target.value + '%';
-            this.perlerCanvas.style.transform = `scale(${e.target.value / 100})`;
+            this.updatePerlerZoom();
         });
 
         this.downloadBtn.addEventListener('click', () => {
@@ -668,14 +679,41 @@ class CircularPixelArtGenerator {
                 coordColor: this.coordLineColor.value,
                 coordNumColor: this.coordNumberColor.value,
                 transparentColor: this.transparentCellColor.value,
-                watermarkText: this.watermarkText.value
+                watermarkText: this.watermarkText.value,
+                beadScale: parseInt(this.beadScaleSlider.value) / 100
             }
         );
 
         this.updateColorCounts();
         this.drawColorLegend();
 
-        this.perlerCanvas.style.transform = `scale(${this.perlerZoomSlider.value / 100})`;
+        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
+        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
+        this.autoFitPerlerZoom();
+    }
+
+    autoFitPerlerZoom() {
+        if (!this.perlerCanvasNaturalWidth || !this.perlerZoomSlider) return;
+        const wrapper = this.perlerCanvas.parentElement;
+        if (!wrapper) return;
+        const maxWidth = wrapper.clientWidth - 20;
+        if (this.perlerCanvasNaturalWidth > maxWidth) {
+            const scale = Math.min(1, maxWidth / this.perlerCanvasNaturalWidth);
+            const scalePercent = Math.round(scale * 100);
+            this.perlerZoomSlider.value = scalePercent;
+            this.perlerZoomValue.textContent = scalePercent + '%';
+        } else {
+            this.perlerZoomSlider.value = 100;
+            this.perlerZoomValue.textContent = '100%';
+        }
+        this.updatePerlerZoom();
+    }
+
+    updatePerlerZoom() {
+        if (!this.perlerCanvasNaturalWidth || !this.perlerZoomSlider) return;
+        const scale = this.perlerZoomSlider.value / 100;
+        this.perlerCanvas.style.width = (this.perlerCanvasNaturalWidth * scale) + 'px';
+        this.perlerCanvas.style.height = (this.perlerCanvasNaturalHeight * scale) + 'px';
     }
 
     refreshPerlerChartDisplay() {
@@ -701,12 +739,17 @@ class CircularPixelArtGenerator {
                 coordColor: this.coordLineColor.value,
                 coordNumColor: this.coordNumberColor.value,
                 transparentColor: this.transparentCellColor.value,
-                watermarkText: this.watermarkText.value
+                watermarkText: this.watermarkText.value,
+                beadScale: parseInt(this.beadScaleSlider.value) / 100
             }
         );
 
         this.updateColorCounts();
         this.drawColorLegend();
+
+        this.perlerCanvasNaturalWidth = this.perlerCanvas.width;
+        this.perlerCanvasNaturalHeight = this.perlerCanvas.height;
+        this.updatePerlerZoom();
     }
 
     initCustomEditData() {
@@ -746,7 +789,8 @@ class CircularPixelArtGenerator {
                 showSectorLines: false,
                 coordColor: '#000000',
                 coordNumColor: '#000000',
-                transparentColor: this.transparentCellColor.value
+                transparentColor: this.transparentCellColor.value,
+                beadScale: parseInt(this.beadScaleSlider.value) / 100
             }
         );
 
@@ -1665,7 +1709,8 @@ class CircularPixelArtGenerator {
                 coordColor: this.coordLineColor.value,
                 coordNumColor: this.coordNumberColor.value,
                 transparentColor: this.transparentCellColor.value,
-                watermarkText: this.watermarkText.value
+                watermarkText: this.watermarkText.value,
+                beadScale: parseInt(this.beadScaleSlider.value) / 100
             }
         );
         

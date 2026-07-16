@@ -7,8 +7,14 @@
     <meta name="description" content="豆师傅 - 免费在线圆形拼豆图纸生成器">
     <link rel="preload" href="css/style.min.css" as="style">
     <link rel="stylesheet" href="css/style.min.css" media="print" onload="this.media='all'">
+    <style>
+        .circular-page #perlerCanvas,
+        .circular-page .perler-canvas-wrapper canvas {
+            image-rendering: auto !important;
+        }
+    </style>
 </head>
-<body>
+<body class="circular-page">
     <main class="container">
         <header>
             <div class="header-content">
@@ -480,6 +486,13 @@
                                 </label>
                                 <input type="range" id="exportBeadSizeSlider" min="3" max="96" step="1" value="32">
                             </div>
+                        </div>
+                        <div class="control-group">
+                            <label>
+                                <span>豆子大小比例：</span>
+                                <span id="beadScaleValue">90%</span>
+                            </label>
+                            <input type="range" id="beadScaleSlider" min="50" max="150" step="1" value="90">
                         </div>
                         <div class="control-group advanced-only flex-row">
                             <div class="flex-item checkbox-item">
