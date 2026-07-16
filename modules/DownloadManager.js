@@ -38,7 +38,10 @@ class DownloadManager {
     downloadPixelatedImage(options) {
         this.exportCounter.pixelated++;
 
-        let fileName = 'pixelated-image';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        let fileName = `pixelated-image_${dateStr}`;
         if (this.exportCounter.pixelated > 1) {
             fileName += `_(${this.exportCounter.pixelated})`;
         }
@@ -128,7 +131,10 @@ class DownloadManager {
             }
         }
 
-        let fileName = 'custom-pixel-image';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        let fileName = `custom-pixel-image_${dateStr}`;
         if (options.useTransparent) {
             fileName += '_transparent';
         }
