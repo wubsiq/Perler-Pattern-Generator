@@ -431,14 +431,50 @@
                         </div>
                         <div class="control-group advanced-only">
                             <label><span>颜色映射方法：</span></label>
-                            <select id="colorMappingMethod">
-                                <option value="cie2000" selected>CIEDE2000 (最精确)</option>
-                                <option value="cie94">CIE94 (精确)</option>
-                                <option value="cie76">CIE76 (Lab)</option>
-                                <option value="weighted-rgb">加权RGB</option>
-                                <option value="hsl">HSL色彩空间</option>
-                                <option value="hsv">HSV色彩空间</option>
-                            </select>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <select id="colorMappingMethod">
+                                    <option value="cie2000" selected>CIEDE2000 (最精确)</option>
+                                    <option value="cie2000-smoothed">CIEDE2000 (大色块优化)</option>
+                                    <option value="cie94">CIE94 (精确)</option>
+                                    <option value="cie76">CIE76 (Lab)</option>
+                                    <option value="weighted-rgb">加权RGB</option>
+                                    <option value="hsl">HSL色彩空间</option>
+                                    <option value="hsv">HSV色彩空间</option>
+                                </select>
+                                <button id="cie2000SettingsBtn" class="cie2000-settings-btn" style="display: none;" title="设置优化参数">⚙️</button>
+                            </div>
+                            <div id="cie2000ParamsPanel" class="cie2000-params-panel" style="display: none; margin-top: 10px; padding: 12px; background: #f5f5f5; border-radius: 8px; border: 1px solid #ddd;">
+                                <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                                    <div>
+                                        <label style="display: block; font-size: 13px; margin-bottom: 4px; font-weight: 500;">邻域半径</label>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">(考虑周围多少像素，越大平滑范围越广，可能模糊边缘)</div>
+                                        <input type="range" id="cie2000Radius" min="1" max="5" value="1" style="width: 100%;">
+                                        <span id="cie2000RadiusValue" style="font-size: 12px;">1 (3×3区域)</span>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 13px; margin-bottom: 4px; font-weight: 500;">颜色差异阈值</label>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">(CIEDE2000单位，越大允许合并的颜色差异越大，颜色种类越少)</div>
+                                        <input type="range" id="cie2000Threshold" min="1" max="50" value="5" style="width: 100%;">
+                                        <span id="cie2000ThresholdValue" style="font-size: 12px;">5</span>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 13px; margin-bottom: 4px; font-weight: 500;">最小占比</label>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">(邻域多数颜色需要占多少比例才触发替换，越低越容易被替换)</div>
+                                        <input type="range" id="cie2000Ratio" min="20" max="95" value="50" style="width: 100%;">
+                                        <span id="cie2000RatioValue" style="font-size: 12px;">50%</span>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 13px; margin-bottom: 4px; font-weight: 500;">迭代次数</label>
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">(重复平滑的次数，越高效果越强但处理时间越长)</div>
+                                        <input type="range" id="cie2000Iteration" min="1" max="5" value="1" style="width: 100%;">
+                                        <span id="cie2000IterationValue" style="font-size: 12px;">1</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                                    <button id="cie2000ApplyBtn" style="padding: 4px 12px; font-size: 12px;">应用</button>
+                                    <button id="cie2000ResetBtn" style="padding: 4px 12px; font-size: 12px;">重置</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="control-group">
                             <label><span>图纸样式：</span></label>

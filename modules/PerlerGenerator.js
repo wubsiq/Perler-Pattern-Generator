@@ -63,14 +63,15 @@ class PerlerGenerator {
         const {
             colorSet,
             mappingMethod,
-            enableNeighborSmooth
+            enableNeighborSmooth,
+            cie2000OptimizedParams
         } = options;
 
         // 获取当前颜色套装
         let colors = colorSets[colorSet] || [];
 
         const colorCounts = {};
-        const perlerColors = [];
+        let perlerColors = [];
 
         const transparentColor = {
             name: '',
@@ -107,8 +108,92 @@ class PerlerGenerator {
         let finalColors = perlerColors;
         let finalCounts = colorCounts;
 
+        if (mappingMethod === 'cie2000-smoothed') {
+            const params = cie2000OptimizedParams || {
+                neighborhoodRadius: 1,
+                colorDiffThreshold: 5,
+                minRatio: 0.5,
+                iterationCount: 1
+            };
+
+            for (let iter = 0; iter < params.iterationCount; iter++) {
+                const newColors = [];
+                for (let y = 0; y < perlerHeight; y++) {
+                    newColors[y] = [];
+                    for (let x = 0; x < perlerWidth; x++) {
+                        newColors[y][x] = perlerColors[y][x];
+                    }
+                }
+
+                for (let y = 0; y < perlerHeight; y++) {
+                    for (let x = 0; x < perlerWidth; x++) {
+                        const currentColor = perlerColors[y][x];
+                        if (currentColor.isTransparent) continue;
+
+                        const neighborColors = {};
+                        let totalNeighbors = 0;
+
+                        for (let dy = -params.neighborhoodRadius; dy <= params.neighborhoodRadius; dy++) {
+                            for (let dx = -params.neighborhoodRadius; dx <= params.neighborhoodRadius; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < perlerWidth && ny >= 0 && ny < perlerHeight) {
+                                    const neighborColor = perlerColors[ny][nx];
+                                    if (!neighborColor.isTransparent) {
+                                        neighborColors[neighborColor.name] = (neighborColors[neighborColor.name] || 0) + 1;
+                                        totalNeighbors++;
+                                    }
+                                }
+                            }
+                        }
+
+                        let maxCount = 0;
+                        let mostFrequentColor = null;
+                        for (const [name, count] of Object.entries(neighborColors)) {
+                            if (count > maxCount) {
+                                maxCount = count;
+                                for (const color of colors) {
+                                    if (color.name === name) {
+                                        mostFrequentColor = color;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (mostFrequentColor && totalNeighbors > 0 && maxCount / totalNeighbors >= params.minRatio) {
+                            const currentLab = rgbToLab(currentColor.rgb[0], currentColor.rgb[1], currentColor.rgb[2]);
+                            const frequentLab = rgbToLab(mostFrequentColor.rgb[0], mostFrequentColor.rgb[1], mostFrequentColor.rgb[2]);
+                            const distance = deltaE2000(currentLab, frequentLab);
+
+                            if (distance < params.colorDiffThreshold) {
+                                newColors[y][x] = mostFrequentColor;
+                            }
+                        }
+                    }
+                }
+
+                perlerColors = newColors;
+            }
+
+            finalColors = perlerColors;
+            finalCounts = {};
+            for (let y = 0; y < perlerHeight; y++) {
+                for (let x = 0; x < perlerWidth; x++) {
+                    const color = finalColors[y][x];
+                    if (!color.isTransparent) {
+                        if (finalCounts[color.name]) {
+                            finalCounts[color.name]++;
+                        } else {
+                            finalCounts[color.name] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
         if (enableNeighborSmooth) {
-            finalColors = mapWithNeighborConsistencyOnMatrix(perlerColors);
+            finalColors = mapWithNeighborConsistencyOnMatrix(finalColors);
             
             finalCounts = {};
             for (let y = 0; y < perlerHeight; y++) {

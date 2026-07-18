@@ -32,6 +32,14 @@ class PixelArtGenerator {
         this.showCarveGrid = true; // 是否显示分裂网格
         this.isBlankCanvasMode = false; // 是否在空白画布模式
         
+        // CIEDE2000 优化参数
+        this.cie2000OptimizedParams = {
+            neighborhoodRadius: 1,
+            colorDiffThreshold: 5,
+            minRatio: 0.5,
+            iterationCount: 1
+        };
+        
         // 初始化模块
         this.pixelator = new Pixelator();
         this.perlerGenerator = new PerlerGenerator();
@@ -474,6 +482,100 @@ class PixelArtGenerator {
         });
         
         this.colorSetSelect.addEventListener('change', () => this.showPerlerPlaceholder());
+        
+        // CIEDE2000 优化参数面板交互
+        this.cie2000SettingsBtn = document.getElementById('cie2000SettingsBtn');
+        this.cie2000ParamsPanel = document.getElementById('cie2000ParamsPanel');
+        this.cie2000Radius = document.getElementById('cie2000Radius');
+        this.cie2000RadiusValue = document.getElementById('cie2000RadiusValue');
+        this.cie2000Threshold = document.getElementById('cie2000Threshold');
+        this.cie2000ThresholdValue = document.getElementById('cie2000ThresholdValue');
+        this.cie2000Ratio = document.getElementById('cie2000Ratio');
+        this.cie2000RatioValue = document.getElementById('cie2000RatioValue');
+        this.cie2000Iteration = document.getElementById('cie2000Iteration');
+        this.cie2000IterationValue = document.getElementById('cie2000IterationValue');
+        this.cie2000ApplyBtn = document.getElementById('cie2000ApplyBtn');
+        this.cie2000ResetBtn = document.getElementById('cie2000ResetBtn');
+
+        if (this.colorMappingMethod) {
+            this.colorMappingMethod.addEventListener('change', () => {
+                if (this.cie2000SettingsBtn && this.cie2000ParamsPanel) {
+                    if (this.colorMappingMethod.value === 'cie2000-smoothed') {
+                        this.cie2000SettingsBtn.style.display = 'inline-block';
+                    } else {
+                        this.cie2000SettingsBtn.style.display = 'none';
+                        this.cie2000ParamsPanel.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        if (this.cie2000SettingsBtn && this.cie2000ParamsPanel) {
+            this.cie2000SettingsBtn.addEventListener('click', () => {
+                const isVisible = this.cie2000ParamsPanel.style.display !== 'none';
+                this.cie2000ParamsPanel.style.display = isVisible ? 'none' : 'block';
+            });
+        }
+
+        if (this.cie2000Radius && this.cie2000RadiusValue) {
+            this.cie2000Radius.addEventListener('input', () => {
+                const radius = parseInt(this.cie2000Radius.value);
+                const size = radius * 2 + 1;
+                this.cie2000RadiusValue.textContent = `${radius} (${size}×${size}区域)`;
+            });
+        }
+
+        if (this.cie2000Threshold && this.cie2000ThresholdValue) {
+            this.cie2000Threshold.addEventListener('input', () => {
+                this.cie2000ThresholdValue.textContent = this.cie2000Threshold.value;
+            });
+        }
+
+        if (this.cie2000Ratio && this.cie2000RatioValue) {
+            this.cie2000Ratio.addEventListener('input', () => {
+                this.cie2000RatioValue.textContent = this.cie2000Ratio.value + '%';
+            });
+        }
+
+        if (this.cie2000Iteration && this.cie2000IterationValue) {
+            this.cie2000Iteration.addEventListener('input', () => {
+                this.cie2000IterationValue.textContent = this.cie2000Iteration.value;
+            });
+        }
+
+        if (this.cie2000ApplyBtn) {
+            this.cie2000ApplyBtn.addEventListener('click', () => {
+                this.cie2000OptimizedParams = {
+                    neighborhoodRadius: parseInt(this.cie2000Radius.value),
+                    colorDiffThreshold: parseInt(this.cie2000Threshold.value),
+                    minRatio: parseInt(this.cie2000Ratio.value) / 100,
+                    iterationCount: parseInt(this.cie2000Iteration.value)
+                };
+                if (this.cie2000ParamsPanel) {
+                    this.cie2000ParamsPanel.style.display = 'none';
+                }
+            });
+        }
+
+        if (this.cie2000ResetBtn) {
+            this.cie2000ResetBtn.addEventListener('click', () => {
+                if (this.cie2000Radius) this.cie2000Radius.value = 1;
+                if (this.cie2000RadiusValue) this.cie2000RadiusValue.textContent = '1';
+                if (this.cie2000Threshold) this.cie2000Threshold.value = 5;
+                if (this.cie2000ThresholdValue) this.cie2000ThresholdValue.textContent = '5';
+                if (this.cie2000Ratio) this.cie2000Ratio.value = 50;
+                if (this.cie2000RatioValue) this.cie2000RatioValue.textContent = '50%';
+                if (this.cie2000Iteration) this.cie2000Iteration.value = 1;
+                if (this.cie2000IterationValue) this.cie2000IterationValue.textContent = '1';
+                
+                this.cie2000OptimizedParams = {
+                    neighborhoodRadius: 1,
+                    colorDiffThreshold: 5,
+                    minRatio: 0.5,
+                    iterationCount: 1
+                };
+            });
+        }
         this.showGridLines.addEventListener('change', () => {
             if (Object.keys(this.colorCounts).length > 0) {
                 this.refreshPerlerChartDisplay();
@@ -1846,7 +1948,8 @@ class PixelArtGenerator {
             {
                 colorSet: colorSetName,
                 mappingMethod: mappingMethod,
-                enableNeighborSmooth: this.enableNeighborSmooth.checked
+                enableNeighborSmooth: this.enableNeighborSmooth.checked,
+                cie2000OptimizedParams: this.cie2000OptimizedParams
             }
         );
 
@@ -2952,9 +3055,12 @@ class PixelArtGenerator {
     downloadImage() {
         this.exportCounter.pixelated++;
         
-        let fileName = 'pixelated-image';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        let fileName = `pixelated-image_${dateStr}`;
         if (this.exportCounter.pixelated > 1) {
-            fileName += `_(${this.exportCounter.pixelated})`;
+            fileName += `(${this.exportCounter.pixelated})`;
         }
         
         // 添加处理信息到文件名
@@ -3045,7 +3151,15 @@ class PixelArtGenerator {
             }
         }
 
-        let fileName = 'custom-pixel-image';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        this.exportCounter.perler++;
+        
+        let fileName = `custom-pixel-image_${dateStr}`;
+        if (this.exportCounter.perler > 1) {
+            fileName += `(${this.exportCounter.perler})`;
+        }
         if (useTransparent) {
             fileName += '_transparent';
         }

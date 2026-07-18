@@ -190,8 +190,11 @@ class CircularPixelArtGenerator {
         this.resetCropBtn.addEventListener('click', () => this.resetToFullImage());
 
         this.cropOverlay.addEventListener('mousedown', (e) => this.cropMouseDown(e));
+        this.cropOverlay.addEventListener('touchstart', (e) => this.cropTouchStart(e), { passive: false });
         document.addEventListener('mousemove', (e) => this.cropMouseMove(e));
-        document.addEventListener('mouseup', () => this.cropMouseUp());
+        document.addEventListener('touchmove', (e) => this.cropTouchMove(e), { passive: false });
+        document.addEventListener('mouseup', (e) => this.cropMouseUp(e));
+        document.addEventListener('touchend', (e) => this.cropTouchEnd(e));
 
         this.presetBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1093,116 +1096,146 @@ class CircularPixelArtGenerator {
             this.cropOverlay.style.top = offsetY + 'px';
             this.cropOverlay.style.width = canvasW + 'px';
             this.cropOverlay.style.height = canvasH + 'px';
+            this.cropOverlay.style.right = 'auto';
+            this.cropOverlay.style.bottom = 'auto';
 
-            const padding = 20;
-            this.cropBox.style.left = padding + 'px';
-            this.cropBox.style.top = padding + 'px';
-            this.cropBox.style.width = (canvasW - padding * 2) + 'px';
-            this.cropBox.style.height = (canvasH - padding * 2) + 'px';
+            this.setCropBox(0, 0, canvasW, canvasH);
+            this.cropBox.style.display = 'block';
         }
+    }
+
+    setCropBox(x, y, w, h) {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        const maxW = overlayRect.width;
+        const maxH = overlayRect.height;
+        x = Math.max(0, Math.min(x, maxW - 20));
+        y = Math.max(0, Math.min(y, maxH - 20));
+        w = Math.max(20, Math.min(w, maxW - x));
+        h = Math.max(20, Math.min(h, maxH - y));
+        this.cropBox.style.left = x + 'px';
+        this.cropBox.style.top = y + 'px';
+        this.cropBox.style.width = w + 'px';
+        this.cropBox.style.height = h + 'px';
+    }
+
+    getCropBoxRect() {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        const boxRect = this.cropBox.getBoundingClientRect();
+        return {
+            left: boxRect.left - overlayRect.left,
+            top: boxRect.top - overlayRect.top,
+            width: boxRect.width,
+            height: boxRect.height,
+            right: boxRect.right - overlayRect.left,
+            bottom: boxRect.bottom - overlayRect.top
+        };
+    }
+
+    getCropEventPos(e) {
+        const overlayRect = this.cropOverlay.getBoundingClientRect();
+        return {
+            x: e.clientX - overlayRect.left,
+            y: e.clientY - overlayRect.top,
+            containerW: overlayRect.width,
+            containerH: overlayRect.height
+        };
     }
 
     cropMouseDown(e) {
-        e.preventDefault();
-        const rect = this.cropBox.getBoundingClientRect();
-        const overlayRect = this.cropOverlay.getBoundingClientRect();
-        const x = e.clientX - overlayRect.left;
-        const y = e.clientY - overlayRect.top;
-
-        const handleSize = 10;
-        const handles = {
-            nw: { left: 0, top: 0, right: handleSize, bottom: handleSize },
-            ne: { left: rect.width - handleSize, top: 0, right: rect.width, bottom: handleSize },
-            sw: { left: 0, top: rect.height - handleSize, right: handleSize, bottom: rect.height },
-            se: { left: rect.width - handleSize, top: rect.height - handleSize, right: rect.width, bottom: rect.height },
-            n: { left: handleSize, top: 0, right: rect.width - handleSize, bottom: handleSize },
-            s: { left: handleSize, top: rect.height - handleSize, right: rect.width - handleSize, bottom: rect.height },
-            w: { left: 0, top: handleSize, right: handleSize, bottom: rect.height - handleSize },
-            e: { left: rect.width - handleSize, top: handleSize, right: rect.width, bottom: rect.height - handleSize }
-        };
-
-        for (const [handle, bounds] of Object.entries(handles)) {
-            if (x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom) {
-                this.activeHandle = handle;
-                this.isResizingCrop = true;
-                this.cropStartX = e.clientX;
-                this.cropStartY = e.clientY;
-                this.initialCropBox = {
-                    left: parseFloat(this.cropBox.style.left),
-                    top: parseFloat(this.cropBox.style.top),
-                    width: parseFloat(this.cropBox.style.width),
-                    height: parseFloat(this.cropBox.style.height)
-                };
-                return;
-            }
-        }
-
-        if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+        const pos = this.getCropEventPos(e);
+        const handle = e.target.getAttribute && e.target.getAttribute('data-handle');
+        if (handle) {
+            this.isResizingCrop = true;
+            this.activeHandle = handle;
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.initialCropBox = this.getCropBoxRect();
+        } else if (e.target === this.cropBox) {
             this.isDraggingCrop = true;
-            this.cropStartX = e.clientX - parseFloat(this.cropBox.style.left);
-            this.cropStartY = e.clientY - parseFloat(this.cropBox.style.top);
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.initialCropBox = this.getCropBoxRect();
         } else {
             this.isCreatingCrop = true;
-            this.cropStartX = x;
-            this.cropStartY = y;
-            this.cropBox.style.left = x + 'px';
-            this.cropBox.style.top = y + 'px';
-            this.cropBox.style.width = '10px';
-            this.cropBox.style.height = '10px';
+            this.cropStartX = pos.x;
+            this.cropStartY = pos.y;
+            this.setCropBox(pos.x, pos.y, 1, 1);
         }
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     cropMouseMove(e) {
-        if (!this.isCropMode) return;
-
-        const overlayRect = this.cropOverlay.getBoundingClientRect();
-        const x = e.clientX - overlayRect.left;
-        const y = e.clientY - overlayRect.top;
-
-        if (this.isResizingCrop && this.activeHandle && this.initialCropBox) {
-            const dx = e.clientX - this.cropStartX;
-            const dy = e.clientY - this.cropStartY;
-            const minSize = 50;
-
-            let { left, top, width, height } = this.initialCropBox;
-
-            if (this.activeHandle.includes('n')) {
-                top = Math.max(0, Math.min(top + dy, height - minSize));
-                height = Math.max(minSize, height - dy);
-            }
-            if (this.activeHandle.includes('s')) {
-                height = Math.max(minSize, height + dy);
-            }
-            if (this.activeHandle.includes('w')) {
-                left = Math.max(0, Math.min(left + dx, width - minSize));
-                width = Math.max(minSize, width - dx);
-            }
-            if (this.activeHandle.includes('e')) {
-                width = Math.max(minSize, width + dx);
-            }
-
-            this.cropBox.style.left = left + 'px';
-            this.cropBox.style.top = top + 'px';
-            this.cropBox.style.width = width + 'px';
-            this.cropBox.style.height = height + 'px';
+        if (!this.isCropMode || (!this.isCreatingCrop && !this.isDraggingCrop && !this.isResizingCrop)) return;
+        const pos = this.getCropEventPos(e);
+        if (this.isCreatingCrop) {
+            const x = Math.min(this.cropStartX, pos.x);
+            const y = Math.min(this.cropStartY, pos.y);
+            const w = Math.abs(pos.x - this.cropStartX);
+            const h = Math.abs(pos.y - this.cropStartY);
+            this.setCropBox(x, y, w, h);
         } else if (this.isDraggingCrop) {
-            const newLeft = Math.max(0, Math.min(x - this.cropStartX, overlayRect.width - parseFloat(this.cropBox.style.width)));
-            const newTop = Math.max(0, Math.min(y - this.cropStartY, overlayRect.height - parseFloat(this.cropBox.style.height)));
-            this.cropBox.style.left = newLeft + 'px';
-            this.cropBox.style.top = newTop + 'px';
-        } else if (this.isCreatingCrop) {
-            const width = Math.max(10, x - this.cropStartX);
-            const height = Math.max(10, y - this.cropStartY);
-            this.cropBox.style.width = width + 'px';
-            this.cropBox.style.height = height + 'px';
+            const dx = pos.x - this.cropStartX;
+            const dy = pos.y - this.cropStartY;
+            this.setCropBox(
+                this.initialCropBox.left + dx,
+                this.initialCropBox.top + dy,
+                this.initialCropBox.width,
+                this.initialCropBox.height
+            );
+        } else if (this.isResizingCrop) {
+            const dx = pos.x - this.cropStartX;
+            const dy = pos.y - this.cropStartY;
+            let newX = this.initialCropBox.left;
+            let newY = this.initialCropBox.top;
+            let newW = this.initialCropBox.width;
+            let newH = this.initialCropBox.height;
+            const handle = this.activeHandle;
+            if (handle.includes('w')) { newX = this.initialCropBox.left + dx; newW = this.initialCropBox.width - dx; }
+            if (handle.includes('e')) { newW = this.initialCropBox.width + dx; }
+            if (handle.includes('n')) { newY = this.initialCropBox.top + dy; newH = this.initialCropBox.height - dy; }
+            if (handle.includes('s')) { newH = this.initialCropBox.height + dy; }
+            if (newW < 20) { newX = this.initialCropBox.left; newW = 20; }
+            if (newH < 20) { newY = this.initialCropBox.top; newH = 20; }
+            this.setCropBox(newX, newY, newW, newH);
         }
+        e.preventDefault();
     }
 
-    cropMouseUp() {
-        this.isResizingCrop = false;
-        this.isDraggingCrop = false;
+    cropMouseUp(e) {
         this.isCreatingCrop = false;
+        this.isDraggingCrop = false;
+        this.isResizingCrop = false;
         this.activeHandle = null;
+        this.initialCropBox = null;
+    }
+
+    cropTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const mouseLikeEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            target: e.target,
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation()
+        };
+        this.cropMouseDown(mouseLikeEvent);
+    }
+
+    cropTouchMove(e) {
+        if (!this.isCropMode || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const mouseLikeEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => e.preventDefault()
+        };
+        this.cropMouseMove(mouseLikeEvent);
+    }
+
+    cropTouchEnd(e) {
+        this.cropMouseUp(e);
     }
 
     confirmCrop() {

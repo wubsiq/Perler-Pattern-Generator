@@ -256,6 +256,28 @@ const colorMappingMethods = {
             return closest;
         }
     },
+    'cie2000-smoothed': {
+        name: 'CIEDE2000',
+        nameZh: 'CIEDE2000 (大色块优化)',
+        description: 'CIEDE2000算法优化版，保持大色块颜色统一',
+        findClosest: function(rgb, colorSet) {
+            const lab1 = rgbToLab(rgb[0], rgb[1], rgb[2]);
+            let closest = null;
+            let minDistance = Infinity;
+            
+            for (const color of colorSet) {
+                const lab2 = rgbToLab(color.rgb[0], color.rgb[1], color.rgb[2]);
+                const distance = deltaE2000(lab1, lab2);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = color;
+                }
+            }
+            
+            return closest;
+        }
+    },
     'cie94': {
         name: 'CIE94',
         nameZh: 'CIE94 (精确)',
