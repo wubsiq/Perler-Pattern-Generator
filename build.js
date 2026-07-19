@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const esbuild = require('esbuild');
 
 const projectRoot = __dirname;
@@ -37,24 +38,27 @@ for (const file of jsFiles) {
 
 console.log(`  原始大小: ${(totalInputSize / 1024).toFixed(1)} KB`);
 
-const outputPath = path.join(projectRoot, 'js', 'bundle.min.js');
+const jsHash = crypto.createHash('md5').update(combined).digest('hex').substring(0, 8);
+const jsOutputName = `bundle.${jsHash}.min.js`;
+const jsOutputPath = path.join(projectRoot, 'js', jsOutputName);
+
 esbuild.buildSync({
     stdin: {
         contents: combined,
         loader: 'js',
         resolveDir: projectRoot,
     },
-    outfile: outputPath,
+    outfile: jsOutputPath,
     minify: true,
     target: ['es2018'],
     charset: 'utf8',
     logLevel: 'error',
 });
 
-const outputSize = fs.statSync(outputPath).size;
-const ratio = ((outputSize / totalInputSize) * 100).toFixed(1);
-console.log(`  输出文件: js/bundle.min.js (${(outputSize / 1024).toFixed(1)} KB)`);
-console.log(`  压缩比: ${ratio}% (节省 ${(100 - parseFloat(ratio)).toFixed(1)}%)`);
+const jsOutputSize = fs.statSync(jsOutputPath).size;
+const jsRatio = ((jsOutputSize / totalInputSize) * 100).toFixed(1);
+console.log(`  输出文件: js/${jsOutputName} (${(jsOutputSize / 1024).toFixed(1)} KB)`);
+console.log(`  压缩比: ${jsRatio}% (节省 ${(100 - parseFloat(jsRatio)).toFixed(1)}%)`);
 console.log(`  HTTP 请求数: ${jsFiles.length} → 1\n`);
 
 console.log('[2/2] 构建 CSS bundle');
@@ -69,7 +73,10 @@ for (const file of cssFiles) {
 }
 console.log(`  输入文件: ${cssFiles.length} 个 (${(totalCssSize / 1024).toFixed(1)} KB)`);
 
-const cssOutputPath = path.join(projectRoot, 'css', 'style.min.css');
+const cssHash = crypto.createHash('md5').update(cssCombined).digest('hex').substring(0, 8);
+const cssOutputName = `style.${cssHash}.min.css`;
+const cssOutputPath = path.join(projectRoot, 'css', cssOutputName);
+
 fs.writeFileSync(path.join(projectRoot, 'css', '_combined.css'), cssCombined, 'utf8');
 esbuild.buildSync({
     entryPoints: [path.join(projectRoot, 'css', '_combined.css')],
@@ -82,14 +89,42 @@ fs.unlinkSync(path.join(projectRoot, 'css', '_combined.css'));
 
 const cssOutputSize = fs.statSync(cssOutputPath).size;
 const cssRatio = ((cssOutputSize / totalCssSize) * 100).toFixed(1);
-console.log(`  输出文件: css/style.min.css (${(cssOutputSize / 1024).toFixed(1)} KB)`);
+console.log(`  输出文件: css/${cssOutputName} (${(cssOutputSize / 1024).toFixed(1)} KB)`);
 console.log(`  压缩比: ${cssRatio}% (节省 ${(100 - parseFloat(cssRatio)).toFixed(1)}%)\n`);
 
 const totalInput = (totalInputSize + totalCssSize) / 1024;
-const totalOutput = (outputSize + cssOutputSize) / 1024;
+const totalOutput = (jsOutputSize + cssOutputSize) / 1024;
 const totalRatio = ((totalOutput / totalInput) * 100).toFixed(1);
 
-console.log('========== 构建完成 ==========');
+console.log('[3/3] 更新 HTML 文件引用');
+const htmlFiles = ['index.html', 'circular.html', 'workbench.html'];
+for (const htmlFile of htmlFiles) {
+    const htmlPath = path.join(projectRoot, htmlFile);
+    let htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    
+    htmlContent = htmlContent.replace(
+        /css\/style\.[a-f0-9]{8}\.min\.css/g,
+        `css/${cssOutputName}`
+    );
+    htmlContent = htmlContent.replace(
+        /css\/style\.min\.css/g,
+        `css/${cssOutputName}`
+    );
+    
+    htmlContent = htmlContent.replace(
+        /js\/bundle\.[a-f0-9]{8}\.min\.js/g,
+        `js/${jsOutputName}`
+    );
+    htmlContent = htmlContent.replace(
+        /js\/bundle\.min\.js/g,
+        `js/${jsOutputName}`
+    );
+    
+    fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+    console.log(`    + ${htmlFile}`);
+}
+
+console.log('\n========== 构建完成 ==========');
 console.log(`总原始大小: ${totalInput.toFixed(1)} KB`);
 console.log(`总压缩后大小: ${totalOutput.toFixed(1)} KB`);
 console.log(`总压缩比: ${totalRatio}% (节省 ${(100 - parseFloat(totalRatio)).toFixed(1)}%)`);

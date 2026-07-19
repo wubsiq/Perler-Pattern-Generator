@@ -7,13 +7,14 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
 
-# 静态资源缓存 1 天（带版本号控制，支持更新）
-/*.css
-  Cache-Control: public, max-age=86400, must-revalidate
+# 带哈希的静态资源永久缓存（哈希变化即新版本）
+/*.min.js
+  Cache-Control: public, max-age=31536000, immutable
 
-/*.js
-  Cache-Control: public, max-age=86400, must-revalidate
+/*.min.css
+  Cache-Control: public, max-age=31536000, immutable
 
+# 图片资源缓存
 /*.png
   Cache-Control: public, max-age=2592000, immutable
 
@@ -38,10 +39,10 @@
 /*.json
   Cache-Control: public, max-age=2592000, immutable
 
-# HTML 文件缓存 1 小时，平衡新鲜度和性能
+# HTML 文件不缓存，确保每次获取最新版本
 /*.html
-  Cache-Control: public, max-age=3600, must-revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
 
-# 根 HTML 缓存 1 小时
+# 根路径不缓存
 /
-  Cache-Control: public, max-age=3600, must-revalidate
+  Cache-Control: no-cache, no-store, must-revalidate
