@@ -2002,7 +2002,8 @@ class PixelArtGenerator {
     
     updatePerlerSummary(perlerWidth, perlerHeight, colorSetName) {
         const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
-        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
+        const colorCount = Object.keys(this.colorCounts).length;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorCount}色]`;
         const perlerSummaryElement = document.getElementById('perlerSummary');
         if (perlerSummaryElement) {
             perlerSummaryElement.textContent = summaryText;
@@ -2244,7 +2245,8 @@ class PixelArtGenerator {
         
         // 在导出的图像上绘制摘要（放在顶部预留空间）
         const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
-        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorSetName}]`;
+        const colorCount = Object.keys(this.colorCounts).length;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorCount}色]`;
         const summaryFontSize = cellSize * 1.3;
         
         // 绘制水印（靠左）
@@ -6753,6 +6755,7 @@ function initMatrixTimer() {
                         generator.perlerColors = result.perlerColors;
                         generator.perlerWidth = result.width;
                         generator.perlerHeight = result.height;
+                        generator.colorCounts = result.colorCounts;
                         if (generator.colorSetSelect) {
                             if (colorSets[result.colorSet]) {
                                 generator.colorSetSelect.value = result.colorSet;
