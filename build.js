@@ -20,6 +20,7 @@ const jsFiles = [
     'modules/InfoPaperManager.js',
     'modules/FocusModeRenderer.js',
     'modules/MyDesignsManager.js',
+    'modules/CustomEditor.js',
     'js/app.js'
 ];
 

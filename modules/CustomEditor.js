@@ -9,6 +9,9 @@ class CustomEditor {
         this.isDrawing = false;
         this.currentEditTool = 'brush';
         this.cellSize = 20;
+        this.selection = null;
+        this.isSelecting = false;
+        this.selectionStart = null;
     }
 
     /**
@@ -186,6 +189,7 @@ class CustomEditor {
 
             if (visited.has(key)) continue;
             if (x < 0 || x >= width || y < 0 || y >= height) continue;
+            if (!this.isInSelection(x, y)) continue;
 
             const currentColor = this.editData[y][x];
             const currentIsTransparent = currentColor.isTransparent;
@@ -221,6 +225,7 @@ class CustomEditor {
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
+                if (!this.isInSelection(x, y)) continue;
                 const currentColor = this.editData[y][x];
                 if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
                     this.editData[y][x] = transparentColor;
@@ -246,6 +251,84 @@ class CustomEditor {
      */
     setData(data) {
         this.editData = data;
+    }
+
+    /**
+     * 检查坐标是否在选区内
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @returns {boolean}
+     */
+    isInSelection(x, y) {
+        if (!this.selection) return true;
+        const { x1, y1, x2, y2 } = this.selection;
+        return x >= Math.min(x1, x2) && x <= Math.max(x1, x2) &&
+               y >= Math.min(y1, y2) && y <= Math.max(y1, y2);
+    }
+
+    /**
+     * 设置选区
+     * @param {Object} selection - { x1, y1, x2, y2 }
+     */
+    setSelection(selection) {
+        this.selection = selection;
+    }
+
+    /**
+     * 清除选区
+     */
+    clearSelection() {
+        this.selection = null;
+        this.selectionStart = null;
+        this.isSelecting = false;
+    }
+
+    /**
+     * 开始选区
+     * @param {number} x - 起始X
+     * @param {number} y - 起始Y
+     */
+    startSelection(x, y) {
+        this.isSelecting = true;
+        this.selectionStart = { x, y };
+        this.selection = { x1: x, y1: y, x2: x, y2: y };
+    }
+
+    /**
+     * 更新选区
+     * @param {number} x - 当前X
+     * @param {number} y - 当前Y
+     */
+    updateSelection(x, y) {
+        if (!this.isSelecting || !this.selectionStart) return;
+        this.selection = {
+            x1: this.selectionStart.x,
+            y1: this.selectionStart.y,
+            x2: x,
+            y2: y
+        };
+    }
+
+    /**
+     * 结束选区
+     */
+    endSelection() {
+        this.isSelecting = false;
+    }
+
+    /**
+     * 获取选区范围
+     * @returns {Object|null} - { x, y, width, height } 或 null
+     */
+    getSelectionBounds() {
+        if (!this.selection) return null;
+        const { x1, y1, x2, y2 } = this.selection;
+        return {
+            x: Math.min(x1, x2),
+            y: Math.min(y1, y2),
+            width: Math.abs(x2 - x1) + 1,
+            height: Math.abs(y2 - y1) + 1
+        };
     }
 }
 

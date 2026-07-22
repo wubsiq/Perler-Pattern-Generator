@@ -47,6 +47,7 @@ class PixelArtGenerator {
         this.colorManager = new ColorManager();
         this.infoPaperManager = new InfoPaperManager();
         this.focusModeRenderer = new FocusModeRenderer();
+        this.customEditor = new CustomEditor();
         
         this.initElements();
         this.initEventListeners();
@@ -845,6 +846,15 @@ class PixelArtGenerator {
                     this.savedBrushSize = this.customEditBrushSize.value;
                     this.customEditBrushSize.value = 1;
                     this.brushSizeValue.textContent = '1';
+                }
+
+                
+
+                if (newTool === 'selection') {
+                    if (this.currentEditTool === 'selection' && this.customEditor && this.customEditor.selection) {
+                        this.customEditor.clearSelection();
+                        this.drawCustomEditCanvas();
+                    }
                 }
 
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
@@ -3757,6 +3767,20 @@ class PixelArtGenerator {
             ctx.lineWidth = 2;
             ctx.strokeRect(coordSize + displayLeft * cellSize + 1, coordSize + displayTop * cellSize + 1, (displayRight - displayLeft) * cellSize - 2, (displayBottom - displayTop) * cellSize - 2);
         }
+
+        // 绘制选区边框
+        if (this.customEditor && this.customEditor.selection) {
+            const sel = this.customEditor.selection;
+            const selX1 = Math.min(sel.x1, sel.x2);
+            const selY1 = Math.min(sel.y1, sel.y2);
+            const selX2 = Math.max(sel.x1, sel.x2);
+            const selY2 = Math.max(sel.y1, sel.y2);
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(coordSize + selX1 * cellSize, coordSize + selY1 * cellSize, (selX2 - selX1 + 1) * cellSize, (selY2 - selY1 + 1) * cellSize);
+            ctx.setLineDash([]);
+        }
         
         // 绘制编号
         const fontSizeCoord = Math.max(9, Math.floor(cellSize * 0.45));
@@ -3854,6 +3878,15 @@ class PixelArtGenerator {
             return;
         }
         
+        if (this.currentEditTool === 'selection') {
+            if (x >= 0 && x < this.perlerWidth && y >= 0 && y < this.perlerHeight) {
+                this.customEditor.startSelection(x, y);
+                this.isDrawing = true;
+                this.drawCustomEditCanvas();
+            }
+            return;
+        }
+        
         if (this.currentEditTool === 'chainRazor') {
             console.log('[handleCustomEditMouseDown] 调用 chainRazor');
             this.applyChainRazor(x, y);
@@ -3883,11 +3916,26 @@ class PixelArtGenerator {
             return;
         }
         
+        if (this.currentEditTool === 'selection') {
+            const { x, y } = this.getCustomEditCell(e);
+            const clampedX = Math.max(0, Math.min(x, this.perlerWidth - 1));
+            const clampedY = Math.max(0, Math.min(y, this.perlerHeight - 1));
+            this.customEditor.updateSelection(clampedX, clampedY);
+            this.drawCustomEditCanvas();
+            return;
+        }
+        
         const { x, y } = this.getCustomEditCell(e);
         this.applyEditToCell(x, y);
     }
 
     handleCustomEditMouseUp() {
+        if (this.currentEditTool === 'selection') {
+            this.customEditor.endSelection();
+            this.isDrawing = false;
+            return;
+        }
+        
         if (this.isDrawing && this.customEditData && this.currentEditTool !== 'chainRazor') {
             this.saveCustomEditHistory();
         }
@@ -3916,6 +3964,8 @@ class PixelArtGenerator {
             
             if (visited.has(key)) continue;
             if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) continue;
+            
+            if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
             
             const currentColor = this.customEditData[y][x];
             if (currentColor.isTransparent) continue;
@@ -3965,6 +4015,7 @@ class PixelArtGenerator {
         let count = 0;
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
                 const currentColor = this.customEditData[y][x];
                 if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
                     count++;
@@ -3992,6 +4043,7 @@ class PixelArtGenerator {
         
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
                 const currentColor = this.customEditData[y][x];
                 if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
                     this.customEditData[y][x] = transparentColor;
@@ -4021,6 +4073,7 @@ class PixelArtGenerator {
                 const nx = x + dx;
                 const ny = y + dy;
                 if (nx >= 0 && nx < this.perlerWidth && ny >= 0 && ny < this.perlerHeight) {
+                    if (this.customEditor && !this.customEditor.isInSelection(nx, ny)) continue;
                     this.applySingleEdit(nx, ny);
                 }
             }
@@ -4131,6 +4184,8 @@ class PixelArtGenerator {
             if (visited.has(key)) continue;
             if (x < 0 || x >= this.perlerWidth || y < 0 || y >= this.perlerHeight) continue;
             
+            if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
+            
             const currentColor = this.customEditData[y][x];
             const currentIsTransparent = currentColor.isTransparent;
             
@@ -4208,6 +4263,7 @@ class PixelArtGenerator {
         let convertedCount = 0;
         for (let y = 0; y < this.perlerHeight; y++) {
             for (let x = 0; x < this.perlerWidth; x++) {
+                if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
                 const currentColor = this.customEditData[y][x];
                 if (currentColor.name === sourceColor.name) {
                     this.customEditData[y][x] = targetColor;
@@ -4277,6 +4333,8 @@ class PixelArtGenerator {
             
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
+                    if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
+                    
                     const current = this.customEditData[y][x];
                     const isTransparentCurrent = !current || current.isTransparent;
                     
