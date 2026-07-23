@@ -353,6 +353,7 @@ class FocusModeRenderer {
     createColorPickerPanel() {
         if (this.colorPickerPanel) return;
         
+        const maxWidth = this.panelMode === 'full' ? 'calc(100% - 300px)' : 'calc(100% - 70px)';
         this.colorPickerPanel = document.createElement('div');
         this.colorPickerPanel.style.cssText = `
             background: rgba(0, 0, 0, 0.7);
@@ -367,7 +368,7 @@ class FocusModeRenderer {
             align-items: center;
             overflow-x: auto;
             overflow-y: hidden;
-            max-width: calc(100% - 300px);
+            max-width: ${maxWidth};
             max-height: 70px;
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -464,6 +465,10 @@ class FocusModeRenderer {
         this.colorPickerPanel.addEventListener('click', (e) => {
             e.stopPropagation();
         });
+
+        this.colorPickerPanel.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
 
         const swatches = this.colorPickerPanel.querySelectorAll('.color-swatch-item');
         swatches.forEach((swatch) => {
@@ -563,7 +568,15 @@ class FocusModeRenderer {
                 const dx = Math.abs((this.lastMouseX || 0) - (this.touchStartX || 0));
                 const dy = Math.abs((this.lastMouseY || 0) - (this.touchStartY || 0));
                 if (dx < 10 && dy < 10) {
-                    this.togglePanelMode();
+                    const touch = e.changedTouches[0];
+                    if (this.isClickInsideTopBar(touch.clientX, touch.clientY)) {
+                        this.isDragging = false;
+                        this.lastTouchDistance = 0;
+                        return;
+                    }
+                    if (this.panelMode === 'full') {
+                        this.togglePanelMode();
+                    }
                 }
             }
             this.isDragging = false;
@@ -614,23 +627,23 @@ class FocusModeRenderer {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
+        if (this.isClickInsideTopBar(e.clientX, e.clientY)) {
+            return;
+        }
+
         if (this.panelMode === 'full') {
-            if (this.isClickInsideControls(e.clientX, e.clientY)) {
-                return;
-            }
-            if (this.colorPickerPanel) {
-                const pickerRect = this.colorPickerPanel.getBoundingClientRect();
-                if (e.clientX >= pickerRect.left && e.clientX <= pickerRect.right &&
-                    e.clientY >= pickerRect.top && e.clientY <= pickerRect.bottom) {
-                    return;
-                }
-            }
             this.togglePanelMode();
         }
     }
 
     isClickInsideControls(x, y) {
         const rect = this.controlsPanel.getBoundingClientRect();
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
+    isClickInsideTopBar(x, y) {
+        if (!this.topBar) return false;
+        const rect = this.topBar.getBoundingClientRect();
         return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     }
 
