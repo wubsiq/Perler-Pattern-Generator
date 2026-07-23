@@ -33,6 +33,7 @@ class FocusModeRenderer {
         this.colorStats = [];
         this.lockedColors = new Set();
         this.lastTouchDistance = 0;
+        this.flipHorizontal = false;
     }
 
     init(containerSelector, perlerColors, width, height, colorSet, onExitCallback) {
@@ -50,6 +51,7 @@ class FocusModeRenderer {
         this.placedBeans.clear();
         this.colorStats = [];
         this.lastTouchDistance = 0;
+        this.flipHorizontal = false;
 
         this.perlerColors = perlerColors;
         this.width = width;
@@ -121,20 +123,31 @@ class FocusModeRenderer {
     }
 
     createControlsPanel() {
+        this.topBar = document.createElement('div');
+        this.topBar.style.cssText = `
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            z-index: 10001;
+        `;
+
         this.controlsPanel = document.createElement('div');
         this.controlsPanel.style.cssText = `
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 0;
+            right: 0;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             padding: 18px;
             border-radius: 18px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 280px;
+            width: 280px;
             transition: opacity 0.3s, transform 0.3s;
-            z-index: 10001;
             border: 1px solid rgba(255, 255, 255, 0.1);
         `;
 
@@ -178,6 +191,12 @@ class FocusModeRenderer {
                     <input type="color" id="grid-color-picker" value="${this.gridColor}" style="width: 38px; height: 28px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; cursor: pointer; background: transparent;">
                 </div>
             </div>
+            <div style="margin-bottom: 18px;">
+                <div style="margin-bottom: 10px; font-weight: 600; color: #fff; font-size: 13px;">🔄 变换控制</div>
+                <button id="flip-horizontal-btn" style="width: 100%; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.1); color: #fff; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                    ↔️ 左右反转
+                </button>
+            </div>
             <div>
                 <div style="margin-bottom: 10px; font-weight: 600; color: #fff; font-size: 13px;">📐 图纸信息</div>
                 <div style="font-size: 13px; color: rgba(255, 255, 255, 0.6); line-height: 1.6;">
@@ -194,7 +213,8 @@ class FocusModeRenderer {
         this.controlsPanel.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
         this.controlsPanel.addEventListener('click', (e) => e.stopPropagation());
 
-        this.container.appendChild(this.controlsPanel);
+        this.topBar.appendChild(this.controlsPanel);
+        this.container.appendChild(this.topBar);
         this.createFAB();
         this.attachControlsEvents();
         this.applyPanelMode();
@@ -208,8 +228,8 @@ class FocusModeRenderer {
         this.fab = document.createElement('div');
         this.fab.style.cssText = `
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 0;
+            right: 0;
             width: 56px;
             height: 56px;
             border-radius: 50%;
@@ -221,7 +241,6 @@ class FocusModeRenderer {
             justify-content: center;
             font-size: 24px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            z-index: 10001;
             cursor: pointer;
             transition: opacity 0.3s, transform 0.3s;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -239,27 +258,41 @@ class FocusModeRenderer {
             e.stopPropagation();
         }, { passive: true });
 
-        this.container.appendChild(this.fab);
+        this.topBar.appendChild(this.fab);
     }
 
     applyPanelMode() {
         if (this.panelMode === 'full') {
-            this.controlsPanel.style.display = 'block';
-            this.controlsPanel.style.opacity = '1';
-            this.controlsPanel.style.pointerEvents = 'auto';
+            this.controlsPanel.style.visibility = 'visible';
+            setTimeout(() => {
+                this.controlsPanel.style.opacity = '1';
+                this.controlsPanel.style.pointerEvents = 'auto';
+            }, 10);
             if (this.fab) {
-                this.fab.style.display = 'none';
                 this.fab.style.opacity = '0';
                 this.fab.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    this.fab.style.visibility = 'hidden';
+                }, 300);
+            }
+            if (this.colorPickerPanel) {
+                this.colorPickerPanel.style.maxWidth = 'calc(100% - 300px)';
             }
         } else {
-            this.controlsPanel.style.display = 'none';
             this.controlsPanel.style.opacity = '0';
             this.controlsPanel.style.pointerEvents = 'none';
+            setTimeout(() => {
+                this.controlsPanel.style.visibility = 'hidden';
+            }, 300);
             if (this.fab) {
-                this.fab.style.display = 'flex';
-                this.fab.style.opacity = '1';
-                this.fab.style.pointerEvents = 'auto';
+                this.fab.style.visibility = 'visible';
+                setTimeout(() => {
+                    this.fab.style.opacity = '1';
+                    this.fab.style.pointerEvents = 'auto';
+                }, 10);
+            }
+            if (this.colorPickerPanel) {
+                this.colorPickerPanel.style.maxWidth = 'calc(100% - 70px)';
             }
         }
     }
@@ -279,6 +312,7 @@ class FocusModeRenderer {
         const showGridCheckbox = this.controlsPanel.querySelector('#show-grid-checkbox');
         const gridColorPicker = this.controlsPanel.querySelector('#grid-color-picker');
         const showSingleHighlightCheckbox = this.controlsPanel.querySelector('#show-single-highlight-checkbox');
+        const flipHorizontalBtn = this.controlsPanel.querySelector('#flip-horizontal-btn');
 
         exitBtn.addEventListener('click', () => this.exit());
         zoomInBtn.addEventListener('click', () => this.zoomIn());
@@ -310,6 +344,10 @@ class FocusModeRenderer {
             }
             this.drawChart();
         });
+        flipHorizontalBtn.addEventListener('click', () => {
+            this.flipHorizontal = !this.flipHorizontal;
+            this.drawChart();
+        });
     }
 
     createColorPickerPanel() {
@@ -317,30 +355,27 @@ class FocusModeRenderer {
         
         this.colorPickerPanel = document.createElement('div');
         this.colorPickerPanel.style.cssText = `
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             padding: 12px 16px;
             border-radius: 18px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            z-index: 10002;
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             gap: 8px;
             align-items: center;
             overflow-x: auto;
             overflow-y: hidden;
-            max-width: 90vw;
+            max-width: calc(100% - 300px);
             max-height: 70px;
             scrollbar-width: none;
             -ms-overflow-style: none;
             touch-action: pan-x;
             -webkit-user-select: none;
             user-select: none;
+            margin-right: auto;
+            transition: max-width 0.5s ease;
         `;
 
         this.colorPickerPanel.classList.add('focus-mode-color-picker');
@@ -416,7 +451,11 @@ class FocusModeRenderer {
         }).join('');
 
         this.colorPickerPanel.innerHTML = items;
-        this.container.appendChild(this.colorPickerPanel);
+        if (this.topBar && this.controlsPanel) {
+            this.topBar.insertBefore(this.colorPickerPanel, this.controlsPanel);
+        } else {
+            this.container.appendChild(this.colorPickerPanel);
+        }
 
         this.colorPickerPanel.addEventListener('wheel', (e) => {
             e.stopPropagation();
@@ -674,7 +713,8 @@ class FocusModeRenderer {
 
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                const color = this.perlerColors[y][x];
+                const sourceX = this.flipHorizontal ? (this.width - 1 - x) : x;
+                const color = this.perlerColors[y][sourceX];
                 const px = centerX + coordSize + x * this.cellSize;
                 const py = centerY + coordSize + y * this.cellSize;
 
@@ -700,10 +740,15 @@ class FocusModeRenderer {
                 this.ctx.fillRect(px, py, this.cellSize - 1, this.cellSize - 1);
 
                 if (isHighlighted) {
-                    const isTopHighlight = y === 0 || this.perlerColors[y - 1][x].name !== this.highlightedColorName || this.perlerColors[y - 1][x].isTransparent;
-                    const isBottomHighlight = y === this.height - 1 || this.perlerColors[y + 1][x].name !== this.highlightedColorName || this.perlerColors[y + 1][x].isTransparent;
-                    const isLeftHighlight = x === 0 || this.perlerColors[y][x - 1].name !== this.highlightedColorName || this.perlerColors[y][x - 1].isTransparent;
-                    const isRightHighlight = x === this.width - 1 || this.perlerColors[y][x + 1].name !== this.highlightedColorName || this.perlerColors[y][x + 1].isTransparent;
+                    const topSourceX = this.flipHorizontal ? (this.width - 1 - x) : x;
+                    const bottomSourceX = this.flipHorizontal ? (this.width - 1 - x) : x;
+                    const leftSourceX = this.flipHorizontal ? (this.width - 1 - (x - 1)) : (x - 1);
+                    const rightSourceX = this.flipHorizontal ? (this.width - 1 - (x + 1)) : (x + 1);
+                    
+                    const isTopHighlight = y === 0 || this.perlerColors[y - 1][topSourceX].name !== this.highlightedColorName || this.perlerColors[y - 1][topSourceX].isTransparent;
+                    const isBottomHighlight = y === this.height - 1 || this.perlerColors[y + 1][bottomSourceX].name !== this.highlightedColorName || this.perlerColors[y + 1][bottomSourceX].isTransparent;
+                    const isLeftHighlight = x === 0 || this.perlerColors[y][leftSourceX].name !== this.highlightedColorName || this.perlerColors[y][leftSourceX].isTransparent;
+                    const isRightHighlight = x === this.width - 1 || this.perlerColors[y][rightSourceX].name !== this.highlightedColorName || this.perlerColors[y][rightSourceX].isTransparent;
 
                     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
                     this.ctx.lineWidth = 2;
@@ -801,8 +846,9 @@ class FocusModeRenderer {
                 this.ctx.strokeRect(boxX, boxYBottom, this.cellSize, this.cellSize);
                 if ((x + 1) % 5 === 0 || x === 0) {
                     const px = centerX + coordSize + x * this.cellSize + this.cellSize / 2;
-                    this.ctx.fillText(x + 1, px, centerY + coordSize / 2);
-                    this.ctx.fillText(x + 1, px, centerY + coordSize + chartHeight + coordSize / 2);
+                    const coordX = this.flipHorizontal ? (this.width - x) : (x + 1);
+                    this.ctx.fillText(coordX, px, centerY + coordSize / 2);
+                    this.ctx.fillText(coordX, px, centerY + coordSize + chartHeight + coordSize / 2);
                 }
             }
 
