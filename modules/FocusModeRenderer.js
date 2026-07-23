@@ -21,7 +21,7 @@ class FocusModeRenderer {
         this.touchStartY = 0;
         this.highlightColor = null;
         this.placedBeans = new Set();
-        this.panelMode = 'full';
+        this.panelMode = 'minimized';
         this.isActive = false;
         this.originalBodyOverflow = '';
         this.showCoords = true;
@@ -614,11 +614,19 @@ class FocusModeRenderer {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        if (this.panelMode === 'full' && this.isClickInsideControls(e.clientX, e.clientY)) {
-            return;
+        if (this.panelMode === 'full') {
+            if (this.isClickInsideControls(e.clientX, e.clientY)) {
+                return;
+            }
+            if (this.colorPickerPanel) {
+                const pickerRect = this.colorPickerPanel.getBoundingClientRect();
+                if (e.clientX >= pickerRect.left && e.clientX <= pickerRect.right &&
+                    e.clientY >= pickerRect.top && e.clientY <= pickerRect.bottom) {
+                    return;
+                }
+            }
+            this.togglePanelMode();
         }
-
-        this.togglePanelMode();
     }
 
     isClickInsideControls(x, y) {
