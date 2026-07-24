@@ -4106,7 +4106,9 @@ class PixelArtGenerator {
 
         this.saveCustomEditHistory();
 
-        this.customEditData = filterNoisePixels(this.customEditData, threshold);
+        const isInSelection = this.customEditor ? (x, y) => this.customEditor.isInSelection(x, y) : null;
+        
+        this.customEditData = filterNoisePixels(this.customEditData, threshold, 1, isInSelection);
 
         this.drawCustomEditCanvas();
         console.log(`已应用杂色过滤，阈值: ${threshold}`);

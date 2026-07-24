@@ -1065,7 +1065,7 @@ function computeMinColorDistance(colorSet, method = 'cie2000') {
     return minDist;
 }
 
-function filterNoisePixels(perlerColors, noiseThreshold = 4, iterationCount = 1) {
+function filterNoisePixels(perlerColors, noiseThreshold = 4, iterationCount = 1, isInSelection = null) {
     const width = perlerColors[0] ? perlerColors[0].length : 0;
     const height = perlerColors.length;
     
@@ -1085,6 +1085,8 @@ function filterNoisePixels(perlerColors, noiseThreshold = 4, iterationCount = 1)
         
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
+                if (isInSelection && !isInSelection(x, y)) continue;
+                
                 const currentColor = result[y][x];
                 if (currentColor.isTransparent) continue;
                 
