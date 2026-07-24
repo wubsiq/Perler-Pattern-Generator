@@ -1064,3 +1064,73 @@ function computeMinColorDistance(colorSet, method = 'cie2000') {
     }
     return minDist;
 }
+
+function filterNoisePixels(perlerColors, noiseThreshold = 4, iterationCount = 1) {
+    const width = perlerColors[0] ? perlerColors[0].length : 0;
+    const height = perlerColors.length;
+    
+    let result = perlerColors.map(row => [...row]);
+    
+    const colorMap = new Map();
+    for (const row of result) {
+        for (const color of row) {
+            if (!color.isTransparent && !colorMap.has(color.name)) {
+                colorMap.set(color.name, color);
+            }
+        }
+    }
+    
+    for (let iter = 0; iter < iterationCount; iter++) {
+        const newResult = result.map(row => [...row]);
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const currentColor = result[y][x];
+                if (currentColor.isTransparent) continue;
+                
+                const neighborColors = {};
+                let totalNeighbors = 0;
+                
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (dy === 0 && dx === 0) continue;
+                        
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            const neighborColor = result[ny][nx];
+                            if (!neighborColor.isTransparent) {
+                                neighborColors[neighborColor.name] = (neighborColors[neighborColor.name] || 0) + 1;
+                                totalNeighbors++;
+                            }
+                        }
+                    }
+                }
+                
+                if (totalNeighbors === 0) continue;
+                
+                let maxCount = 0;
+                let dominantColorName = null;
+                
+                for (const [name, count] of Object.entries(neighborColors)) {
+                    if (count > maxCount) {
+                        maxCount = count;
+                        dominantColorName = name;
+                    }
+                }
+                
+                if (dominantColorName && maxCount >= noiseThreshold) {
+                    const dominantColor = colorMap.get(dominantColorName);
+                    if (dominantColor) {
+                        newResult[y][x] = dominantColor;
+                    }
+                }
+            }
+        }
+        
+        result = newResult;
+    }
+    
+    return result;
+}

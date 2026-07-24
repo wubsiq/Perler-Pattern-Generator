@@ -176,6 +176,24 @@
             </div>
         </div>
 
+        <div class="floating-panel" id="noiseFilterPanel" style="display: none;">
+            <div class="floating-panel-header" id="noiseFilterPanelHeader">
+                <span data-i18n="noiseFilterTool">✨ 杂色过滤</span>
+                <button class="floating-panel-close" id="closeNoiseFilterBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85em;" data-i18n="noiseThresholdLabel">过滤阈值：</label>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="range" id="noiseFilterThresholdSlider" min="0" max="8" step="1" value="4" style="flex: 1;">
+                        <span id="noiseFilterThresholdValue" style="font-family: monospace; font-size: 0.9em; min-width: 24px; text-align: center;">4</span>
+                    </div>
+                    <p style="font-size: 0.75em; color: #666; margin-top: 4px;" data-i18n="noiseThresholdDesc">阈值越大，过滤越严格（0=关闭，8=仅当周围全同色时才替换）</p>
+                </div>
+                <button id="applyNoiseFilterBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em;" data-i18n="executeNoiseFilter">✨ 应用杂色过滤</button>
+            </div>
+        </div>
+
         <section class="showcase-section" id="showcaseSection">
             <h2 class="showcase-title" data-i18n="showcaseTitle">🎨 示例图纸</h2>
             <p class="showcase-subtitle" data-i18n="showcaseSubtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
@@ -783,6 +801,7 @@
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
                                 <button class="edit-tool-btn" data-tool="colorConvert" data-i18n="colorConvertTool">🔄 颜色转换</button>
                                 <button class="edit-tool-btn" data-tool="colorRemove" data-i18n="colorRemoveTool">🚫 颜色剔除</button>
+                                <button class="edit-tool-btn" data-tool="noiseFilter" data-i18n="noiseFilterTool">✨ 杂色过滤</button>
                                 <button class="edit-tool-btn" data-tool="canvasBounds" data-i18n="toolCanvasBounds">📐 画布边界</button>
                                 <button class="edit-tool-btn" data-tool="stroke" data-i18n="strokeTool">✏️ 描边</button>
                             </div>
@@ -896,7 +915,7 @@
         </section>
     </main>
 
-    <script src="js/bundle.eacd9139.min.js" defer></script>
+    <script src="js/bundle.b4f97492.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">

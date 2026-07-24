@@ -64,7 +64,8 @@ class PerlerGenerator {
             colorSet,
             mappingMethod,
             enableNeighborSmooth,
-            cie2000OptimizedParams
+            cie2000OptimizedParams,
+            noiseThreshold = 0
         } = options;
 
         // 获取当前颜色套装
@@ -107,6 +108,24 @@ class PerlerGenerator {
 
         let finalColors = perlerColors;
         let finalCounts = colorCounts;
+
+        if (noiseThreshold > 0) {
+            finalColors = filterNoisePixels(finalColors, noiseThreshold);
+            
+            finalCounts = {};
+            for (let y = 0; y < perlerHeight; y++) {
+                for (let x = 0; x < perlerWidth; x++) {
+                    const color = finalColors[y][x];
+                    if (!color.isTransparent) {
+                        if (finalCounts[color.name]) {
+                            finalCounts[color.name]++;
+                        } else {
+                            finalCounts[color.name] = 1;
+                        }
+                    }
+                }
+            }
+        }
 
         if (mappingMethod === 'cie2000-smoothed') {
             const params = cie2000OptimizedParams || {

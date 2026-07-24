@@ -632,7 +632,8 @@ class CircularPixelArtGenerator {
             {
                 colorSet: colorSetName,
                 mappingMethod: mappingMethod,
-                enableNeighborSmooth: false
+                enableNeighborSmooth: false,
+                noiseThreshold: 0
             }
         );
 

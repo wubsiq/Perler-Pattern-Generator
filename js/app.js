@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.0.0';
+        this.APP_VERSION = '1.0.1';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -356,6 +356,14 @@ class PixelArtGenerator {
         this.colorRemovePanel = document.getElementById('colorRemovePanel');
         this.colorRemovePanelHeader = document.getElementById('colorRemovePanelHeader');
         this.closeColorRemoveBtn = document.getElementById('closeColorRemoveBtn');
+        
+        // 杂色过滤工具（浮动面板版）
+        this.noiseFilterPanel = document.getElementById('noiseFilterPanel');
+        this.noiseFilterPanelHeader = document.getElementById('noiseFilterPanelHeader');
+        this.closeNoiseFilterBtn = document.getElementById('closeNoiseFilterBtn');
+        this.noiseFilterThresholdSlider = document.getElementById('noiseFilterThresholdSlider');
+        this.noiseFilterThresholdValue = document.getElementById('noiseFilterThresholdValue');
+        this.applyNoiseFilterBtn = document.getElementById('applyNoiseFilterBtn');
         
         this.canvasBounds = null;
         this.isDraggingCanvasBounds = false;
@@ -843,6 +851,12 @@ class PixelArtGenerator {
                     return;
                 }
 
+                // 杂色过滤工具：打开浮动面板，不切换工具状态
+                if (newTool === 'noiseFilter') {
+                    this.openNoiseFilterPanel();
+                    return;
+                }
+
                 // 如果之前是取色器，恢复原始的画笔大小
                 if (this.currentEditTool === 'picker' && newTool !== 'picker') {
                     this.customEditBrushSize.value = this.savedBrushSize;
@@ -932,6 +946,19 @@ class PixelArtGenerator {
             this.closeColorRemovePanel();
         });
 
+        // 杂色过滤面板事件
+        this.closeNoiseFilterBtn.addEventListener('click', () => {
+            this.closeNoiseFilterPanel();
+        });
+
+        this.noiseFilterThresholdSlider.addEventListener('input', () => {
+            this.noiseFilterThresholdValue.textContent = this.noiseFilterThresholdSlider.value;
+        });
+
+        this.applyNoiseFilterBtn.addEventListener('click', () => {
+            this.applyNoiseFilter();
+        });
+
         // 悬浮快照面板事件
         this.snapshotFloatBtn.addEventListener('click', () => {
             this.toggleSnapshotPanel();
@@ -958,6 +985,7 @@ class PixelArtGenerator {
         this.initColorConvertPanelDrag();
         this.initStrokePanelDrag();
         this.initColorRemovePanelDrag();
+        this.initNoiseFilterPanelDrag();
 
         this.colorConvertSourceColor.addEventListener('input', () => {
             this.colorConvertSourceColorValue.textContent = this.colorConvertSourceColor.value;
@@ -4064,6 +4092,26 @@ class PixelArtGenerator {
         console.log(`已成功剔除 ${count} 个 ${targetColor.name} 颜色！`);
     }
 
+    applyNoiseFilter() {
+        if (!this.customEditData) {
+            alert(getI18nText('alertNoEditableImage'));
+            return;
+        }
+
+        const threshold = parseInt(this.noiseFilterThresholdSlider.value);
+        if (threshold <= 0) {
+            alert(getI18nText('alertInvalidNoiseThreshold'));
+            return;
+        }
+
+        this.saveCustomEditHistory();
+
+        this.customEditData = filterNoisePixels(this.customEditData, threshold);
+
+        this.drawCustomEditCanvas();
+        console.log(`已应用杂色过滤，阈值: ${threshold}`);
+    }
+
     applyEditToCell(x, y) {
         console.log('[applyEditToCell] 开始！');
         console.log('[applyEditToCell] 当前工具:', this.currentEditTool);
@@ -6348,6 +6396,18 @@ class PixelArtGenerator {
         }
     }
 
+    openNoiseFilterPanel() {
+        if (this.noiseFilterPanel) {
+            this.noiseFilterPanel.style.display = 'block';
+        }
+    }
+
+    closeNoiseFilterPanel() {
+        if (this.noiseFilterPanel) {
+            this.noiseFilterPanel.style.display = 'none';
+        }
+    }
+
     closeColorConvertPanel() {
         if (this.colorConvertPanel) {
             this.colorConvertPanel.style.display = 'none';
@@ -6488,6 +6548,51 @@ class PixelArtGenerator {
         document.addEventListener('mouseup', () => {
             if (this.colorRemovePanelDragState) {
                 this.colorRemovePanelDragState.dragging = false;
+            }
+        });
+    }
+
+    initNoiseFilterPanelDrag() {
+        if (!this.noiseFilterPanel || !this.noiseFilterPanelHeader) return;
+
+        const panel = this.noiseFilterPanel;
+        const header = this.noiseFilterPanelHeader;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target === this.closeNoiseFilterBtn) return;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            panel.style.right = 'auto';
+            panel.style.left = startLeft + 'px';
+            panel.style.top = startTop + 'px';
+
+            this.noiseFilterPanelDragState = { dragging: true };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.noiseFilterPanelDragState || !this.noiseFilterPanelDragState.dragging) return;
+
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+
+            const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+            const maxTop = window.innerHeight - panel.offsetHeight - 10;
+
+            panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+            panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.noiseFilterPanelDragState) {
+                this.noiseFilterPanelDragState.dragging = false;
             }
         });
     }

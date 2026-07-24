@@ -180,6 +180,7 @@ const i18n = {
         pixelGridLineColor: '像素划分线颜色：',
         targetColorCount: '目标颜色数量：',
         neighborhoodSmoothing: '邻域平滑',
+        noiseFilter: '杂色过滤阈值：',
         keepColorCount: '保留颜色数量：',
         initialBlockSize: '初始块大小：',
         minBlockSize: '最小块大小：',
@@ -254,6 +255,12 @@ const i18n = {
         colorRemoveTool: '🚫 颜色剔除',
         removeColorLabel: '要剔除的颜色：',
         executeColorRemove: '🚫 剔除选中颜色',
+        // 杂色过滤
+        noiseFilterTool: '✨ 杂色过滤',
+        noiseThresholdLabel: '过滤阈值：',
+        noiseThresholdDesc: '阈值越大，过滤越严格（0=关闭，8=仅当周围全同色时才替换）',
+        executeNoiseFilter: '✨ 应用杂色过滤',
+        alertInvalidNoiseThreshold: '请设置有效的过滤阈值（1-8）',
         // 示例图纸
         showcaseTitle: '🎨 示例图纸',
         showcaseSubtitle: '点击下方示例图纸，直接进入专注模式查看效果',
@@ -481,6 +488,7 @@ const i18n = {
         pixelGridLineColor: 'Pixel Grid Line Color: ',
         targetColorCount: 'Target Color Count: ',
         neighborhoodSmoothing: 'Neighborhood Smoothing',
+        noiseFilter: 'Noise Filter Threshold: ',
         keepColorCount: 'Keep Color Count: ',
         initialBlockSize: 'Initial Block Size: ',
         minBlockSize: 'Min Block Size: ',
@@ -555,6 +563,12 @@ const i18n = {
         colorRemoveTool: '🚫 Color Remove',
         removeColorLabel: 'Color to Remove: ',
         executeColorRemove: '🚫 Remove Selected Color',
+        // Noise Filter
+        noiseFilterTool: '✨ Noise Filter',
+        noiseThresholdLabel: 'Filter Threshold: ',
+        noiseThresholdDesc: 'Higher threshold = stricter filtering (0=off, 8=only replace when all neighbors match)',
+        executeNoiseFilter: '✨ Apply Noise Filter',
+        alertInvalidNoiseThreshold: 'Please set a valid threshold (1-8)',
         // Showcase
         showcaseTitle: '🎨 Sample Patterns',
         showcaseSubtitle: 'Click any sample pattern below to enter focus mode',
