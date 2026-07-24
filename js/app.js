@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.0.1';
+        this.APP_VERSION = '1.0.2';
         
         // 初始化模块
         this.pixelator = new Pixelator();
