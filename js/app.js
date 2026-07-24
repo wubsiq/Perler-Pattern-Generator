@@ -40,6 +40,9 @@ class PixelArtGenerator {
             iterationCount: 1
         };
         
+        // 版本号
+        this.APP_VERSION = '1.0.0';
+        
         // 初始化模块
         this.pixelator = new Pixelator();
         this.perlerGenerator = new PerlerGenerator();
@@ -370,6 +373,11 @@ class PixelArtGenerator {
         this.exportBeadSizeValue.textContent = exportSize + 'px';
         
         this.quantizedPixelControls.style.display = this.pixelMethod.value === 'quantized' ? 'block' : 'none';
+        
+        const versionBadge = document.getElementById('versionBadge');
+        if (versionBadge) {
+            versionBadge.textContent = `v${this.APP_VERSION}`;
+        }
     }
 
     initEventListeners() {
@@ -6632,7 +6640,7 @@ class PixelArtGenerator {
     }
 
     async loadSamplePatternsRaw() {
-        const url = new URL('sample-patterns.json', location.href).href;
+        const url = new URL(`sample-patterns.json?v=${this.APP_VERSION}`, location.href).href;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
