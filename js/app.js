@@ -6532,10 +6532,12 @@ class PixelArtGenerator {
 
     async loadAndRenderShowcase() {
         try {
-            const packedItems = await this.loadSamplePatternsRaw();
-            const cards = await this.createAllSampleCards(packedItems);
+            this.allPackedItems = await this.loadSamplePatternsRaw();
+            this.currentShowcasePage = 0;
+            this.showcasePageSize = 10;
             if (this.showcaseSkeleton) this.showcaseSkeleton.remove();
-            cards.forEach((card) => this.showcaseGrid.appendChild(card));
+            await this.renderShowcasePage();
+            this.setupShowcaseScrollListener();
         } catch (err) {
             console.warn('加载示例图纸失败:', err);
             if (this.showcaseSkeleton) this.showcaseSkeleton.remove();
@@ -6543,7 +6545,26 @@ class PixelArtGenerator {
         }
     }
 
-    async createAllSampleCards(items) {
+    async renderShowcasePage() {
+        const start = this.currentShowcasePage * this.showcasePageSize;
+        const end = start + this.showcasePageSize;
+        const items = this.allPackedItems.slice(start, end);
+
+        if (items.length === 0) {
+            this.removeShowcaseScrollListener();
+            return;
+        }
+
+        const cards = await this.createSampleCards(items);
+        cards.forEach((card) => this.showcaseGrid.appendChild(card));
+        this.currentShowcasePage++;
+
+        if (end >= this.allPackedItems.length) {
+            this.removeShowcaseScrollListener();
+        }
+    }
+
+    async createSampleCards(items) {
         const cards = [];
         for (const item of items) {
             if (!item.packedData) continue;
@@ -6559,6 +6580,29 @@ class PixelArtGenerator {
             }
         }
         return cards;
+    }
+
+    setupShowcaseScrollListener() {
+        this.showcaseScrollHandler = () => {
+            const showcase = this.showcaseSection;
+            if (!showcase) return;
+
+            const rect = showcase.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            if (rect.bottom <= windowHeight + 200) {
+                this.renderShowcasePage();
+            }
+        };
+
+        window.addEventListener('scroll', this.showcaseScrollHandler, { passive: true });
+    }
+
+    removeShowcaseScrollListener() {
+        if (this.showcaseScrollHandler) {
+            window.removeEventListener('scroll', this.showcaseScrollHandler);
+            this.showcaseScrollHandler = null;
+        }
     }
 
     createSampleCard(sample) {

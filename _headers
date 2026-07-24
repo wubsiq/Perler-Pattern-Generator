@@ -39,6 +39,9 @@
 /*.json
   Cache-Control: public, max-age=2592000, immutable
 
+/sample-patterns.json
+  Cache-Control: no-cache
+
 # HTML 文件不缓存，确保每次获取最新版本
 /*.html
   Cache-Control: no-cache, no-store, must-revalidate

@@ -7,6 +7,26 @@ const projectRoot = __dirname;
 
 console.log('========== 豆师傅网站构建脚本 ==========\n');
 
+console.log('[0/3] 清理旧的构建文件');
+const cleanupDirs = ['js', 'css'];
+cleanupDirs.forEach(dir => {
+    const dirPath = path.join(projectRoot, dir);
+    if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath);
+        const oldBundles = files.filter(f => f.match(/^(bundle|style)\..*\.min\.(js|css)$/));
+        oldBundles.forEach(file => {
+            fs.unlinkSync(path.join(dirPath, file));
+            console.log(`  删除: ${dir}/${file}`);
+        });
+        if (oldBundles.length > 0) {
+            console.log(`  共清理 ${oldBundles.length} 个旧文件`);
+        } else {
+            console.log(`  无旧文件需要清理`);
+        }
+    }
+});
+console.log('');
+
 const jsFiles = [
     'js/colors.js',
     'js/colorUtils.js',
