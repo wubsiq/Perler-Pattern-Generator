@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.0.2';
+        this.APP_VERSION = '1.0.3';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -237,6 +237,15 @@ class PixelArtGenerator {
         this.removeColorValue = document.getElementById('removeColorValue');
         this.pickRemoveColorBtn = document.getElementById('pickRemoveColorBtn');
         this.removeColorBtn = document.getElementById('removeColorBtn');
+        this.colorQuantizePanel = document.getElementById('colorQuantizePanel');
+        this.colorQuantizePanelHeader = document.getElementById('colorQuantizePanelHeader');
+        this.closeColorQuantizeBtn = document.getElementById('closeColorQuantizeBtn');
+        this.quantizeColorList = document.getElementById('quantizeColorList');
+        this.quantizeSelectAllBtn = document.getElementById('quantizeSelectAllBtn');
+        this.quantizeSelectNoneBtn = document.getElementById('quantizeSelectNoneBtn');
+        this.applyColorQuantizeBtn = document.getElementById('applyColorQuantizeBtn');
+        this.quantizePickColorBtn = document.getElementById('quantizePickColorBtn');
+        this.quantizePickMode = false;
         this.saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
         this.snapshotsList = document.getElementById('snapshotsList');
         this.snapshotsContainer = document.getElementById('snapshotsContainer');
@@ -305,6 +314,8 @@ class PixelArtGenerator {
         this.executeColorConvertBtn = document.getElementById('executeColorConvertBtn');
 
         this.colorConvertPickMode = null;
+        this.colorConvertSourceIsTransparent = false;
+        this.colorConvertTargetIsTransparent = false;
         this.colorConvertPanelDragState = null;
         
         this.exportScaleSlider = document.getElementById('exportScaleSlider');
@@ -857,6 +868,12 @@ class PixelArtGenerator {
                     return;
                 }
 
+                // 颜色量化工具：打开浮动面板，不切换工具状态
+                if (newTool === 'colorQuantize') {
+                    this.openColorQuantizePanel();
+                    return;
+                }
+
                 // 如果之前是取色器，恢复原始的画笔大小
                 if (this.currentEditTool === 'picker' && newTool !== 'picker') {
                     this.customEditBrushSize.value = this.savedBrushSize;
@@ -959,6 +976,39 @@ class PixelArtGenerator {
             this.applyNoiseFilter();
         });
 
+        // 颜色量化面板事件
+        this.closeColorQuantizeBtn.addEventListener('click', () => {
+            this.closeColorQuantizePanel();
+        });
+
+        this.quantizeSelectAllBtn.addEventListener('click', () => {
+            this.quantizeColorList.querySelectorAll('.quantize-color-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+        });
+
+        this.quantizeSelectNoneBtn.addEventListener('click', () => {
+            this.quantizeColorList.querySelectorAll('.quantize-color-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+        });
+
+        this.applyColorQuantizeBtn.addEventListener('click', () => {
+            this.applyColorQuantize();
+        });
+
+        this.quantizePickColorBtn.addEventListener('click', () => {
+            if (this.quantizePickMode) {
+                this.quantizePickMode = false;
+                this.quantizePickColorBtn.classList.remove('color-pick-active');
+                console.log('[颜色量化取色] 退出取色模式');
+            } else {
+                this.quantizePickMode = true;
+                this.quantizePickColorBtn.classList.add('color-pick-active');
+                console.log('[颜色量化取色] 进入取色模式');
+            }
+        });
+
         // 悬浮快照面板事件
         this.snapshotFloatBtn.addEventListener('click', () => {
             this.toggleSnapshotPanel();
@@ -986,13 +1036,18 @@ class PixelArtGenerator {
         this.initStrokePanelDrag();
         this.initColorRemovePanelDrag();
         this.initNoiseFilterPanelDrag();
+        this.initColorQuantizePanelDrag();
 
         this.colorConvertSourceColor.addEventListener('input', () => {
             this.colorConvertSourceColorValue.textContent = this.colorConvertSourceColor.value;
+            this.colorConvertSourceIsTransparent = false;
+            this.colorConvertSourceColor.style.opacity = '1';
         });
 
         this.colorConvertTargetColor.addEventListener('input', () => {
             this.colorConvertTargetColorValue.textContent = this.colorConvertTargetColor.value;
+            this.colorConvertTargetIsTransparent = false;
+            this.colorConvertTargetColor.style.opacity = '1';
         });
 
         this.pickSourceColorBtn.addEventListener('click', () => {
@@ -3885,14 +3940,28 @@ class PixelArtGenerator {
         
         if (this.colorConvertPickMode) {
             const color = this.customEditData[y][x];
-            if (!color.isTransparent) {
+            if (color.isTransparent) {
+                if (this.colorConvertPickMode === 'source') {
+                    this.colorConvertSourceIsTransparent = true;
+                    this.colorConvertSourceColorValue.textContent = '透明';
+                    this.colorConvertSourceColor.style.opacity = '0.3';
+                } else if (this.colorConvertPickMode === 'target') {
+                    this.colorConvertTargetIsTransparent = true;
+                    this.colorConvertTargetColorValue.textContent = '透明';
+                    this.colorConvertTargetColor.style.opacity = '0.3';
+                }
+            } else {
                 const hex = this.rgbToHex(color.rgb[0], color.rgb[1], color.rgb[2]);
                 if (this.colorConvertPickMode === 'source') {
+                    this.colorConvertSourceIsTransparent = false;
                     this.colorConvertSourceColor.value = hex;
                     this.colorConvertSourceColorValue.textContent = hex;
+                    this.colorConvertSourceColor.style.opacity = '1';
                 } else if (this.colorConvertPickMode === 'target') {
+                    this.colorConvertTargetIsTransparent = false;
                     this.colorConvertTargetColor.value = hex;
                     this.colorConvertTargetColorValue.textContent = hex;
+                    this.colorConvertTargetColor.style.opacity = '1';
                 }
             }
             this.colorConvertPickMode = null;
@@ -3911,6 +3980,23 @@ class PixelArtGenerator {
             }
             this.pickRemoveColorMode = false;
             this.pickRemoveColorBtn.classList.remove('color-pick-active');
+            return;
+        }
+
+        // 颜色量化取色模式
+        if (this.quantizePickMode) {
+            console.log('[颜色量化取色] 点击画布，颜色名:', this.customEditData[y][x].name, '透明:', this.customEditData[y][x].isTransparent);
+            const color = this.customEditData[y][x];
+            if (!color.isTransparent) {
+                const checkbox = this.quantizeColorList.querySelector(`.quantize-color-checkbox[data-color="${color.name}"]`);
+                console.log('[颜色量化取色] 找到checkbox:', checkbox);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            }
+            this.quantizePickMode = false;
+            this.quantizePickColorBtn.classList.remove('color-pick-active');
             return;
         }
         
@@ -4298,23 +4384,35 @@ class PixelArtGenerator {
         const sourceHex = this.colorConvertSourceColor.value;
         const targetHex = this.colorConvertTargetColor.value;
         
-        if (sourceHex === targetHex) {
-            alert(getI18nText('alertSourceTargetSameColor'));
+        const sourceIsTrans = this.colorConvertSourceIsTransparent;
+        const targetIsTrans = this.colorConvertTargetIsTransparent;
+        
+        if (sourceIsTrans && targetIsTrans) {
             return;
         }
-        
-        const sourceRgb = this.hexToRgb(sourceHex);
-        const targetRgb = this.hexToRgb(targetHex);
         
         const colorSetName = this.colorSetSelect.value;
         const colorSet = colorSets[colorSetName];
         const mappingMethod = this.colorMappingMethod.value;
         
-        const sourceColor = findClosestColor(sourceRgb, colorSet, mappingMethod);
-        const targetColor = findClosestColor(targetRgb, colorSet, mappingMethod);
+        let sourceColor;
+        let targetColor;
+        
+        if (sourceIsTrans) {
+            sourceColor = { name: '', isTransparent: true };
+        } else {
+            const sourceRgb = this.hexToRgb(sourceHex);
+            sourceColor = findClosestColor(sourceRgb, colorSet, mappingMethod);
+        }
+        
+        if (targetIsTrans) {
+            targetColor = { name: '', isTransparent: true, rgb: [255, 255, 255] };
+        } else {
+            const targetRgb = this.hexToRgb(targetHex);
+            targetColor = findClosestColor(targetRgb, colorSet, mappingMethod);
+        }
         
         if (sourceColor.name === targetColor.name) {
-            alert(getI18nText('alertSourceTargetSameInPalette'));
             return;
         }
         
@@ -4323,8 +4421,20 @@ class PixelArtGenerator {
             for (let x = 0; x < this.perlerWidth; x++) {
                 if (this.customEditor && !this.customEditor.isInSelection(x, y)) continue;
                 const currentColor = this.customEditData[y][x];
-                if (currentColor.name === sourceColor.name) {
-                    this.customEditData[y][x] = targetColor;
+                
+                let match = false;
+                if (sourceIsTrans) {
+                    match = currentColor.isTransparent;
+                } else {
+                    match = !currentColor.isTransparent && currentColor.name === sourceColor.name;
+                }
+                
+                if (match) {
+                    if (targetIsTrans) {
+                        this.customEditData[y][x] = { name: '', isTransparent: true, rgb: [255, 255, 255] };
+                    } else {
+                        this.customEditData[y][x] = targetColor;
+                    }
                     convertedCount++;
                 }
             }
@@ -4333,9 +4443,7 @@ class PixelArtGenerator {
         if (convertedCount > 0) {
             this.saveCustomEditHistory();
             this.drawCustomEditCanvas();
-            alert(getI18nTextWithVars('alertColorConvertSuccess', {count: convertedCount}));
-        } else {
-            alert(getI18nText('alertNoMatchingColor'));
+            console.log(`颜色转换完成，共转换 ${convertedCount} 个色块`);
         }
     }
     
@@ -6410,6 +6518,158 @@ class PixelArtGenerator {
         }
     }
 
+    openColorQuantizePanel() {
+        if (this.colorQuantizePanel) {
+            this.colorQuantizePanel.style.display = 'block';
+            this.updateQuantizeColorList();
+        }
+    }
+
+    closeColorQuantizePanel() {
+        if (this.colorQuantizePanel) {
+            this.colorQuantizePanel.style.display = 'none';
+            this.quantizePickMode = false;
+            if (this.quantizePickColorBtn) {
+                this.quantizePickColorBtn.classList.remove('color-pick-active');
+            }
+        }
+    }
+
+    updateQuantizeColorList() {
+        if (!this.quantizeColorList) return;
+
+        if (!this.customEditData) {
+            this.quantizeColorList.innerHTML = '<p style="color: #999; font-size: 0.85em; text-align: center; margin: 20px 0;">' + getI18nText('noImageForQuantize') + '</p>';
+            return;
+        }
+
+        const colorCounts = {};
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                const color = this.customEditData[y][x];
+                if (color.isTransparent) continue;
+                if (!colorCounts[color.name]) {
+                    colorCounts[color.name] = { color, count: 0 };
+                }
+                colorCounts[color.name].count++;
+            }
+        }
+
+        const sortedColors = Object.values(colorCounts).sort((a, b) => b.count - a.count);
+
+        if (sortedColors.length === 0) {
+            this.quantizeColorList.innerHTML = '<p style="color: #999; font-size: 0.85em; text-align: center; margin: 20px 0;">' + getI18nText('noColorsInImage') + '</p>';
+            return;
+        }
+
+        let html = '';
+        for (const item of sortedColors) {
+            const hex = this.rgbToHex(item.color.rgb[0], item.color.rgb[1], item.color.rgb[2]);
+            const textColor = getContrastTextColor(item.color.rgb);
+            html += `
+                <div class="quantize-color-item" style="display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 4px; cursor: pointer; transition: opacity 0.2s;" data-color="${item.color.name}">
+                    <input type="checkbox" class="quantize-color-checkbox" data-color="${item.color.name}" checked style="cursor: pointer;">
+                    <div style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ddd; background-color: ${hex}; display: flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: 600; color: ${textColor};">${item.color.name}</div>
+                    <span class="quantize-color-name" style="flex: 1; font-size: 0.85em;">${item.color.name}</span>
+                    <span class="quantize-color-count" style="font-size: 0.8em; color: #666;">${item.count}</span>
+                </div>
+            `;
+        }
+        this.quantizeColorList.innerHTML = html;
+
+        const updateItemVisual = (item, checked) => {
+            const nameEl = item.querySelector('.quantize-color-name');
+            const countEl = item.querySelector('.quantize-color-count');
+            if (checked) {
+                item.style.opacity = '1';
+                if (nameEl) nameEl.style.textDecoration = 'none';
+                if (countEl) countEl.style.opacity = '1';
+            } else {
+                item.style.opacity = '0.4';
+                if (nameEl) nameEl.style.textDecoration = 'line-through';
+                if (countEl) countEl.style.opacity = '0.5';
+            }
+        };
+
+        this.quantizeColorList.querySelectorAll('.quantize-color-item').forEach(item => {
+            const checkbox = item.querySelector('.quantize-color-checkbox');
+            updateItemVisual(item, checkbox.checked);
+
+            checkbox.addEventListener('change', () => {
+                updateItemVisual(item, checkbox.checked);
+            });
+
+            item.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') return;
+                const cb = item.querySelector('.quantize-color-checkbox');
+                cb.checked = !cb.checked;
+                cb.dispatchEvent(new Event('change'));
+            });
+        });
+    }
+
+    applyColorQuantize() {
+        if (!this.customEditData || !this.customEditor) {
+            alert(getI18nText('alertNoEditableImage'));
+            return;
+        }
+
+        const checkboxes = this.quantizeColorList.querySelectorAll('.quantize-color-checkbox:checked');
+        const keepColors = Array.from(checkboxes).map(cb => cb.dataset.color);
+
+        if (keepColors.length === 0) {
+            alert(getI18nText('alertNoKeepColors'));
+            return;
+        }
+
+        const colorSetName = this.colorSetSelect.value;
+        const colorSet = colorSets[colorSetName];
+        const mappingMethod = this.colorMappingMethod.value;
+
+        const isInSelection = (x, y) => {
+            if (!this.customEditor.selection) return true;
+            return this.customEditor.isInSelection(x, y);
+        };
+
+        const hasSelection = this.customEditor.selection !== null;
+
+        let affectedCount = 0;
+        const keepSet = new Set(keepColors);
+        for (let y = 0; y < this.perlerHeight; y++) {
+            for (let x = 0; x < this.perlerWidth; x++) {
+                if (hasSelection && !this.customEditor.isInSelection(x, y)) continue;
+                const color = this.customEditData[y][x];
+                if (!color.isTransparent && !keepSet.has(color.name)) {
+                    affectedCount++;
+                }
+            }
+        }
+
+        if (affectedCount === 0) {
+            alert(getI18nText('alertNoColorsToQuantize'));
+            return;
+        }
+
+        console.log(`正在进行颜色量化，保留 ${keepColors.length} 种颜色，影响 ${affectedCount} 个色块...`);
+
+        this.saveCustomEditHistory();
+
+        const newData = quantizePerlerColors(
+            this.customEditData,
+            keepColors,
+            colorSet,
+            mappingMethod,
+            hasSelection ? isInSelection : null
+        );
+
+        this.customEditData = newData;
+        this.drawCustomEditCanvas();
+
+        this.updateQuantizeColorList();
+
+        console.log('颜色量化完成！');
+    }
+
     closeColorConvertPanel() {
         if (this.colorConvertPanel) {
             this.colorConvertPanel.style.display = 'none';
@@ -6595,6 +6855,51 @@ class PixelArtGenerator {
         document.addEventListener('mouseup', () => {
             if (this.noiseFilterPanelDragState) {
                 this.noiseFilterPanelDragState.dragging = false;
+            }
+        });
+    }
+
+    initColorQuantizePanelDrag() {
+        if (!this.colorQuantizePanel || !this.colorQuantizePanelHeader) return;
+
+        const panel = this.colorQuantizePanel;
+        const header = this.colorQuantizePanelHeader;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target === this.closeColorQuantizeBtn) return;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = panel.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            panel.style.right = 'auto';
+            panel.style.left = startLeft + 'px';
+            panel.style.top = startTop + 'px';
+
+            this.colorQuantizePanelDragState = { dragging: true };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!this.colorQuantizePanelDragState || !this.colorQuantizePanelDragState.dragging) return;
+
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+
+            const maxLeft = window.innerWidth - panel.offsetWidth - 10;
+            const maxTop = window.innerHeight - panel.offsetHeight - 10;
+
+            panel.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + 'px';
+            panel.style.top = Math.max(10, Math.min(newTop, maxTop)) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.colorQuantizePanelDragState) {
+                this.colorQuantizePanelDragState.dragging = false;
             }
         });
     }

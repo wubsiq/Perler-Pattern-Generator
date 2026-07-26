@@ -194,6 +194,28 @@
             </div>
         </div>
 
+        <div class="floating-panel" id="colorQuantizePanel" style="display: none; width: 340px;">
+            <div class="floating-panel-header" id="colorQuantizePanelHeader">
+                <span data-i18n="colorQuantizeTool">🎯 颜色量化</span>
+                <button class="floating-panel-close" id="closeColorQuantizeBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; font-size: 0.85em;" data-i18n="selectColorsToKeep">选择要保留的颜色：</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="quantizePickColorBtn" class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.75em;" data-i18n="colorQuantizePickColor">点击选色</button>
+                        <button id="quantizeSelectAllBtn" class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.75em;" data-i18n="selectAll">全选</button>
+                        <button id="quantizeSelectNoneBtn" class="btn btn-secondary" style="padding: 3px 8px; font-size: 0.75em;" data-i18n="selectNone">全不选</button>
+                    </div>
+                </div>
+                <div id="quantizeColorList" style="max-height: 280px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; margin-bottom: 12px;">
+                    <p style="color: #999; font-size: 0.85em; text-align: center; margin: 20px 0;" data-i18n="noImageForQuantize">请先加载拼豆图纸</p>
+                </div>
+                <p style="font-size: 0.75em; color: #666; margin-top: 4px; margin-bottom: 10px;" data-i18n="colorQuantizeDesc">未勾选的颜色将自动合并到最接近的保留色</p>
+                <button id="applyColorQuantizeBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border: none;" data-i18n="executeColorQuantize">🎯 应用颜色量化</button>
+            </div>
+        </div>
+
         <section class="showcase-section" id="showcaseSection">
             <h2 class="showcase-title" data-i18n="showcaseTitle">🎨 示例图纸</h2>
             <p class="showcase-subtitle" data-i18n="showcaseSubtitle">点击下方示例图纸，直接进入专注模式查看效果</p>
@@ -457,34 +479,38 @@
                                     <span data-i18n="neighborhoodSmoothing">邻域平滑</span>
                                 </label>
                             </div>
-                            <div class="flex-item checkbox-item">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="enableColorQuantize">
-                                    <span data-i18n="enableColorQuantize">颜色量化</span>
-                                </label>
-                            </div>
                         </div>
-                        <div class="control-group advanced-only flex-row">
-                            <div class="flex-item full-width">
-                                <label>
-                                    <span data-i18n="keepColorCount">保留颜色数量：</span>
-                                    <span id="colorCountValue">8</span>
-                                    <span style="color: #888; margin-left: 8px;">(<span data-i18n="imageActualColors">图片实际颜色</span>: <span id="imageTotalColors">0</span>)</span>
-                                </label>
-                                <div class="color-count-inputs">
-                                    <input type="range" id="colorCountSlider" min="2" max="256" step="1" value="8">
-                                    <input type="number" id="colorCountInput" min="2" max="256" value="8" style="width: 60px; margin-left: 10px;">
+                        <div style="display: none;">
+                            <div class="control-group advanced-only flex-row">
+                                <div class="flex-item checkbox-item">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="enableColorQuantize">
+                                        <span data-i18n="enableColorQuantize">颜色量化</span>
+                                    </label>
                                 </div>
                             </div>
-                        </div>
-                        <div class="control-group" id="colorQuantizePanel" style="display: none;">
-                            <label><span data-i18n="colorUsage">颜色使用统计：</span></label>
-                            <div class="sort-buttons">
-                                <button class="sort-btn active" data-sort="count-desc" data-i18n="sortCountDesc">数量降序</button>
-                                <button class="sort-btn" data-sort="count-asc" data-i18n="sortCountAsc">数量升序</button>
-                                <button class="sort-btn" data-sort="hue" data-i18n="sortHue">色相</button>
+                            <div class="control-group advanced-only flex-row">
+                                <div class="flex-item full-width">
+                                    <label>
+                                        <span data-i18n="keepColorCount">保留颜色数量：</span>
+                                        <span id="colorCountValue">8</span>
+                                        <span style="color: #888; margin-left: 8px;">(<span data-i18n="imageActualColors">图片实际颜色</span>: <span id="imageTotalColors">0</span>)</span>
+                                    </label>
+                                    <div class="color-count-inputs">
+                                        <input type="range" id="colorCountSlider" min="2" max="256" step="1" value="8">
+                                        <input type="number" id="colorCountInput" min="2" max="256" value="8" style="width: 60px; margin-left: 10px;">
+                                    </div>
+                                </div>
                             </div>
-                            <div id="colorUsageList" style="max-height: 250px; overflow-y: auto; background: #f8f9fa; border-radius: 6px; padding: 10px;"></div>
+                            <div class="control-group" id="colorQuantizePanel" style="display: none;">
+                                <label><span data-i18n="colorUsage">颜色使用统计：</span></label>
+                                <div class="sort-buttons">
+                                    <button class="sort-btn active" data-sort="count-desc" data-i18n="sortCountDesc">数量降序</button>
+                                    <button class="sort-btn" data-sort="count-asc" data-i18n="sortCountAsc">数量升序</button>
+                                    <button class="sort-btn" data-sort="hue" data-i18n="sortHue">色相</button>
+                                </div>
+                                <div id="colorUsageList" style="max-height: 250px; overflow-y: auto; background: #f8f9fa; border-radius: 6px; padding: 10px;"></div>
+                            </div>
                         </div>
                         <div class="action-buttons">
                             <button id="downloadBtn" class="btn btn-primary" data-i18n="downloadPixel">下载像素图</button>
@@ -801,6 +827,7 @@
                                 <button class="edit-tool-btn" data-tool="picker" data-i18n="toolPicker">取色器</button>
                                 <button class="edit-tool-btn" data-tool="colorConvert" data-i18n="colorConvertTool">🔄 颜色转换</button>
                                 <button class="edit-tool-btn" data-tool="colorRemove" data-i18n="colorRemoveTool">🚫 颜色剔除</button>
+                                <button class="edit-tool-btn" data-tool="colorQuantize" data-i18n="colorQuantizeTool">🎯 颜色量化</button>
                                 <button class="edit-tool-btn" data-tool="noiseFilter" data-i18n="noiseFilterTool">✨ 杂色过滤</button>
                                 <button class="edit-tool-btn" data-tool="canvasBounds" data-i18n="toolCanvasBounds">📐 画布边界</button>
                                 <button class="edit-tool-btn" data-tool="stroke" data-i18n="strokeTool">✏️ 描边</button>
@@ -915,7 +942,7 @@
         </section>
     </main>
 
-    <script src="js/bundle.138e8d05.min.js" defer></script>
+    <script src="js/bundle.bb82981e.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">

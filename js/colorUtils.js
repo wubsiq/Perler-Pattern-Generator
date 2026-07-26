@@ -1136,3 +1136,49 @@ function filterNoisePixels(perlerColors, noiseThreshold = 4, iterationCount = 1,
     
     return result;
 }
+
+function quantizePerlerColors(perlerColors, keepColorNames, colorSet, mappingMethod = 'ciede2000', isInSelection = null) {
+    const width = perlerColors[0] ? perlerColors[0].length : 0;
+    const height = perlerColors.length;
+    
+    const result = perlerColors.map(row => [...row]);
+    const keepSet = new Set(keepColorNames);
+    
+    const keepColors = colorSet.filter(c => keepSet.has(c.name) && !c.isTransparent);
+    if (keepColors.length === 0) {
+        return result;
+    }
+    
+    const replaceCache = new Map();
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (isInSelection && !isInSelection(x, y)) continue;
+            
+            const currentColor = result[y][x];
+            if (currentColor.isTransparent) continue;
+            if (keepSet.has(currentColor.name)) continue;
+            
+            if (replaceCache.has(currentColor.name)) {
+                result[y][x] = replaceCache.get(currentColor.name);
+                continue;
+            }
+            
+            let minDist = Infinity;
+            let closestColor = keepColors[0];
+            
+            for (const keepColor of keepColors) {
+                const dist = calculateColorDistance(currentColor.rgb, keepColor.rgb, mappingMethod);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestColor = keepColor;
+                }
+            }
+            
+            replaceCache.set(currentColor.name, closestColor);
+            result[y][x] = closestColor;
+        }
+    }
+    
+    return result;
+}
