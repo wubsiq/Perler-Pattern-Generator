@@ -123,17 +123,22 @@ class MyDesignsManager {
     async importDesignFromJSON(jsonString) {
         try {
             const data = JSON.parse(jsonString);
+            let result;
             let infoPaper;
 
-            if (data.infoPaper) {
+            if (this.converter.isLLMFormat(data)) {
+                result = this.converter.fromLLMFormat(data);
+                infoPaper = this.converter.toInfoPaper(result.perlerColors, result.colorSet, result.width, result.height);
+            } else if (data.infoPaper) {
                 infoPaper = data.infoPaper;
+                result = this.converter.fromInfoPaper(infoPaper);
             } else if (data.pixels) {
                 infoPaper = data;
+                result = this.converter.fromInfoPaper(infoPaper);
             } else {
                 throw new Error('无效的图纸文件格式');
             }
 
-            const result = this.converter.fromInfoPaper(infoPaper);
             const compressed = await this.compressor.compress(infoPaper);
             const thumbnail = this.generateThumbnail(result.perlerColors, result.width, result.height);
 

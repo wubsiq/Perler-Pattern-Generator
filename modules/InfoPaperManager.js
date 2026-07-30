@@ -116,7 +116,12 @@ class InfoPaperManager {
                 const infoPaper = this.compressor.decompressFromJSON(text);
                 result = this.converter.fromInfoPaper(infoPaper);
             } else {
-                result = this.converter.fromJSON(text);
+                const data = JSON.parse(text);
+                if (this.converter.isLLMFormat(data)) {
+                    result = this.converter.fromLLMFormat(data);
+                } else {
+                    result = this.converter.fromInfoPaper(data);
+                }
             }
 
             if (callback) {

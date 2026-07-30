@@ -95,6 +95,66 @@ class InfoPaperConverter {
         return infoPaper;
     }
 
+    isLLMFormat(data) {
+        return data && data.version === "2.0" && Array.isArray(data.rows);
+    }
+
+    fromLLMFormat(data) {
+        if (!this.isLLMFormat(data)) {
+            throw new Error('不是 LLM v2.0 格式');
+        }
+
+        const colorSetName = data.colorSet || 'mard221';
+        const { indexToColor } = this.buildColorIndexMap(colorSetName);
+
+        const rows = data.rows;
+        if (rows.length === 0) {
+            throw new Error('图纸数据为空');
+        }
+
+        const firstRow = rows[0].split(',').map(s => parseInt(s.trim(), 10));
+        const width = firstRow.length;
+        const height = rows.length;
+
+        if (width === 0) {
+            throw new Error('图纸宽度为0');
+        }
+
+        const perlerColors = [];
+        for (let y = 0; y < height; y++) {
+            const rowStr = rows[y];
+            let rowIndices = rowStr.split(',').map(s => parseInt(s.trim(), 10));
+            
+            if (rowIndices.length < width) {
+                const lastColor = rowIndices.length > 0 ? rowIndices[rowIndices.length - 1] : 0;
+                while (rowIndices.length < width) {
+                    rowIndices.push(lastColor);
+                }
+            } else if (rowIndices.length > width) {
+                rowIndices = rowIndices.slice(0, width);
+            }
+
+            const row = [];
+            for (let x = 0; x < width; x++) {
+                const index = rowIndices[x];
+                let color = indexToColor.get(index);
+                if (color === undefined) {
+                    color = indexToColor.get(0);
+                }
+                row.push({ ...color });
+            }
+            perlerColors.push(row);
+        }
+
+        return {
+            perlerColors: perlerColors,
+            width: width,
+            height: height,
+            colorSet: colorSetName,
+            colorCounts: this.calculateColorCounts(perlerColors)
+        };
+    }
+
     fromInfoPaper(infoPaper) {
         if (!infoPaper || typeof infoPaper !== 'object') {
             throw new Error('无效的信息化图纸数据');
