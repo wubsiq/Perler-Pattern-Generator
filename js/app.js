@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.0.3';
+        this.APP_VERSION = '1.0.4';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -5917,6 +5917,8 @@ class PixelArtGenerator {
             id: snapshotId,
             type,
             timestamp,
+            width: perlerColors.length > 0 ? perlerColors[0].length : 0,
+            height: perlerColors.length,
             colorCount,
             totalBeans,
             colorChange,
@@ -5960,6 +5962,10 @@ class PixelArtGenerator {
             const typeIcon = snapshot.type === 'custom' ? '🎨' : '🔧';
             const typeText = snapshot.type === 'custom' ? getI18nText('snapshotTypeCustom') : getI18nText('snapshotTypeOptimize');
             
+            // 兼容旧快照：如果没有 width/height 就从 data 推断
+            const snapWidth = snapshot.width != null ? snapshot.width : (snapshot.data.length > 0 ? snapshot.data[0].length : 0);
+            const snapHeight = snapshot.height != null ? snapshot.height : snapshot.data.length;
+            
             const colorChangeClass = snapshot.colorChange > 0 ? 'change-negative' : 'change-positive';
             const beansChangeClass = snapshot.beansChange > 0 ? 'change-negative' : 'change-positive';
             
@@ -5976,6 +5982,7 @@ class PixelArtGenerator {
                 <div class="snapshot-item-info">
                     <div class="snapshot-item-title">
                         ${typeIcon} ${typeText} ${realIndex + 1}
+                        <span style="font-weight: normal; font-size: 12px; color: #888; margin-left: 8px;">${snapWidth} × ${snapHeight}</span>
                     </div>
                     <div class="snapshot-item-meta">
                         ${snapshot.timestamp}
@@ -6029,6 +6036,18 @@ class PixelArtGenerator {
         // 重新计算尺寸
         this.perlerHeight = this.perlerColors.length;
         this.perlerWidth = this.perlerHeight > 0 ? this.perlerColors[0].length : 0;
+        
+        // 重置画布边界为全部显示
+        this.canvasBounds = {
+            originalWidth: this.perlerWidth,
+            originalHeight: this.perlerHeight,
+            left: 0,
+            right: this.perlerWidth,
+            top: 0,
+            bottom: this.perlerHeight
+        };
+        this.updateCanvasBoundsInputs();
+        this.updateCanvasBoundsDisplay();
         
         // 无论是否在拼豆模式，都同步更新 customEditData 和 customEditHistory
         this.customEditData = this.perlerColors.map(row => [...row]);
