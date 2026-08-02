@@ -376,7 +376,6 @@ class PerlerGenerator {
         let finalWidth = chartWidth;
         let finalHeight = chartHeight;
         let legendX = 0, legendY = 0;
-        let fontSizeScale = summaryFontSize / 20;
         let rectWidthScaled, rectHeightScaled, rowHeightScaled, columnWidthScaled;
         let legendTitleSize, totalSize, colorNameSize, legendYOffset1, legendYOffset2, legendStartY, legendXGap;
         let columns, itemsPerColumn, legendHeaderHeight;
@@ -385,22 +384,48 @@ class PerlerGenerator {
         const totalBeans = Object.values(colorCounts || {}).reduce((a, b) => a + b, 0);
         const colorTypes = colorNames.length;
 
-        // 先处理图例尺寸计算（基于摘要字号，放大效果更显著）
+        // 先处理图例尺寸计算（受图纸尺寸约束，避免小图纸多色时溢出）
         if (legendPosition !== 'hidden' && colorNames.length > 0) {
-            const scale = summaryFontSize / 10;
-            rectWidthScaled = Math.max(100, Math.floor(200 * scale));
-            rectHeightScaled = Math.max(24, Math.floor(46 * scale));
-            rowHeightScaled = Math.max(28, Math.floor(52 * scale));
-            columnWidthScaled = Math.max(120, Math.floor(210 * scale));
-            legendTitleSize = Math.max(16, Math.floor(summaryFontSize * 1.3));
-            totalSize = Math.max(15, Math.floor(summaryFontSize * 1.1));
-            colorNameSize = Math.max(13, Math.floor(summaryFontSize * 1.0));
-            legendYOffset1 = Math.max(22, Math.floor(summaryFontSize * 1.8));
-            legendYOffset2 = Math.max(38, Math.floor(summaryFontSize * 3.2));
-            legendStartY = Math.max(52, Math.floor(summaryFontSize * 4.5));
-            legendXGap = Math.max(10, Math.floor(16 * scale));
+            const baseScale = summaryFontSize / 10;
+            const colorCount = colorNames.length;
+            
+            let heightConstrainedScale, widthConstrainedScale;
+            
+            if (legendPosition === 'right') {
+                const maxLegendWidth = chartWidth * 0.5;
+                const maxColumnWidth = (maxLegendWidth - 40) / Math.min(4, Math.max(1, colorCount));
+                widthConstrainedScale = maxColumnWidth / 210;
+                const maxLegendHeight = chartHeight;
+                const perRowHeight = (maxLegendHeight - 100) / Math.max(1, Math.ceil(colorCount / 1));
+                heightConstrainedScale = perRowHeight / 52;
+            } else {
+                const maxLegendHeight = chartHeight * 0.4;
+                const perRowHeight = (maxLegendHeight - 80) / Math.max(1, colorCount);
+                heightConstrainedScale = perRowHeight / 52;
+                const desiredColumns = Math.min(4, Math.max(2, Math.floor(colorCount / 8)));
+                const totalWidthAllowed = chartWidth - 20;
+                const maxColumnWidthForDesiredCols = totalWidthAllowed / desiredColumns;
+                widthConstrainedScale = maxColumnWidthForDesiredCols / 210;
+            }
+            
+            const scale = Math.max(0.3, Math.min(baseScale, heightConstrainedScale, widthConstrainedScale));
+            fontSizeScale = scale;
+            
+            rectWidthScaled = Math.max(50, Math.floor(200 * scale));
+            rectHeightScaled = Math.max(12, Math.floor(46 * scale));
+            rowHeightScaled = Math.max(14, Math.floor(52 * scale));
+            columnWidthScaled = Math.max(60, Math.floor(210 * scale));
+            // 色块内文字字号必须小于色块高度
+            const maxTextSize = Math.floor(rectHeightScaled * 0.85);
+            legendTitleSize = Math.min(maxTextSize, Math.max(8, Math.floor(summaryFontSize * 1.3 * scale)));
+            totalSize = Math.min(maxTextSize, Math.max(7, Math.floor(summaryFontSize * 1.1 * scale)));
+            colorNameSize = Math.min(maxTextSize, Math.max(6, Math.floor(summaryFontSize * 1.0 * scale)));
+            legendYOffset1 = Math.max(10, Math.floor(summaryFontSize * 1.8 * scale));
+            legendYOffset2 = Math.max(16, Math.floor(summaryFontSize * 3.2 * scale));
+            legendStartY = Math.max(24, Math.floor(summaryFontSize * 4.5 * scale));
+            legendXGap = Math.max(6, Math.floor(16 * scale));
 
-            legendHeaderHeight = Math.floor(summaryFontSize * 6.0);
+            legendHeaderHeight = Math.floor(summaryFontSize * 6.0 * scale);
 
             if (legendPosition === 'right') {
                 const availableHeight = chartHeight - legendHeaderHeight;
@@ -416,17 +441,18 @@ class PerlerGenerator {
 
             const legendWidth = columns * columnWidthScaled + 30 * fontSizeScale;
             const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
+            const gap = Math.max(20, 30 * fontSizeScale);
 
             if (legendPosition === 'right') {
-                finalWidth = chartWidth + Math.max(legendWidth, 320 * fontSizeScale) + 70 * fontSizeScale;
+                finalWidth = chartWidth + legendWidth + gap;
                 finalHeight = Math.max(chartHeight, legendHeight);
-                legendX = chartWidth + 35 * fontSizeScale;
+                legendX = chartWidth + gap / 2;
                 legendY = 0;
             } else {
                 finalWidth = Math.max(chartWidth, legendWidth);
-                finalHeight = chartHeight + legendHeight + 70 * fontSizeScale;
+                finalHeight = chartHeight + legendHeight + gap;
                 legendX = 0;
-                legendY = chartHeight + 35 * fontSizeScale;
+                legendY = chartHeight + gap / 2;
             }
         }
 

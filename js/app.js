@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.0.5';
+        this.APP_VERSION = '1.0.6';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -3482,22 +3482,53 @@ class PixelArtGenerator {
             canvasWidth = chartWidth;
             canvasHeight = chartHeight;
         } else {
-            const fontSizeScale = summaryFontSize / 10;
+            const baseScale = summaryFontSize / 10;
+            const colorCount = colorNames.length;
             
-            const rectWidthScaled = Math.max(100, Math.floor(200 * fontSizeScale));
-            const rectHeightScaled = Math.max(24, Math.floor(46 * fontSizeScale));
-            const rowHeightScaled = Math.max(28, Math.floor(52 * fontSizeScale));
-            const columnWidthScaled = Math.max(120, Math.floor(210 * fontSizeScale));
-            const legendTitleSize = Math.max(16, Math.floor(summaryFontSize * 1.3));
-            const totalSize = Math.max(15, Math.floor(summaryFontSize * 1.1));
-            const colorNameSize = Math.max(13, Math.floor(summaryFontSize * 1.0));
-            const legendYOffset1 = Math.max(22, Math.floor(summaryFontSize * 1.8));
-            const legendYOffset2 = Math.max(38, Math.floor(summaryFontSize * 3.2));
-            const legendStartY = Math.max(52, Math.floor(summaryFontSize * 4.5));
-            const legendXGap = Math.max(10, Math.floor(16 * fontSizeScale));
+            // 根据图纸尺寸约束计算最大允许缩放比例
+            let heightConstrainedScale, widthConstrainedScale;
+            
+            if (position === 'right') {
+                // 右侧模式：图例宽度不超过图纸宽度的 50%
+                const maxLegendWidth = chartWidth * 0.5;
+                // 假设最多4列，计算单列可用宽度
+                const maxColumnWidth = (maxLegendWidth - 40) / Math.min(4, Math.max(1, colorCount));
+                widthConstrainedScale = maxColumnWidth / 210;
+                // 图例高度不超过图纸高度
+                const maxLegendHeight = chartHeight;
+                const perRowHeight = (maxLegendHeight - 100) / Math.max(1, Math.ceil(colorCount / 1));
+                heightConstrainedScale = perRowHeight / 52;
+            } else {
+                // 底部模式：图例高度不超过图纸高度的 40%
+                const maxLegendHeight = chartHeight * 0.4;
+                const perRowHeight = (maxLegendHeight - 80) / Math.max(1, colorCount);
+                heightConstrainedScale = perRowHeight / 52;
+                // 宽度约束：每行2-4列，确保色块足够大
+                const desiredColumns = Math.min(4, Math.max(2, Math.floor(colorCount / 8)));
+                const totalWidthAllowed = chartWidth - 20;
+                const maxColumnWidthForDesiredCols = totalWidthAllowed / desiredColumns;
+                widthConstrainedScale = maxColumnWidthForDesiredCols / 210;
+            }
+            
+            // 取所有约束中最小的缩放比例
+            const fontSizeScale = Math.max(0.3, Math.min(baseScale, heightConstrainedScale, widthConstrainedScale));
+            
+            const rectWidthScaled = Math.max(50, Math.floor(200 * fontSizeScale));
+            const rectHeightScaled = Math.max(12, Math.floor(46 * fontSizeScale));
+            const rowHeightScaled = Math.max(14, Math.floor(52 * fontSizeScale));
+            const columnWidthScaled = Math.max(60, Math.floor(210 * fontSizeScale));
+            // 色块内文字字号必须小于色块高度
+            const maxTextSize = Math.floor(rectHeightScaled * 0.85);
+            const legendTitleSize = Math.min(maxTextSize, Math.max(8, Math.floor(summaryFontSize * 1.3 * fontSizeScale)));
+            const totalSize = Math.min(maxTextSize, Math.max(7, Math.floor(summaryFontSize * 1.1 * fontSizeScale)));
+            const colorNameSize = Math.min(maxTextSize, Math.max(6, Math.floor(summaryFontSize * 1.0 * fontSizeScale)));
+            const legendYOffset1 = Math.max(10, Math.floor(summaryFontSize * 1.8 * fontSizeScale));
+            const legendYOffset2 = Math.max(16, Math.floor(summaryFontSize * 3.2 * fontSizeScale));
+            const legendStartY = Math.max(24, Math.floor(summaryFontSize * 4.5 * fontSizeScale));
+            const legendXGap = Math.max(6, Math.floor(16 * fontSizeScale));
             
             let columns, itemsPerColumn;
-            const legendHeaderHeight = Math.floor(summaryFontSize * 6.0);
+            const legendHeaderHeight = Math.floor(summaryFontSize * 6.0 * fontSizeScale);
             
             if (position === 'right') {
                 // 右侧模式：先计算能放多少行，再计算列数
@@ -3518,17 +3549,18 @@ class PixelArtGenerator {
             const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
             
             let legendX, legendY;
+            const gap = Math.max(20, 30 * fontSizeScale);
             
             if (position === 'right') {
-                canvasWidth = chartWidth + Math.max(legendWidth, 320 * fontSizeScale) + 70 * fontSizeScale;
+                canvasWidth = chartWidth + legendWidth + gap;
                 canvasHeight = Math.max(chartHeight, legendHeight);
-                legendX = chartWidth + 35 * fontSizeScale;
+                legendX = chartWidth + gap / 2;
                 legendY = 0;
             } else {
                 canvasWidth = Math.max(chartWidth, legendWidth);
-                canvasHeight = chartHeight + legendHeight + 70 * fontSizeScale;
+                canvasHeight = chartHeight + legendHeight + gap;
                 legendX = 0;
-                legendY = chartHeight + 35 * fontSizeScale;
+                legendY = chartHeight + gap / 2;
             }
             
             const scale = parseFloat(this.exportScaleSlider.value);

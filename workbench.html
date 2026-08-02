@@ -954,6 +954,7 @@
             let chartWidth = w * cellSize + offsetX;
             let chartHeight = h * cellSize + offsetY;
             let legendHeight = 0;
+            let legendConfig = null;
 
             const colorNames = [];
             if (withLegend) {
@@ -965,8 +966,38 @@
                         }
                     }
                 }
-                const legendCols = Math.max(2, Math.floor(chartWidth / 220));
-                legendHeight = Math.max(30, Math.ceil(colorNames.length / legendCols) * 28 + 30);
+                // 动态图例配置 - 受图纸尺寸约束
+                const colorCount = colorNames.length;
+                const desiredColumns = Math.min(4, Math.max(2, Math.floor(colorCount / 8)));
+                const maxLegendHeight = chartHeight * 0.4;
+                const baseRowHeight = 46;
+                const maxRowHeight = (maxLegendHeight - 80) / Math.max(1, colorCount);
+                const heightScale = maxRowHeight / baseRowHeight;
+                const widthScale = (chartWidth - 20) / (desiredColumns * 160);
+                const legendScale = Math.max(0.4, Math.min(1, heightScale, widthScale));
+
+                const legendItemH = Math.max(20, Math.floor(28 * legendScale));
+                const legendItemW = Math.max(110, Math.floor(160 * legendScale));
+                const legendFontSize = Math.max(10, Math.floor(12 * legendScale));
+                const legendSwatchSize = Math.max(14, Math.floor(18 * legendScale));
+                const legendCols = Math.min(desiredColumns, Math.max(1, Math.floor((chartWidth - 20) / legendItemW)));
+                const itemsPerColumn = Math.ceil(colorCount / legendCols);
+                const headerHeight = Math.max(25, Math.floor(40 * legendScale));
+
+                legendConfig = {
+                    cols: legendCols,
+                    itemW: legendItemW,
+                    itemH: legendItemH,
+                    fontSize: legendFontSize,
+                    swatchSize: legendSwatchSize,
+                    swatchGap: Math.floor(legendSwatchSize * 0.4),
+                    nameOffset: legendSwatchSize + Math.floor(legendSwatchSize * 0.8),
+                    countOffset: Math.max(legendItemW - 55, legendSwatchSize + 55),
+                    headerHeight: headerHeight,
+                    scale: legendScale
+                };
+
+                legendHeight = headerHeight + itemsPerColumn * legendItemH + 20;
             }
 
             workCanvas.width = chartWidth;
@@ -1105,39 +1136,64 @@
                 }
             }
 
-            if (withLegend && colorNames.length > 0) {
+            if (withLegend && colorNames.length > 0 && legendConfig) {
+                const lc = legendConfig;
                 const legendY = chartHeight + 15;
-                const legendCols = Math.max(2, Math.floor(chartWidth / 220));
-                const legendItemW = chartWidth / legendCols;
-                const legendItemH = 24;
+                const legendStartX = 10;
 
-                const sortedColors = colorNames.slice().sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
+                // 绘制标题
+                ctx.font = `bold ${lc.fontSize}px Arial, sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#333';
+                const totalBeans = Object.values(state.colorCounts || {}).reduce((a, b) => a + b, 0);
+                ctx.fillText(`颜色统计 (${colorNames.length}色, 共${totalBeans}颗)`, legendStartX, legendY);
 
-                ctx.font = '12px Arial, sans-serif';
+                // 绘制色块列表
+                ctx.font = `${lc.fontSize}px Arial, sans-serif`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
+                const sortedColors = colorNames.slice().sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
+
+                const listStartY = legendY + lc.headerHeight;
+                const maxTextInSwatch = Math.floor(lc.swatchSize * 0.7);
+
                 sortedColors.forEach((name, idx) => {
-                    const col = idx % legendCols;
-                    const row = Math.floor(idx / legendCols);
-                    const lx = col * legendItemW + 12;
-                    const ly = legendY + row * legendItemH + legendItemH / 2;
+                    const col = idx % lc.cols;
+                    const row = Math.floor(idx / lc.cols);
+                    const lx = legendStartX + col * lc.itemW;
+                    const ly = listStartY + row * lc.itemH + lc.itemH / 2;
 
                     const cd = findColorByName(name);
                     const swatchColor = cd ? cd.hex : '#cccccc';
 
+                    // 绘制色块背景
                     ctx.fillStyle = swatchColor;
-                    ctx.fillRect(lx, ly - 9, 18, 18);
+                    ctx.fillRect(lx, ly - lc.swatchSize / 2, lc.swatchSize, lc.swatchSize);
                     ctx.strokeStyle = '#000000';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(lx, ly - 9, 18, 18);
+                    ctx.strokeRect(lx, ly - lc.swatchSize / 2, lc.swatchSize, lc.swatchSize);
 
+                    // 计算文字颜色（对比度）
+                    const textColor = getContrastColor(swatchColor);
+
+                    // 色块内显示编号
+                    if (lc.fontSize <= maxTextInSwatch) {
+                        ctx.fillStyle = textColor;
+                        ctx.font = `${Math.max(8, Math.floor(lc.fontSize * 0.8))}px Arial, sans-serif`;
+                        ctx.fillText(name, lx + 2, ly);
+                        ctx.font = `${lc.fontSize}px Arial, sans-serif`;
+                    }
+
+                    // 颜色名
                     ctx.fillStyle = '#000000';
-                    ctx.fillText(name, lx + 26, ly);
+                    ctx.fillText(name, lx + lc.nameOffset, ly);
 
+                    // 数量
                     const count = state.colorCounts[name] || 0;
                     ctx.fillStyle = '#666666';
-                    ctx.fillText('× ' + count, lx + 90, ly);
+                    ctx.fillText('× ' + count, lx + lc.countOffset, ly);
                 });
             }
 
