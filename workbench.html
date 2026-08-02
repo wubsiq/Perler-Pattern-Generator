@@ -966,35 +966,46 @@
                         }
                     }
                 }
-                // 动态图例配置 - 受图纸尺寸约束
+                // 动态图例配置 - 色块宽度按图纸宽度9%计算
                 const colorCount = colorNames.length;
-                const desiredColumns = Math.min(4, Math.max(2, Math.floor(colorCount / 8)));
-                const maxLegendHeight = chartHeight * 0.4;
-                const baseRowHeight = 46;
-                const maxRowHeight = (maxLegendHeight - 80) / Math.max(1, colorCount);
-                const heightScale = maxRowHeight / baseRowHeight;
-                const widthScale = (chartWidth - 20) / (desiredColumns * 160);
-                const legendScale = Math.max(0.4, Math.min(1, heightScale, widthScale));
+                const totalBeans = colorNames.reduce((sum, name) => sum + (state.colorCounts[name] || 0), 0);
+                const titleText = `颜色统计 (${colorCount}色, 共${totalBeans}颗)`;
 
-                const legendItemH = Math.max(20, Math.floor(28 * legendScale));
-                const legendItemW = Math.max(110, Math.floor(160 * legendScale));
-                const legendFontSize = Math.max(10, Math.floor(12 * legendScale));
-                const legendSwatchSize = Math.max(14, Math.floor(18 * legendScale));
-                const legendCols = Math.min(desiredColumns, Math.max(1, Math.floor((chartWidth - 20) / legendItemW)));
+                // 标题字号：按图纸宽度的35%动态计算
+                const targetTitleWidth = chartWidth * 0.35;
+                let titleFontSize = Math.max(14, Math.floor(targetTitleWidth / titleText.length * 1.6));
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.font = `bold ${titleFontSize}px Arial, sans-serif`;
+                const measuredWidth = tempCtx.measureText(titleText).width;
+                if (measuredWidth > 0) {
+                    titleFontSize = Math.max(14, Math.floor(titleFontSize * targetTitleWidth / measuredWidth));
+                }
+
+                // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
+                const swatchWidth = Math.max(60, Math.floor(chartWidth * 0.09));
+                const swatchHeight = Math.max(20, Math.floor(swatchWidth / 3));
+                // 每行最多10个色块
+                const legendCols = Math.min(10, Math.max(1, colorCount));
+                const legendItemW = swatchWidth;
+                const legendItemH = Math.floor(swatchHeight * 1.8); // 行高包含色块+间距
+                // 色块内字体小于色块高度
+                const legendFontSize = Math.max(8, Math.floor(swatchHeight * 0.7));
                 const itemsPerColumn = Math.ceil(colorCount / legendCols);
-                const headerHeight = Math.max(25, Math.floor(40 * legendScale));
+                const headerHeight = titleFontSize + 12;
 
                 legendConfig = {
                     cols: legendCols,
                     itemW: legendItemW,
                     itemH: legendItemH,
                     fontSize: legendFontSize,
-                    swatchSize: legendSwatchSize,
-                    swatchGap: Math.floor(legendSwatchSize * 0.4),
-                    nameOffset: legendSwatchSize + Math.floor(legendSwatchSize * 0.8),
-                    countOffset: Math.max(legendItemW - 55, legendSwatchSize + 55),
+                    titleFontSize: titleFontSize,
+                    swatchWidth: swatchWidth,
+                    swatchHeight: swatchHeight,
+                    nameOffset: swatchWidth + 8,
+                    countOffset: swatchWidth + 80,
                     headerHeight: headerHeight,
-                    scale: legendScale
+                    titleText: titleText
                 };
 
                 legendHeight = headerHeight + itemsPerColumn * legendItemH + 20;
@@ -1141,13 +1152,12 @@
                 const legendY = chartHeight + 15;
                 const legendStartX = 10;
 
-                // 绘制标题
-                ctx.font = `bold ${lc.fontSize}px Arial, sans-serif`;
+                // 绘制标题 - 字号按图纸宽度35%动态计算
+                ctx.font = `bold ${lc.titleFontSize}px Arial, sans-serif`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
                 ctx.fillStyle = '#333';
-                const totalBeans = Object.values(state.colorCounts || {}).reduce((a, b) => a + b, 0);
-                ctx.fillText(`颜色统计 (${colorNames.length}色, 共${totalBeans}颗)`, legendStartX, legendY);
+                ctx.fillText(lc.titleText, legendStartX, legendY);
 
                 // 绘制色块列表
                 ctx.font = `${lc.fontSize}px Arial, sans-serif`;
@@ -1157,43 +1167,34 @@
                 const sortedColors = colorNames.slice().sort((a, b) => (state.colorCounts[b] || 0) - (state.colorCounts[a] || 0));
 
                 const listStartY = legendY + lc.headerHeight;
-                const maxTextInSwatch = Math.floor(lc.swatchSize * 0.7);
 
                 sortedColors.forEach((name, idx) => {
                     const col = idx % lc.cols;
                     const row = Math.floor(idx / lc.cols);
                     const lx = legendStartX + col * lc.itemW;
-                    const ly = listStartY + row * lc.itemH + lc.itemH / 2;
+                    const ly = listStartY + row * lc.itemH + lc.swatchHeight / 2;
 
                     const cd = findColorByName(name);
                     const swatchColor = cd ? cd.hex : '#cccccc';
 
-                    // 绘制色块背景
+                    // 绘制色块（长方形：宽=图纸宽度9%，高=宽/3）
                     ctx.fillStyle = swatchColor;
-                    ctx.fillRect(lx, ly - lc.swatchSize / 2, lc.swatchSize, lc.swatchSize);
+                    ctx.fillRect(lx, ly - lc.swatchHeight / 2, lc.swatchWidth, lc.swatchHeight);
                     ctx.strokeStyle = '#000000';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(lx, ly - lc.swatchSize / 2, lc.swatchSize, lc.swatchSize);
+                    ctx.strokeRect(lx, ly - lc.swatchHeight / 2, lc.swatchWidth, lc.swatchHeight);
 
-                    // 计算文字颜色（对比度）
+                    // 色块内显示编号（字体小于色块高度）
+                    const innerFontSize = Math.max(8, Math.floor(lc.swatchHeight * 0.65));
                     const textColor = getContrastColor(swatchColor);
-
-                    // 色块内显示编号
-                    if (lc.fontSize <= maxTextInSwatch) {
-                        ctx.fillStyle = textColor;
-                        ctx.font = `${Math.max(8, Math.floor(lc.fontSize * 0.8))}px Arial, sans-serif`;
-                        ctx.fillText(name, lx + 2, ly);
-                        ctx.font = `${lc.fontSize}px Arial, sans-serif`;
-                    }
-
-                    // 颜色名
-                    ctx.fillStyle = '#000000';
-                    ctx.fillText(name, lx + lc.nameOffset, ly);
-
-                    // 数量
+                    ctx.fillStyle = textColor;
+                    ctx.font = `bold ${innerFontSize}px Arial, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // 同时显示编号和数量在色块内
                     const count = state.colorCounts[name] || 0;
-                    ctx.fillStyle = '#666666';
-                    ctx.fillText('× ' + count, lx + lc.countOffset, ly);
+                    ctx.fillText(`${name} ×${count}`, lx + lc.swatchWidth / 2, ly);
+                    ctx.font = `${lc.fontSize}px Arial, sans-serif`;
                 });
             }
 

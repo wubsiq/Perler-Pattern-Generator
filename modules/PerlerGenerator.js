@@ -377,83 +377,57 @@ class PerlerGenerator {
         let finalHeight = chartHeight;
         let legendX = 0, legendY = 0;
         let rectWidthScaled, rectHeightScaled, rowHeightScaled, columnWidthScaled;
-        let legendTitleSize, totalSize, colorNameSize, legendYOffset1, legendYOffset2, legendStartY, legendXGap;
+        let legendTitleSize, colorNameSize, legendYOffset1, legendStartY, legendXGap;
         let columns, itemsPerColumn, legendHeaderHeight;
 
         const colorNames = Object.keys(colorCounts || {}).sort();
         const totalBeans = Object.values(colorCounts || {}).reduce((a, b) => a + b, 0);
         const colorTypes = colorNames.length;
 
-        // 先处理图例尺寸计算（受图纸尺寸约束，避免小图纸多色时溢出）
+        // 先处理图例尺寸计算
         if (legendPosition !== 'hidden' && colorNames.length > 0) {
-            const baseScale = summaryFontSize / 10;
             const colorCount = colorNames.length;
             
-            let heightConstrainedScale, widthConstrainedScale;
-            
-            if (legendPosition === 'right') {
-                const maxLegendWidth = chartWidth * 0.5;
-                const maxColumnWidth = (maxLegendWidth - 40) / Math.min(4, Math.max(1, colorCount));
-                widthConstrainedScale = maxColumnWidth / 210;
-                const maxLegendHeight = chartHeight;
-                const perRowHeight = (maxLegendHeight - 100) / Math.max(1, Math.ceil(colorCount / 1));
-                heightConstrainedScale = perRowHeight / 52;
-            } else {
-                const maxLegendHeight = chartHeight * 0.4;
-                const perRowHeight = (maxLegendHeight - 80) / Math.max(1, colorCount);
-                heightConstrainedScale = perRowHeight / 52;
-                const desiredColumns = Math.min(4, Math.max(2, Math.floor(colorCount / 8)));
-                const totalWidthAllowed = chartWidth - 20;
-                const maxColumnWidthForDesiredCols = totalWidthAllowed / desiredColumns;
-                widthConstrainedScale = maxColumnWidthForDesiredCols / 210;
-            }
-            
-            const scale = Math.max(0.3, Math.min(baseScale, heightConstrainedScale, widthConstrainedScale));
-            fontSizeScale = scale;
-            
-            rectWidthScaled = Math.max(50, Math.floor(200 * scale));
-            rectHeightScaled = Math.max(12, Math.floor(46 * scale));
-            rowHeightScaled = Math.max(14, Math.floor(52 * scale));
-            columnWidthScaled = Math.max(60, Math.floor(210 * scale));
-            // 色块内文字字号必须小于色块高度
-            const maxTextSize = Math.floor(rectHeightScaled * 0.85);
-            legendTitleSize = Math.min(maxTextSize, Math.max(8, Math.floor(summaryFontSize * 1.3 * scale)));
-            totalSize = Math.min(maxTextSize, Math.max(7, Math.floor(summaryFontSize * 1.1 * scale)));
-            colorNameSize = Math.min(maxTextSize, Math.max(6, Math.floor(summaryFontSize * 1.0 * scale)));
-            legendYOffset1 = Math.max(10, Math.floor(summaryFontSize * 1.8 * scale));
-            legendYOffset2 = Math.max(16, Math.floor(summaryFontSize * 3.2 * scale));
-            legendStartY = Math.max(24, Math.floor(summaryFontSize * 4.5 * scale));
-            legendXGap = Math.max(6, Math.floor(16 * scale));
+            // 图例标题字号：按图纸宽度的35%动态计算
+            const legendTitleText = `${i18n.colorLegend || '颜色统计'} (${colorTypes}${i18n.colorTypesUnit || '色'}, ${totalBeans}${i18n.beansUnit || '颗'})`;
+            const targetTitleWidth = chartWidth * 0.35;
+            let tempCanvas = null;
+            let tempCtx = null;
+            try {
+                tempCanvas = document.createElement('canvas');
+                tempCtx = tempCanvas.getContext('2d');
+            } catch(e) {}
 
-            legendHeaderHeight = Math.floor(summaryFontSize * 6.0 * scale);
-
-            if (legendPosition === 'right') {
-                const availableHeight = chartHeight - legendHeaderHeight;
-                const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeightScaled));
-                columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
-            } else {
-                const maxWidth = chartWidth - 20;
-                const maxColumns = Math.max(1, Math.floor(maxWidth / columnWidthScaled));
-                columns = Math.min(maxColumns, colorNames.length);
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
+            legendTitleSize = Math.max(14, Math.floor(targetTitleWidth / legendTitleText.length * 1.6));
+            if (tempCtx) {
+                tempCtx.font = `bold ${legendTitleSize}px sans-serif`;
+                const titleMeasuredWidth = tempCtx.measureText(legendTitleText).width;
+                if (titleMeasuredWidth > 0) {
+                    legendTitleSize = Math.max(14, Math.floor(legendTitleSize * targetTitleWidth / titleMeasuredWidth));
+                }
             }
 
-            const legendWidth = columns * columnWidthScaled + 30 * fontSizeScale;
-            const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
-            const gap = Math.max(20, 30 * fontSizeScale);
+            // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
+            rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.09));
+            rectHeightScaled = Math.max(20, Math.floor(rectWidthScaled / 3));
+            // 每行最多10个色块
+            columns = Math.min(10, Math.max(1, colorCount));
+            rowHeightScaled = Math.floor(rectHeightScaled * 1.8);
+            columnWidthScaled = rectWidthScaled;
+            // 色块内字体小于色块高度
+            colorNameSize = Math.max(8, Math.floor(rectHeightScaled * 0.65));
+            legendYOffset1 = legendTitleSize + 6;
+            legendStartY = legendTitleSize + 16;
+            legendXGap = Math.max(6, 8);
 
-            if (legendPosition === 'right') {
-                finalWidth = chartWidth + legendWidth + gap;
-                finalHeight = Math.max(chartHeight, legendHeight);
-                legendX = chartWidth + gap / 2;
-                legendY = 0;
-            } else {
-                finalWidth = Math.max(chartWidth, legendWidth);
-                finalHeight = chartHeight + legendHeight + gap;
-                legendX = 0;
-                legendY = chartHeight + gap / 2;
-            }
+            itemsPerColumn = Math.ceil(colorCount / columns);
+            legendHeaderHeight = legendTitleSize + 20;
+
+            // 底部模式布局
+            finalWidth = Math.max(chartWidth, columns * columnWidthScaled + 20);
+            finalHeight = chartHeight + legendHeaderHeight + itemsPerColumn * rowHeightScaled + 20;
+            legendX = 0;
+            legendY = chartHeight + 10;
         }
 
         // 开始生成 SVG
@@ -613,11 +587,9 @@ class PerlerGenerator {
 
         // === 3. 绘制图例和颜色统计 ===
         if (legendPosition !== 'hidden' && colorNames.length > 0) {
-            // 绘制图例标题
-            svg += `<text x="${legendX + legendXGap}" y="${legendY + legendYOffset1}" text-anchor="start" dominant-baseline="alphabetic" font-family="sans-serif" font-size="${legendTitleSize}" fill="#667eea" font-weight="bold">颜色图例</text>`;
-
-            // 绘制总数量和颜色类型
-            svg += `<text x="${legendX + legendXGap}" y="${legendY + legendYOffset2}" text-anchor="start" dominant-baseline="alphabetic" font-family="sans-serif" font-size="${totalSize}" fill="#333" font-weight="bold">总数量: ${totalBeans} 颗 · 颜色: ${colorTypes}</text>`;
+            // 绘制图例标题（合并为一行）
+            const legendTitleText = `${i18n.colorLegend || '颜色统计'} (${colorTypes}${i18n.colorTypesUnit || '色'}, ${totalBeans}${i18n.beansUnit || '颗'})`;
+            svg += `<text x="${legendX + legendXGap}" y="${legendY + legendYOffset1}" text-anchor="start" dominant-baseline="alphabetic" font-family="sans-serif" font-size="${legendTitleSize}" fill="#667eea" font-weight="bold">${legendTitleText}</text>`;
 
             // 绘制颜色卡
             let col = 0, row = 0;

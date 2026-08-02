@@ -3510,58 +3510,44 @@ class PixelArtGenerator {
                 widthConstrainedScale = maxColumnWidthForDesiredCols / 210;
             }
             
-            // 取所有约束中最小的缩放比例
-            const fontSizeScale = Math.max(0.3, Math.min(baseScale, heightConstrainedScale, widthConstrainedScale));
-            
-            const rectWidthScaled = Math.max(50, Math.floor(200 * fontSizeScale));
-            const rectHeightScaled = Math.max(12, Math.floor(46 * fontSizeScale));
-            const rowHeightScaled = Math.max(14, Math.floor(52 * fontSizeScale));
-            const columnWidthScaled = Math.max(60, Math.floor(210 * fontSizeScale));
-            // 色块内文字字号必须小于色块高度
-            const maxTextSize = Math.floor(rectHeightScaled * 0.85);
-            const legendTitleSize = Math.min(maxTextSize, Math.max(8, Math.floor(summaryFontSize * 1.3 * fontSizeScale)));
-            const totalSize = Math.min(maxTextSize, Math.max(7, Math.floor(summaryFontSize * 1.1 * fontSizeScale)));
-            const colorNameSize = Math.min(maxTextSize, Math.max(6, Math.floor(summaryFontSize * 1.0 * fontSizeScale)));
-            const legendYOffset1 = Math.max(10, Math.floor(summaryFontSize * 1.8 * fontSizeScale));
-            const legendYOffset2 = Math.max(16, Math.floor(summaryFontSize * 3.2 * fontSizeScale));
-            const legendStartY = Math.max(24, Math.floor(summaryFontSize * 4.5 * fontSizeScale));
-            const legendXGap = Math.max(6, Math.floor(16 * fontSizeScale));
-            
-            let columns, itemsPerColumn;
-            const legendHeaderHeight = Math.floor(summaryFontSize * 6.0 * fontSizeScale);
-            
-            if (position === 'right') {
-                // 右侧模式：先计算能放多少行，再计算列数
-                const availableHeight = chartHeight - legendHeaderHeight;
-                const maxItemsPerColumn = Math.max(1, Math.floor(availableHeight / rowHeightScaled));
-                columns = Math.min(Math.ceil(colorNames.length / maxItemsPerColumn), 4);
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
-            } else {
-                // 底部模式：先计算能放多少列，再计算行数
-                const maxWidth = chartWidth - 20;
-                const maxColumns = Math.max(1, Math.floor(maxWidth / columnWidthScaled));
-                columns = Math.min(maxColumns, colorNames.length);
-                itemsPerColumn = Math.ceil(colorNames.length / columns);
+            // 图例标题字号：按图纸宽度的35%动态计算
+            const legendTitleText = `${getI18nText('colorLegend')} (${colorTypes}${getI18nText('colorTypes')}, ${totalBeans}${getI18nText('beans')})`;
+            const targetTitleWidth = chartWidth * 0.35;
+            let legendTitleSize = Math.max(14, Math.floor(targetTitleWidth / legendTitleText.length * 1.6));
+            tempCtx.font = `bold ${legendTitleSize}px sans-serif`;
+            const titleMeasuredWidth = tempCtx.measureText(legendTitleText).width;
+            if (titleMeasuredWidth > 0) {
+                legendTitleSize = Math.max(14, Math.floor(legendTitleSize * targetTitleWidth / titleMeasuredWidth));
             }
+
+            // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
+            const rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.09));
+            const rectHeightScaled = Math.max(20, Math.floor(rectWidthScaled / 3));
+            // 每行最多10个色块
+            let columns = Math.min(10, Math.max(1, colorCount));
+            const rowHeightScaled = Math.floor(rectHeightScaled * 1.8);
+            const columnWidthScaled = rectWidthScaled;
+            // 色块内字体小于色块高度
+            const colorNameSize = Math.max(8, Math.floor(rectHeightScaled * 0.65));
+            const legendYOffset1 = legendTitleSize + 6;
+            const legendStartY = legendTitleSize + 16;
+            const legendXGap = Math.max(6, 8);
+            
+            const itemsPerColumn = Math.ceil(colorCount / columns);
+            const legendHeaderHeight = legendTitleSize + 20;
             
             // 再计算图例的整体尺寸
-            const legendWidth = columns * columnWidthScaled + 30 * fontSizeScale;
+            const legendWidth = columns * columnWidthScaled + 20;
             const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
             
             let legendX, legendY;
-            const gap = Math.max(20, 30 * fontSizeScale);
+            const gap = 20;
             
-            if (position === 'right') {
-                canvasWidth = chartWidth + legendWidth + gap;
-                canvasHeight = Math.max(chartHeight, legendHeight);
-                legendX = chartWidth + gap / 2;
-                legendY = 0;
-            } else {
-                canvasWidth = Math.max(chartWidth, legendWidth);
-                canvasHeight = chartHeight + legendHeight + gap;
-                legendX = 0;
-                legendY = chartHeight + gap / 2;
-            }
+            // 底部模式布局
+            canvasWidth = Math.max(chartWidth, legendWidth);
+            canvasHeight = chartHeight + legendHeight + gap;
+            legendX = 0;
+            legendY = chartHeight + gap / 2;
             
             const scale = parseFloat(this.exportScaleSlider.value);
             
@@ -3612,11 +3598,7 @@ class PixelArtGenerator {
             downloadCtx.font = `bold ${legendTitleSize}px sans-serif`;
             downloadCtx.fillStyle = '#667eea';
             downloadCtx.textAlign = 'left';
-            downloadCtx.fillText(getI18nText('colorLegend'), legendX + legendXGap, legendY + legendYOffset1);
-            
-            downloadCtx.font = `bold ${totalSize}px sans-serif`;
-            downloadCtx.fillStyle = '#333';
-            downloadCtx.fillText(`${getI18nText('totalBeans')}: ${totalBeans} ${getI18nText('beans')} · ${getI18nText('colorTypes')}: ${colorTypes}`, legendX + legendXGap, legendY + legendYOffset2);
+            downloadCtx.fillText(`${getI18nText('colorLegend')} (${colorTypes}${getI18nText('colorTypes')}, ${totalBeans}${getI18nText('beans')})`, legendX + legendXGap, legendY + legendYOffset1);
             
             const colorSetName = this.colorSetSelect.value;
             const colorSet = colorSets[colorSetName];
