@@ -34,6 +34,8 @@ class FocusModeRenderer {
         this.lockedColors = new Set();
         this.lastTouchDistance = 0;
         this.flipHorizontal = false;
+        this.materialListModal = null;
+        this.showMaterialListOnStart = true;
     }
 
     init(containerSelector, perlerColors, width, height, colorSet, onExitCallback) {
@@ -69,6 +71,10 @@ class FocusModeRenderer {
         this.render();
         this.attachEvents();
         this.isActive = true;
+
+        if (this.showMaterialListOnStart) {
+            this.showMaterialListModal();
+        }
     }
 
     calculateColorStats() {
@@ -155,6 +161,11 @@ class FocusModeRenderer {
             <div style="margin-bottom: 15px;">
                 <button id="focus-exit-btn" style="width: 100%; padding: 12px; background: rgba(255, 59, 48, 0.9); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600;">
                     🏠 退出专注模式
+                </button>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <button id="focus-material-list-btn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #ff9500, #ff6b00); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                    📋 材料清单
                 </button>
             </div>
             <div style="margin-bottom: 18px;">
@@ -348,6 +359,13 @@ class FocusModeRenderer {
             this.flipHorizontal = !this.flipHorizontal;
             this.drawChart();
         });
+
+        const materialListBtn = this.controlsPanel.querySelector('#focus-material-list-btn');
+        if (materialListBtn) {
+            materialListBtn.addEventListener('click', () => {
+                this.toggleMaterialListModal();
+            });
+        }
     }
 
     createColorPickerPanel() {
@@ -506,6 +524,133 @@ class FocusModeRenderer {
         this.colorPickerPanel = null;
     }
 
+    showMaterialListModal() {
+        if (this.materialListModal) {
+            this.materialListModal.style.display = 'flex';
+            return;
+        }
+
+        const totalBeans = this.colorStats.reduce((sum, c) => sum + c.count, 0);
+        const colorCount = this.colorStats.length;
+
+        const items = this.colorStats.map((color, idx) => {
+            const r = Math.round(color.rgb[0]);
+            const g = Math.round(color.rgb[1]);
+            const b = Math.round(color.rgb[2]);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            const textColor = luminance > 0.5 ? '#000' : '#fff';
+            const borderRgb = `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`;
+            return `
+                <div style="display: flex; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.06); border-radius: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="width: 22px; height: 22px; background: ${idx < 3 ? '#ff9500' : 'transparent'}; color: white; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 6px; margin-right: 10px; flex-shrink: 0;">${idx + 1}</div>
+                    <div style="width: 32px; height: 32px; background: rgb(${r},${g},${b}); border: 1px solid ${borderRgb}; border-radius: 8px; margin-right: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+                    <div style="flex: 1; display: flex; align-items: center; min-width: 0;">
+                        <span style="color: white; font-size: 14px; font-weight: 600; flex-shrink: 0;">${color.name}</span>
+                        <span style="color: rgba(255,255,255,0.5); font-size: 12px; margin-left: auto; flex-shrink: 0;">${color.count} 颗</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.materialListModal = document.createElement('div');
+        this.materialListModal.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10002;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+
+        const top3Colors = this.colorStats.slice(0, 3).map(c => c.name).join('、');
+
+        this.materialListModal.innerHTML = `
+            <div style="
+                background: #1a1a2e;
+                border-radius: 20px;
+                padding: 24px;
+                width: 100%;
+                max-width: 420px;
+                max-height: 85vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            ">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0;">
+                    <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">📋 材料清单</h3>
+                    <button id="material-list-close" style="background: none; border: none; color: rgba(255,255,255,0.5); font-size: 20px; cursor: pointer; padding: 4px 8px; line-height: 1;">✕</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-shrink: 0;">
+                    <div style="flex: 1; background: rgba(255,149,0,0.15); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(255,149,0,0.2);">
+                        <div style="color: rgba(255,149,0,0.7); font-size: 11px; margin-bottom: 4px;">总豆数</div>
+                        <div style="color: #ff9500; font-size: 20px; font-weight: 700;">${totalBeans}</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(0,122,255,0.15); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(0,122,255,0.2);">
+                        <div style="color: rgba(0,122,255,0.7); font-size: 11px; margin-bottom: 4px;">色号数</div>
+                        <div style="color: #007aff; font-size: 20px; font-weight: 700;">${colorCount}</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(52,199,89,0.15); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid rgba(52,199,89,0.2);">
+                        <div style="color: rgba(52,199,89,0.7); font-size: 11px; margin-bottom: 4px;">Top 3</div>
+                        <div style="color: #34c759; font-size: 12px; font-weight: 600; line-height: 1.5; padding-top: 2px;">${top3Colors}</div>
+                    </div>
+                </div>
+                <div style="flex: 1; overflow-y: auto; padding-right: 4px; margin-bottom: 16px;">
+                    ${items}
+                </div>
+                <button id="material-list-start" style="
+                    width: 100%;
+                    padding: 14px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    border: none;
+                    border-radius: 14px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    flex-shrink: 0;
+                ">
+                    🎯 开始专注
+                </button>
+            </div>
+        `;
+
+        this.materialListModal.querySelector('#material-list-start').addEventListener('click', () => {
+            this.hideMaterialListModal();
+        });
+        this.materialListModal.querySelector('#material-list-close').addEventListener('click', () => {
+            this.hideMaterialListModal();
+        });
+        this.materialListModal.addEventListener('click', (e) => {
+            if (e.target === this.materialListModal) {
+                this.hideMaterialListModal();
+            }
+        });
+
+        this.container.appendChild(this.materialListModal);
+    }
+
+    hideMaterialListModal() {
+        if (this.materialListModal) {
+            this.materialListModal.style.display = 'none';
+        }
+    }
+
+    toggleMaterialListModal() {
+        if (!this.materialListModal || this.materialListModal.style.display === 'none') {
+            this.showMaterialListModal();
+        } else {
+            this.hideMaterialListModal();
+        }
+    }
+
     attachEvents() {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
@@ -652,7 +797,11 @@ class FocusModeRenderer {
 
         switch (e.key) {
             case 'Escape':
-                this.exit();
+                if (this.materialListModal && this.materialListModal.style.display !== 'none') {
+                    this.hideMaterialListModal();
+                } else {
+                    this.exit();
+                }
                 break;
             case '+':
             case '=':
@@ -901,6 +1050,11 @@ class FocusModeRenderer {
     }
 
     exit() {
+        if (this.materialListModal && this.materialListModal.parentNode) {
+            this.materialListModal.parentNode.removeChild(this.materialListModal);
+        }
+        this.materialListModal = null;
+
         if (this.container) {
             this.container.innerHTML = '';
             this.container.style.cssText = '';

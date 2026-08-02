@@ -2120,7 +2120,23 @@ class PixelArtGenerator {
     drawPerlerChartToCanvas(ctx, perlerColors, perlerWidth, perlerHeight, cellSize, colorSetName) {
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
-        const summaryMargin = cellSize * 2 + 20;
+        
+        // 提前计算摘要信息，用于确定顶部空间
+        const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
+        const colorCount = Object.keys(this.colorCounts).length;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorCount}色]`;
+        
+        // 动态计算字号：摘要文字占图纸内容宽度的45%
+        const chartContentWidth = perlerWidth * cellSize;
+        const targetSummaryWidth = chartContentWidth * 0.45;
+        let summaryFontSize = Math.max(12, Math.floor(targetSummaryWidth / summaryText.length * 1.6));
+        ctx.font = `bold ${summaryFontSize}px sans-serif`;
+        const measuredWidth = ctx.measureText(summaryText).width;
+        if (measuredWidth > 0) {
+            summaryFontSize = Math.max(12, Math.floor(summaryFontSize * targetSummaryWidth / measuredWidth));
+        }
+        const summaryMargin = summaryFontSize + 8;
+        
         const chartStyle = this.chartStyle.value;
         const beadShape = this.beadShape.value;
         const showGrid = this.showGridLines.checked;
@@ -2345,13 +2361,9 @@ class PixelArtGenerator {
         }
         
         // 在导出的图像上绘制摘要（放在顶部预留空间）
-        const totalBeads = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
-        const colorCount = Object.keys(this.colorCounts).length;
-        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeads}颗/${colorCount}色]`;
-        const summaryFontSize = cellSize * 1.3;
         
-        // 绘制水印（靠左）
-        const watermarkFontSize = cellSize * 0.8;
+        // 绘制水印（靠左），字号为摘要的70%
+        const watermarkFontSize = Math.max(10, Math.floor(summaryFontSize * 0.7));
         ctx.font = `${watermarkFontSize}px sans-serif`;
         ctx.fillStyle = '#666'; // 黑灰色
         ctx.textAlign = 'left';
@@ -3439,9 +3451,22 @@ class PixelArtGenerator {
         const cellSize = parseInt(this.exportBeadSizeSlider.value);
         const coordSize = Math.max(30, Math.floor(cellSize * 1.4));
         const footerSize = 25;
-        const summaryMargin = cellSize * 2 + 20; // 给摘要留出额外空间
-        const colorNames = Object.keys(this.colorCounts).sort();
+        
+        // 动态计算摘要字号（与 Canvas 导出保持一致）
+        const chartContentWidth = perlerWidth * cellSize;
+        const targetSummaryWidth = chartContentWidth * 0.45;
+        const tempCtx = document.createElement('canvas').getContext('2d');
         const totalBeans = Object.values(this.colorCounts).reduce((a, b) => a + b, 0);
+        const colorCount = Object.keys(this.colorCounts).length;
+        const summaryText = `[${perlerWidth}x${perlerHeight}/${totalBeans}颗/${colorCount}色]`;
+        let summaryFontSize = Math.max(12, Math.floor(targetSummaryWidth / summaryText.length * 1.6));
+        tempCtx.font = `bold ${summaryFontSize}px sans-serif`;
+        const measuredWidth = tempCtx.measureText(summaryText).width;
+        if (measuredWidth > 0) {
+            summaryFontSize = Math.max(12, Math.floor(summaryFontSize * targetSummaryWidth / measuredWidth));
+        }
+        const summaryMargin = summaryFontSize + 8;
+        const colorNames = Object.keys(this.colorCounts).sort();
         const colorTypes = colorNames.length;
         
         const position = this.legendPosition.value;
@@ -3457,26 +3482,22 @@ class PixelArtGenerator {
             canvasWidth = chartWidth;
             canvasHeight = chartHeight;
         } else {
-            const fontSizeScale = cellSize / 30;
-            const rectWidth = 120;
-            const rectHeight = 28;
-            const rowHeight = rectHeight + 5;
+            const fontSizeScale = summaryFontSize / 10;
             
-            // 先应用缩放
-            const rectWidthScaled = Math.max(80, Math.floor(rectWidth * fontSizeScale));
-            const rectHeightScaled = Math.max(19, Math.floor(rectHeight * fontSizeScale));
-            const rowHeightScaled = Math.max(20, Math.floor(rowHeight * fontSizeScale));
-            const columnWidthScaled = Math.max(90, Math.floor((rectWidth + 10) * fontSizeScale));
-            const legendTitleSize = Math.max(10, Math.floor(13 * fontSizeScale));
-            const totalSize = Math.max(9, Math.floor(12 * fontSizeScale));
-            const colorNameSize = Math.max(8, Math.floor(11 * fontSizeScale));
-            const legendYOffset1 = Math.max(14, Math.floor(18 * fontSizeScale));
-            const legendYOffset2 = Math.max(28, Math.floor(36 * fontSizeScale));
-            const legendStartY = Math.max(39, Math.floor(50 * fontSizeScale));
-            const legendXGap = Math.max(6, Math.floor(8 * fontSizeScale));
+            const rectWidthScaled = Math.max(100, Math.floor(200 * fontSizeScale));
+            const rectHeightScaled = Math.max(24, Math.floor(46 * fontSizeScale));
+            const rowHeightScaled = Math.max(28, Math.floor(52 * fontSizeScale));
+            const columnWidthScaled = Math.max(120, Math.floor(210 * fontSizeScale));
+            const legendTitleSize = Math.max(16, Math.floor(summaryFontSize * 1.3));
+            const totalSize = Math.max(15, Math.floor(summaryFontSize * 1.1));
+            const colorNameSize = Math.max(13, Math.floor(summaryFontSize * 1.0));
+            const legendYOffset1 = Math.max(22, Math.floor(summaryFontSize * 1.8));
+            const legendYOffset2 = Math.max(38, Math.floor(summaryFontSize * 3.2));
+            const legendStartY = Math.max(52, Math.floor(summaryFontSize * 4.5));
+            const legendXGap = Math.max(10, Math.floor(16 * fontSizeScale));
             
             let columns, itemsPerColumn;
-            const legendHeaderHeight = 60 * fontSizeScale;
+            const legendHeaderHeight = Math.floor(summaryFontSize * 6.0);
             
             if (position === 'right') {
                 // 右侧模式：先计算能放多少行，再计算列数
@@ -3493,21 +3514,21 @@ class PixelArtGenerator {
             }
             
             // 再计算图例的整体尺寸
-            const legendWidth = columns * columnWidthScaled + 20 * fontSizeScale;
+            const legendWidth = columns * columnWidthScaled + 30 * fontSizeScale;
             const legendHeight = legendHeaderHeight + itemsPerColumn * rowHeightScaled;
             
             let legendX, legendY;
             
             if (position === 'right') {
-                canvasWidth = chartWidth + Math.max(legendWidth, 200 * fontSizeScale) + 40 * fontSizeScale;
+                canvasWidth = chartWidth + Math.max(legendWidth, 320 * fontSizeScale) + 70 * fontSizeScale;
                 canvasHeight = Math.max(chartHeight, legendHeight);
-                legendX = chartWidth + 20 * fontSizeScale;
+                legendX = chartWidth + 35 * fontSizeScale;
                 legendY = 0;
             } else {
                 canvasWidth = Math.max(chartWidth, legendWidth);
-                canvasHeight = chartHeight + legendHeight + 40 * fontSizeScale;
+                canvasHeight = chartHeight + legendHeight + 70 * fontSizeScale;
                 legendX = 0;
-                legendY = chartHeight + 20 * fontSizeScale;
+                legendY = chartHeight + 35 * fontSizeScale;
             }
             
             const scale = parseFloat(this.exportScaleSlider.value);
