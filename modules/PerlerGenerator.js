@@ -377,7 +377,7 @@ class PerlerGenerator {
         let finalHeight = chartHeight;
         let legendX = 0, legendY = 0;
         let rectWidthScaled, rectHeightScaled, rowHeightScaled, columnWidthScaled;
-        let legendTitleSize, colorNameSize, legendYOffset1, legendStartY, legendXGap;
+        let legendTitleSize, colorNameSize, legendYOffset1, legendStartY, legendGap;
         let columns, itemsPerColumn, legendHeaderHeight;
 
         const colorNames = Object.keys(colorCounts || {}).sort();
@@ -407,18 +407,18 @@ class PerlerGenerator {
                 }
             }
 
-            // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
-            rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.09));
+            // 色块宽度 = 图纸宽度的10%，高度 = 宽度/3
+            rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.10));
             rectHeightScaled = Math.max(20, Math.floor(rectWidthScaled / 3));
-            // 每行最多10个色块
+            // 每行最多10个色块，每个色块之间有间距
+            legendGap = Math.max(4, Math.floor(rectWidthScaled * 0.05));
             columns = Math.min(10, Math.max(1, colorCount));
             rowHeightScaled = Math.floor(rectHeightScaled * 1.8);
-            columnWidthScaled = rectWidthScaled;
+            columnWidthScaled = rectWidthScaled + legendGap;
             // 色块内字体小于色块高度
             colorNameSize = Math.max(8, Math.floor(rectHeightScaled * 0.65));
             legendYOffset1 = legendTitleSize + 6;
             legendStartY = legendTitleSize + 16;
-            legendXGap = Math.max(6, 8);
 
             itemsPerColumn = Math.ceil(colorCount / columns);
             legendHeaderHeight = legendTitleSize + 20;
@@ -589,17 +589,19 @@ class PerlerGenerator {
         if (legendPosition !== 'hidden' && colorNames.length > 0) {
             // 绘制图例标题（合并为一行）
             const legendTitleText = `${i18n.colorLegend || '颜色统计'} (${colorTypes}${i18n.colorTypesUnit || '色'}, ${totalBeans}${i18n.beansUnit || '颗'})`;
-            svg += `<text x="${legendX + legendXGap}" y="${legendY + legendYOffset1}" text-anchor="start" dominant-baseline="alphabetic" font-family="sans-serif" font-size="${legendTitleSize}" fill="#667eea" font-weight="bold">${legendTitleText}</text>`;
+            svg += `<text x="${legendX + legendGap}" y="${legendY + legendYOffset1}" text-anchor="start" dominant-baseline="alphabetic" font-family="sans-serif" font-size="${legendTitleSize}" fill="#667eea" font-weight="bold">${legendTitleText}</text>`;
 
             // 绘制颜色卡
-            let col = 0, row = 0;
             const colorSet = colorSets[colorSetName];
 
-            for (const name of colorNames) {
+            for (let idx = 0; idx < colorNames.length; idx++) {
+                const name = colorNames[idx];
+                const col = idx % columns;
+                const row = Math.floor(idx / columns);
                 const count = colorCounts[name];
                 const color = colorSet.find(c => c.name === name);
 
-                const x = legendX + legendXGap + col * columnWidthScaled;
+                const x = legendX + legendGap + col * columnWidthScaled;
                 const y = legendY + legendStartY + row * rowHeightScaled;
 
                 if (color) {
@@ -609,12 +611,6 @@ class PerlerGenerator {
                     // 绘制文字
                     const textFill = getContrastTextColor(color.rgb);
                     svg += `<text x="${x + rectWidthScaled / 2}" y="${y + rectHeightScaled / 2}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="${colorNameSize}" fill="${textFill}" font-weight="bold">${name} x ${count}</text>`;
-                }
-
-                row++;
-                if (row >= itemsPerColumn) {
-                    row = 0;
-                    col++;
                 }
             }
         }

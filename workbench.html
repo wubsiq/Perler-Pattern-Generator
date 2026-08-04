@@ -982,14 +982,14 @@
                     titleFontSize = Math.max(14, Math.floor(titleFontSize * targetTitleWidth / measuredWidth));
                 }
 
-                // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
-                const swatchWidth = Math.max(60, Math.floor(chartWidth * 0.09));
+                // 色块宽度 = 图纸宽度的10%，高度 = 宽度/3
+                const swatchWidth = Math.max(60, Math.floor(chartWidth * 0.10));
                 const swatchHeight = Math.max(20, Math.floor(swatchWidth / 3));
-                // 每行最多10个色块
+                // 每行最多10个色块，每个色块之间有间距
+                const gap = Math.max(4, Math.floor(swatchWidth * 0.05));
                 const legendCols = Math.min(10, Math.max(1, colorCount));
-                const legendItemW = swatchWidth;
-                const legendItemH = Math.floor(swatchHeight * 1.8); // 行高包含色块+间距
-                // 色块内字体小于色块高度
+                const legendItemW = swatchWidth + gap;  // 色块宽度 + 间距
+                const legendItemH = Math.floor(swatchHeight * 1.8);
                 const legendFontSize = Math.max(8, Math.floor(swatchHeight * 0.7));
                 const itemsPerColumn = Math.ceil(colorCount / legendCols);
                 const headerHeight = titleFontSize + 12;
@@ -998,12 +998,11 @@
                     cols: legendCols,
                     itemW: legendItemW,
                     itemH: legendItemH,
+                    gap: gap,
                     fontSize: legendFontSize,
                     titleFontSize: titleFontSize,
                     swatchWidth: swatchWidth,
                     swatchHeight: swatchHeight,
-                    nameOffset: swatchWidth + 8,
-                    countOffset: swatchWidth + 80,
                     headerHeight: headerHeight,
                     titleText: titleText
                 };
@@ -1011,7 +1010,11 @@
                 legendHeight = headerHeight + itemsPerColumn * legendItemH + 20;
             }
 
-            workCanvas.width = chartWidth;
+            // 画布宽度需要足够容纳色块列表
+            const requiredWidth = withLegend && legendConfig
+                ? legendConfig.cols * legendConfig.itemW + 20
+                : chartWidth;
+            workCanvas.width = Math.max(chartWidth, requiredWidth);
             workCanvas.height = chartHeight + legendHeight;
             updateNaturalSize(chartWidth, chartHeight + legendHeight);
             ctx.fillStyle = '#ffffff';

@@ -3520,18 +3520,18 @@ class PixelArtGenerator {
                 legendTitleSize = Math.max(14, Math.floor(legendTitleSize * targetTitleWidth / titleMeasuredWidth));
             }
 
-            // 色块宽度 = 图纸宽度的9%，高度 = 宽度/3
-            const rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.09));
+            // 色块宽度 = 图纸宽度的10%，高度 = 宽度/3
+            const rectWidthScaled = Math.max(60, Math.floor(chartWidth * 0.10));
             const rectHeightScaled = Math.max(20, Math.floor(rectWidthScaled / 3));
-            // 每行最多10个色块
+            // 每行最多10个色块，每个色块之间有间距
+            const legendGap = Math.max(4, Math.floor(rectWidthScaled * 0.05));
             let columns = Math.min(10, Math.max(1, colorCount));
             const rowHeightScaled = Math.floor(rectHeightScaled * 1.8);
-            const columnWidthScaled = rectWidthScaled;
+            const columnWidthScaled = rectWidthScaled + legendGap;
             // 色块内字体小于色块高度
             const colorNameSize = Math.max(8, Math.floor(rectHeightScaled * 0.65));
             const legendYOffset1 = legendTitleSize + 6;
             const legendStartY = legendTitleSize + 16;
-            const legendXGap = Math.max(6, 8);
             
             const itemsPerColumn = Math.ceil(colorCount / columns);
             const legendHeaderHeight = legendTitleSize + 20;
@@ -3598,18 +3598,22 @@ class PixelArtGenerator {
             downloadCtx.font = `bold ${legendTitleSize}px sans-serif`;
             downloadCtx.fillStyle = '#667eea';
             downloadCtx.textAlign = 'left';
-            downloadCtx.fillText(`${getI18nText('colorLegend')} (${colorTypes}${getI18nText('colorTypes')}, ${totalBeans}${getI18nText('beans')})`, legendX + legendXGap, legendY + legendYOffset1);
+            downloadCtx.fillText(`${getI18nText('colorLegend')} (${colorTypes}${getI18nText('colorTypes')}, ${totalBeans}${getI18nText('beans')})`, legendX + legendGap, legendY + legendYOffset1);
             
             const colorSetName = this.colorSetSelect.value;
             const colorSet = colorSets[colorSetName];
             
             let col = 0, row = 0;
             
-            for (const name of colorNames) {
+            for (let idx = 0; idx < colorNames.length; idx++) {
+                const name = colorNames[idx];
+                col = idx % columns;
+                row = Math.floor(idx / columns);
+                
                 const count = this.colorCounts[name];
                 const color = colorSet.find(c => c.name === name);
                 
-                const x = legendX + legendXGap + col * columnWidthScaled;
+                const x = legendX + legendGap + col * columnWidthScaled;
                 const y = legendY + legendStartY + row * rowHeightScaled;
                 
                 if (color) {
@@ -3625,12 +3629,6 @@ class PixelArtGenerator {
                     downloadCtx.fillText(`${name} x ${count}`, x + rectWidthScaled / 2, y + rectHeightScaled / 2);
                     downloadCtx.textAlign = 'left';
                     downloadCtx.textBaseline = 'alphabetic';
-                }
-                
-                row++;
-                if (row >= itemsPerColumn) {
-                    row = 0;
-                    col++;
                 }
             }
             
