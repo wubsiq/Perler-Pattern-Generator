@@ -250,4 +250,56 @@ class MyDesignsManager {
     generateId() {
         return 'design_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
     }
+
+    getCompressedData(id) {
+        const designs = this.getAllDesigns();
+        const design = designs.find(d => d.id === id);
+        if (!design) {
+            throw new Error('未找到该图纸');
+        }
+        // 如果是对象，序列化为字符串
+        if (typeof design.compressedData === 'object') {
+            return JSON.stringify(design.compressedData);
+        }
+        return design.compressedData;
+    }
+
+    async copyCompressedDataToClipboard(id) {
+        let compressedData = this.getCompressedData(id);
+        
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(compressedData);
+                console.log(`[MyDesignsManager] 压缩数据已复制到剪贴板: ${id}`);
+                return true;
+            }
+        } catch (err) {
+            console.warn('[MyDesignsManager] Clipboard API 不可用，使用降级方案:', err);
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = compressedData;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, compressedData.length);
+        
+        try {
+            const success = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (success) {
+                console.log(`[MyDesignsManager] 压缩数据已复制到剪贴板(降级方案): ${id}`);
+                return true;
+            } else {
+                throw new Error('复制失败');
+            }
+        } catch (err) {
+            document.body.removeChild(textarea);
+            console.error('[MyDesignsManager] 复制到剪贴板失败:', err);
+            throw new Error('无法复制到剪贴板，请手动复制');
+        }
+    }
 }

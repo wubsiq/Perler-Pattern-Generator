@@ -7793,6 +7793,7 @@ function initMatrixTimer() {
                 </div>
                 <div class="my-design-actions">
                     <button class="btn btn-primary my-design-load" data-id="${design.id}" data-i18n="loadDesign">载入</button>
+                    <button class="btn btn-secondary my-design-copy" data-id="${design.id}" data-i18n="copyDesign">复制</button>
                     <button class="btn btn-secondary my-design-export" data-id="${design.id}" data-i18n="exportDesign">导出</button>
                     <button class="btn btn-danger my-design-delete" data-id="${design.id}" data-i18n="deleteDesign">删除</button>
                 </div>
@@ -7882,6 +7883,28 @@ function initMatrixTimer() {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                     alert(err.message);
+                }
+            });
+        });
+
+        grid.querySelectorAll('.my-design-copy').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '⏳ 复制中...';
+                
+                try {
+                    await myDesignsManager.copyCompressedDataToClipboard(id);
+                    btn.innerHTML = '✅ 已复制';
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 1500);
+                } catch (err) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(getI18nText('alertCopyFailed') + ': ' + err.message);
                 }
             });
         });
