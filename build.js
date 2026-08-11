@@ -118,7 +118,7 @@ const totalOutput = (jsOutputSize + cssOutputSize) / 1024;
 const totalRatio = ((totalOutput / totalInput) * 100).toFixed(1);
 
 console.log('[3/3] 更新 HTML 文件引用');
-const htmlFiles = ['index.html', 'circular.html', 'workbench.html'];
+const htmlFiles = ['index.html', 'circular.html'];
 for (const htmlFile of htmlFiles) {
     const htmlPath = path.join(projectRoot, htmlFile);
     let htmlContent = fs.readFileSync(htmlPath, 'utf8');

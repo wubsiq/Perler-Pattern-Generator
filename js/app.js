@@ -222,8 +222,27 @@ class PixelArtGenerator {
         this.customEditCanvas = document.getElementById('customEditCanvas');
         this.customEditCtx = this.customEditCanvas.getContext('2d', { willReadFrequently: true });
         this.customEditInfo = document.getElementById('customEditInfo');
-        this.customEditColor = document.getElementById('customEditColor');
-        this.currentColorValue = document.getElementById('currentColorValue');
+        
+        // 初始化拼豆色板组件
+        this.currentBeadColor = '#FAF4C8'; // 默认 A1 颜色
+        this.currentBeadColorName = 'A1';
+        this.beadPalette = null;
+        
+        const beadPaletteContainer = document.getElementById('beadPaletteContainer');
+        if (beadPaletteContainer && typeof BeadPalette !== 'undefined') {
+            this.beadPalette = new BeadPalette({
+                container: '#beadPaletteContainer',
+                colorSet: 'mard221',
+                columns: 8,
+                initialColor: 'A1',
+                onSelect: (color) => {
+                    this.currentBeadColor = color.hex;
+                    this.currentBeadColorName = color.name;
+                    this.refreshCustomEditBrushCursor();
+                }
+            });
+        }
+        
         this.customEditBrushSize = document.getElementById('customEditBrushSize');
         this.brushSizeValue = document.getElementById('brushSizeValue');
         this.applyCustomEditBtn = document.getElementById('applyCustomEditBtn');
@@ -916,10 +935,7 @@ class PixelArtGenerator {
             });
         });
         
-        this.customEditColor.addEventListener('input', () => {
-            this.currentColorValue.textContent = this.customEditColor.value;
-            this.refreshCustomEditBrushCursor();
-        });
+        // 色板组件已在 initElements 中初始化，回调已处理颜色变化
         
         this.eraserColor.addEventListener('input', () => {
             this.eraserColorValue.textContent = this.eraserColor.value;
@@ -3776,6 +3792,15 @@ class PixelArtGenerator {
             this.updateCustomEditBrushCursorPosition(this.lastCustomEditMouseEvent);
         }
     }
+    
+    // 获取当前画笔颜色（从色板组件或后备方案）
+    getCurrentEditColor() {
+        return this.currentBeadColor || '#FAF4C8';
+    }
+    
+    getCurrentEditColorName() {
+        return this.currentBeadColorName || 'A1';
+    }
 
     getPerlerSignature() {
         if (!this.perlerColors || !this.perlerColors.length) return '';
@@ -4268,7 +4293,7 @@ class PixelArtGenerator {
         
         switch (this.currentEditTool) {
             case 'brush':
-                const hexColor = this.customEditColor.value;
+                const hexColor = this.getCurrentEditColor();
                 const r = parseInt(hexColor.slice(1, 3), 16);
                 const g = parseInt(hexColor.slice(3, 5), 16);
                 const b = parseInt(hexColor.slice(5, 7), 16);
@@ -4303,11 +4328,11 @@ class PixelArtGenerator {
                 if (!this.isDrawing) {
                     console.log('[applySingleEdit] 填充工具触发');
                     console.log('[applySingleEdit] 点击位置:', x, y);
-                    console.log('[applySingleEdit] 选中颜色:', this.customEditColor.value);
+                    console.log('[applySingleEdit] 选中颜色:', this.getCurrentEditColor());
                     
                     this.saveCustomEditHistory();
                     const targetColor = this.customEditData[y][x];
-                    const hexFill = this.customEditColor.value;
+                    const hexFill = this.getCurrentEditColor();
                     const fr = parseInt(hexFill.slice(1, 3), 16);
                     const fg = parseInt(hexFill.slice(3, 5), 16);
                     const fb = parseInt(hexFill.slice(5, 7), 16);
@@ -4326,8 +4351,15 @@ class PixelArtGenerator {
                 const pickedColor = this.customEditData[y][x];
                 if (pickedColor.isTransparent) break;
                 const pickedHex = `#${pickedColor.rgb[0].toString(16).padStart(2, '0')}${pickedColor.rgb[1].toString(16).padStart(2, '0')}${pickedColor.rgb[2].toString(16).padStart(2, '0')}`;
-                this.customEditColor.value = pickedHex;
-                this.currentColorValue.textContent = pickedHex;
+                
+                // 使用色板组件设置颜色（如果存在）
+                if (this.beadPalette && pickedColor.name) {
+                    this.beadPalette.setColor(pickedColor.name);
+                } else {
+                    // 后备方案：直接更新属性
+                    this.currentBeadColor = pickedHex;
+                    this.currentBeadColorName = pickedColor.name || '未知';
+                }
                 break;
         }
     }
@@ -5074,8 +5106,8 @@ class PixelArtGenerator {
         switch (this.currentEditTool) {
             case 'brush':
                 cursor.classList.add('brush-cursor-brush');
-                cursor.style.borderColor = this.customEditColor.value;
-                cursor.style.backgroundColor = this.customEditColor.value + '33';
+                cursor.style.borderColor = this.getCurrentEditColor();
+                cursor.style.backgroundColor = this.getCurrentEditColor() + '33';
                 break;
             case 'eraser':
                 cursor.classList.add('brush-cursor-eraser');
@@ -5095,8 +5127,8 @@ class PixelArtGenerator {
                 break;
             case 'fill':
                 cursor.classList.add('brush-cursor-fill');
-                cursor.style.borderColor = this.customEditColor.value;
-                cursor.style.backgroundColor = this.customEditColor.value + '22';
+                cursor.style.borderColor = this.getCurrentEditColor();
+                cursor.style.backgroundColor = this.getCurrentEditColor() + '22';
                 break;
             default:
                 cursor.style.borderColor = 'rgba(0, 123, 255, 0.8)';

@@ -1694,6 +1694,11 @@ body.workbench-body.right-collapsed .edge-btn-right {
     color: #666;
 }
 
+.bead-palette-container {
+    width: 100%;
+    min-height: 200px;
+}
+
 .brush-sizes-horizontal {
     display: flex;
     gap: 8px;

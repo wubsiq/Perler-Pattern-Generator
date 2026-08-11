@@ -8,6 +8,7 @@
     <meta name="keywords" content="拼豆,拼豆图纸,拼豆生成器,像素艺术,豆师傅">
     <link rel="preload" href="css/style.bbe488f6.min.css" as="style">
     <link rel="stylesheet" href="css/style.bbe488f6.min.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="css/bead-palette.css">
 </head>
 <body>
     <!-- 悬浮快照按钮 -->
@@ -840,14 +841,11 @@
                                 <button id="flipVerticalBtn" class="btn btn-secondary" data-i18n="flipVertical">↕️ 上下翻转</button>
                             </div>
                         </div>
+                        <div class="control-group">
+                            <label><span data-i18n="currentColor">当前颜色：</span></label>
+                            <div id="beadPaletteContainer" class="bead-palette-container"></div>
+                        </div>
                         <div class="control-group flex-row">
-                            <div class="flex-item color-item">
-                                <label><span data-i18n="currentColor">当前颜色：</span></label>
-                                <div class="current-color-wrapper">
-                                    <input type="color" id="customEditColor" value="#000000">
-                                    <span id="currentColorValue">#000000</span>
-                                </div>
-                            </div>
                             <div class="flex-item slider-item">
                                 <label><span data-i18n="brushSize">画笔大小：</span>
                                     <span id="brushSizeValue">1</span>
@@ -942,7 +940,8 @@
         </section>
     </main>
 
-    <script src="js/bundle.ed25aff7.min.js" defer></script>
+    <script src="js/bead-palette.js" defer></script>
+    <script src="js/bundle.6ed378e8.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">

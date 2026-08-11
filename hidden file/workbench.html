@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>豆师傅 - 工作区（新设计）</title>
     <link rel="stylesheet" href="css/workbench.css">
+    <link rel="stylesheet" href="css/bead-palette.css">
     <script src="js/colors.js"></script>
     <script src="js/colorUtils.js"></script>
     <script src="modules/Pixelator.js"></script>
@@ -12,6 +13,7 @@
     <script src="modules/InfoPaperConverter.js"></script>
     <script src="modules/InfoPaperCompressor.js"></script>
     <script src="modules/MyDesignsManager.js"></script>
+    <script src="js/bead-palette.js"></script>
 </head>
 <body class="workbench-body">
 
@@ -692,12 +694,9 @@
                     </div>
                 </div>
 
-                <div class="control-group-horizontal">
+                <div class="control-group">
                     <label>画笔颜色</label>
-                    <div class="color-picker-wrapper">
-                        <input type="color" id="customBrushColor" value="#ff0000">
-                        <span id="customBrushColorLabel">红色</span>
-                    </div>
+                    <div id="beadPaletteContainer" class="bead-palette-container"></div>
                 </div>
 
                 <div class="control-group-horizontal">
@@ -3381,22 +3380,21 @@
             });
         });
 
-        // 画笔颜色选择器
-        const customBrushColor = document.getElementById('customBrushColor');
-        if (customBrushColor) {
-            customBrushColor.addEventListener('input', (e) => {
-                const color = e.target.value;
-                state.customBrushColor = color;
-                const mappedColor = mapToPerlerColor(color);
-                state.currentColor = mappedColor.hex;
-                state.currentColorName = mappedColor.name;
-                
-                const label = document.getElementById('customBrushColorLabel');
-                if (label) label.textContent = mappedColor.name;
-                
-                updateBrushCursor();
+        // 初始化拼豆色板组件
+        const beadPaletteContainer = document.getElementById('beadPaletteContainer');
+        if (beadPaletteContainer && typeof BeadPalette !== 'undefined') {
+            const brushPalette = new BeadPalette({
+                container: '#beadPaletteContainer',
+                colorSet: 'mard221',
+                columns: 8,
+                initialColor: 'A1',
+                onSelect: (color) => {
+                    state.customBrushColor = color.hex;
+                    state.currentColor = color.hex;
+                    state.currentColorName = color.name;
+                    updateBrushCursor();
+                }
             });
-            customBrushColor.dispatchEvent(new Event('input'));
         }
 
         // 保存/导出
