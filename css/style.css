@@ -556,6 +556,12 @@ header h1 {
     user-select: none;
 }
 
+/* 自由窗口模式（可拖拽） */
+.floating-panel.free-window {
+    right: auto;
+    cursor: default;
+}
+
 .floating-panel:hover {
     box-shadow: 8px 8px 0 #000000;
 }

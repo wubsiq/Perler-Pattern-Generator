@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.1.0';
+        this.APP_VERSION = '1.2.0';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -51,6 +51,10 @@ class PixelArtGenerator {
         this.infoPaperManager = new InfoPaperManager();
         this.focusModeRenderer = new FocusModeRenderer();
         this.customEditor = new CustomEditor();
+        this.selectionPanel = null;
+        this.brushManager = null;
+        this.brushPanel = null;
+        this.customBrushes = []; // 存储导入的自定义画笔
         
         this.initElements();
         this.initEventListeners();
@@ -913,6 +917,22 @@ class PixelArtGenerator {
                         this.customEditor.clearSelection();
                         this.drawCustomEditCanvas();
                     }
+                    // 显示选区设置面板（不隐藏画笔面板，支持多窗口共存）
+                    if (this.selectionPanel) {
+                        this.selectionPanel.show();
+                    } else {
+                        this.initSelectionPanel();
+                    }
+                } else if (newTool === 'customBrush') {
+                    // 显示画笔管理面板（不隐藏选区面板，支持多窗口共存）
+                    if (this.brushPanel) {
+                        this.brushPanel.show();
+                    } else {
+                        this.initBrushManager();
+                    }
+                } else {
+                    // 切换到其他工具时，不隐藏面板（让用户自己管理窗口）
+                    // 面板作为自由窗口，保持显示状态
                 }
 
                 document.querySelectorAll('.edit-tool-btn').forEach(b => b.classList.remove('active'));
@@ -3765,12 +3785,23 @@ class PixelArtGenerator {
             this.lastCustomEditMouseEvent = e;
             this.updateCustomEditBrushCursorSize();
             this.updateCustomEditBrushCursorPosition(e);
+            
+            // 如果当前使用 customBrush 工具，立即重绘以显示预笔迹
+            if (this.currentEditTool === 'customBrush' && 
+                this.brushManager && this.brushManager.getCurrentBrush()) {
+                this.drawCustomEditCanvas();
+            }
         });
         
         canvas.addEventListener('mouseleave', (e) => {
             this.handleCustomEditMouseUp();
             this.customEditBrushCursor.style.display = 'none';
             this.lastCustomEditMouseEvent = null;
+            
+            // 鼠标离开画布时，清除预笔迹（通过重绘）
+            if (this.currentEditTool === 'customBrush') {
+                this.drawCustomEditCanvas();
+            }
         });
         
         canvas.addEventListener('mousedown', (e) => {
@@ -3785,6 +3816,20 @@ class PixelArtGenerator {
         });
         
         canvas.addEventListener('mouseup', () => this.handleCustomEditMouseUp());
+        
+        // 多边形选区：双击闭合
+        canvas.addEventListener('dblclick', (e) => {
+            if (this.currentEditTool === 'selection' && 
+                this.customEditor && 
+                this.customEditor.selectionManager.type === 'polygon') {
+                this.customEditor.selectionManager.closePolygon();
+                this.isDrawing = false;
+                this.drawCustomEditCanvas();
+                if (this.selectionPanel) {
+                    this.selectionPanel.updateInfo();
+                }
+            }
+        });
     }
     
     refreshCustomEditBrushCursor() {
@@ -3831,6 +3876,12 @@ class PixelArtGenerator {
         this.perlerHeight = this.perlerColors.length;
         this.customEditData = this.perlerColors.map(row => [...row]);
         this.customEditHistory = [this.customEditData.map(row => [...row])];
+        
+        // 更新 CustomEditor 数据和选区管理器尺寸
+        if (this.customEditor) {
+            this.customEditor.initData(this.customEditData);
+            this.customEditor.selectionManager.setCanvasSize(this.perlerWidth, this.perlerHeight);
+        }
         
         // 初始化画布边界
         this.canvasBounds = {
@@ -3917,8 +3968,11 @@ class PixelArtGenerator {
             ctx.strokeRect(coordSize + displayLeft * cellSize + 1, coordSize + displayTop * cellSize + 1, (displayRight - displayLeft) * cellSize - 2, (displayBottom - displayTop) * cellSize - 2);
         }
 
-        // 绘制选区边框
-        if (this.customEditor && this.customEditor.selection) {
+        // 绘制选区（使用 SelectionManager）
+        if (this.customEditor && this.customEditor.selectionManager) {
+            this.customEditor.selectionManager.render(ctx, coordSize, cellSize);
+        } else if (this.customEditor && this.customEditor.selection) {
+            // 兼容旧的矩形选区
             const sel = this.customEditor.selection;
             const selX1 = Math.min(sel.x1, sel.x2);
             const selY1 = Math.min(sel.y1, sel.y2);
@@ -3973,6 +4027,108 @@ class PixelArtGenerator {
         if (this.currentEditTool === 'canvasBounds') {
             this.updateCanvasBoundsHandlesPosition();
         }
+        
+        // 绘制画笔预览（预笔迹显示）
+        this.drawBrushPreview(ctx, coordSize, cellSize);
+    }
+    
+    /**
+     * 绘制画笔预览（预笔迹显示）
+     */
+    drawBrushPreview(ctx, coordSize, cellSize) {
+        if (this.currentEditTool !== 'customBrush') return;
+        if (!this.brushManager || !this.brushManager.getCurrentBrush()) return;
+        if (!this.lastCustomEditMouseEvent) return;
+        
+        const brush = this.brushManager.getCurrentBrush();
+        if (!brush.shape || !brush.width || !brush.height) return;
+        
+        const { x, y } = this.getCustomEditCell(this.lastCustomEditMouseEvent);
+        
+        // 计算画笔的偏移（以中心为基准）
+        const offsetX = Math.floor(brush.width / 2);
+        const offsetY = Math.floor(brush.height / 2);
+        
+        // 绘制半透明预览
+        ctx.save();
+        ctx.globalAlpha = 0.45; // 半透明显示（稍亮一些，更清晰）
+        
+        let hasValidCell = false;
+        
+        for (let by = 0; by < brush.height; by++) {
+            for (let bx = 0; bx < brush.width; bx++) {
+                // 检查 shape 数据
+                if (!brush.shape[by] || !brush.shape[by][bx]) continue;
+                
+                const targetX = x + (bx - offsetX);
+                const targetY = y + (by - offsetY);
+                
+                // 检查是否在画布范围内
+                if (targetX < 0 || targetX >= this.perlerWidth || 
+                    targetY < 0 || targetY >= this.perlerHeight) continue;
+                
+                hasValidCell = true;
+                
+                // 获取颜色
+                const color = brush.colors && brush.colors[by] ? brush.colors[by][bx] : null;
+                
+                // 确定填充颜色
+                let fillColor = '#cccccc'; // 默认灰色
+                if (color && color.rgb && Array.isArray(color.rgb)) {
+                    fillColor = `rgb(${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`;
+                } else if (color && color.hex) {
+                    fillColor = color.hex;
+                } else {
+                    // 使用当前选择的颜色
+                    const currentColor = this.getCurrentEditColorData();
+                    if (currentColor && currentColor.rgb && Array.isArray(currentColor.rgb)) {
+                        fillColor = `rgb(${currentColor.rgb[0]}, ${currentColor.rgb[1]}, ${currentColor.rgb[2]})`;
+                    }
+                }
+                
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(
+                    coordSize + targetX * cellSize,
+                    coordSize + targetY * cellSize,
+                    cellSize,
+                    cellSize
+                );
+            }
+        }
+        
+        // 如果有有效格子，绘制整体边框
+        if (hasValidCell) {
+            // 画笔整体边框（使用虚线区分）
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 2]);
+            
+            // 计算画笔的边界框
+            const minX = x - offsetX;
+            const minY = y - offsetY;
+            const maxX = x + (brush.width - 1) - offsetX;
+            const maxY = y + (brush.height - 1) - offsetY;
+            
+            // 只绘制在画布范围内的部分
+            const drawX1 = Math.max(0, minX);
+            const drawY1 = Math.max(0, minY);
+            const drawX2 = Math.min(this.perlerWidth - 1, maxX);
+            const drawY2 = Math.min(this.perlerHeight - 1, maxY);
+            
+            if (drawX2 >= drawX1 && drawY2 >= drawY1) {
+                ctx.strokeRect(
+                    coordSize + drawX1 * cellSize,
+                    coordSize + drawY1 * cellSize,
+                    (drawX2 - drawX1 + 1) * cellSize,
+                    (drawY2 - drawY1 + 1) * cellSize
+                );
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        ctx.restore();
     }
 
     getCustomEditCell(e) {
@@ -4060,9 +4216,47 @@ class PixelArtGenerator {
         
         if (this.currentEditTool === 'selection') {
             if (x >= 0 && x < this.perlerWidth && y >= 0 && y < this.perlerHeight) {
-                this.customEditor.startSelection(x, y);
+                const selMgr = this.customEditor.selectionManager;
+                
+                if (selMgr.type === 'polygon') {
+                    // 多边形：点击添加顶点
+                    if (selMgr.polygonPoints.length === 0) {
+                        // 第一次点击，开始新的多边形
+                        selMgr.start(x, y);
+                    } else {
+                        // 继续添加顶点
+                        selMgr.addPolygonPoint(x, y);
+                    }
+                    this.isDrawing = true;
+                    this.drawCustomEditCanvas();
+                } else if (selMgr.type === 'smudge') {
+                    // 涂抹选区：开始涂抹
+                    this.customEditor.startSelection(x, y);
+                    this.isDrawing = true;
+                    this.drawCustomEditCanvas();
+                } else {
+                    // 矩形或套索：开始绘制
+                    this.customEditor.startSelection(x, y);
+                    this.isDrawing = true;
+                    this.drawCustomEditCanvas();
+                }
+            }
+            return;
+        }
+        
+        // 自定义画笔工具
+        if (this.currentEditTool === 'customBrush') {
+            if (this.brushManager && this.brushManager.getCurrentBrush()) {
+                // 半自动模式：使用选中的画笔绘制
                 this.isDrawing = true;
-                this.drawCustomEditCanvas();
+                this.applyCustomBrushAt(x, y);
+            } else {
+                // 没有选中画笔，提示用户
+                if (!this._brushTipShown) {
+                    alert('请先在画笔管理面板中选择一个画笔');
+                    this._brushTipShown = true;
+                    setTimeout(() => this._brushTipShown = false, 3000);
+                }
             }
             return;
         }
@@ -4090,6 +4284,19 @@ class PixelArtGenerator {
     }
 
     handleCustomEditMouseMove(e) {
+        // 自定义画笔工具：始终重绘以显示预笔迹
+        if (this.currentEditTool === 'customBrush' && this.brushManager && this.brushManager.getCurrentBrush()) {
+            if (this.isDrawing) {
+                // 按下时：应用画笔
+                const { x, y } = this.getCustomEditCell(e);
+                this.applyCustomBrushAt(x, y);
+            } else {
+                // 未按下时：只更新预览
+                this.drawCustomEditCanvas();
+            }
+            return;
+        }
+        
         if (!this.isDrawing || !this.customEditData) return;
         
         if (this.currentEditTool === 'chainRazor') {
@@ -4100,8 +4307,22 @@ class PixelArtGenerator {
             const { x, y } = this.getCustomEditCell(e);
             const clampedX = Math.max(0, Math.min(x, this.perlerWidth - 1));
             const clampedY = Math.max(0, Math.min(y, this.perlerHeight - 1));
-            this.customEditor.updateSelection(clampedX, clampedY);
-            this.drawCustomEditCanvas();
+            
+            const selMgr = this.customEditor.selectionManager;
+            
+            if (selMgr.type === 'rect' || selMgr.type === 'lasso') {
+                // 矩形或套索：更新选区
+                this.customEditor.updateSelection(clampedX, clampedY);
+                this.drawCustomEditCanvas();
+            } else if (selMgr.type === 'smudge') {
+                // 涂抹选区：添加经过的格子
+                this.customEditor.updateSelection(clampedX, clampedY);
+                this.drawCustomEditCanvas();
+            } else if (selMgr.type === 'polygon') {
+                // 多边形：更新最后一个顶点的预览位置
+                // 需要添加一个临时点来显示预览线
+                this.drawCustomEditCanvas();
+            }
             return;
         }
         
@@ -4111,7 +4332,34 @@ class PixelArtGenerator {
 
     handleCustomEditMouseUp() {
         if (this.currentEditTool === 'selection') {
-            this.customEditor.endSelection();
+            const selMgr = this.customEditor.selectionManager;
+            
+            if (selMgr.type === 'polygon') {
+                // 多边形：鼠标松开后保留已有的顶点，等待继续点击或双击闭合
+                this.isDrawing = false;
+                // 注意：不调用 endSelection()，保留已添加的点
+            } else if (selMgr.type === 'smudge') {
+                // 涂抹选区：结束涂抹
+                this.customEditor.endSelection();
+                this.isDrawing = false;
+            } else {
+                // 矩形或套索：结束绘制
+                this.customEditor.endSelection();
+                this.isDrawing = false;
+            }
+            
+            // 更新选区面板信息
+            if (this.selectionPanel) {
+                this.selectionPanel.updateInfo();
+            }
+            return;
+        }
+        
+        // 自定义画笔工具：结束绘制
+        if (this.currentEditTool === 'customBrush') {
+            if (this.isDrawing && this.customEditData) {
+                this.saveCustomEditHistory();
+            }
             this.isDrawing = false;
             return;
         }
@@ -4120,6 +4368,58 @@ class PixelArtGenerator {
             this.saveCustomEditHistory();
         }
         this.isDrawing = false;
+    }
+    
+    /**
+     * 在指定位置应用自定义画笔
+     */
+    applyCustomBrushAt(x, y) {
+        if (!this.brushManager || !this.brushManager.getCurrentBrush()) return;
+        if (!this.customEditData) return;
+        
+        const strokes = this.brushManager.getBrushStrokes(x, y);
+        
+        let modified = false;
+        for (const stroke of strokes) {
+            if (stroke.x >= 0 && stroke.x < this.perlerWidth && 
+                stroke.y >= 0 && stroke.y < this.perlerHeight) {
+                // 获取颜色信息
+                let colorData;
+                if (stroke.color) {
+                    // 使用画笔自带的颜色
+                    colorData = { ...stroke.color };
+                } else {
+                    // 使用当前选择的颜色
+                    colorData = this.getCurrentEditColorData();
+                }
+                
+                if (colorData) {
+                    this.customEditData[stroke.y][stroke.x] = { ...colorData };
+                    modified = true;
+                }
+            }
+        }
+        
+        if (modified) {
+            this.drawCustomEditCanvas();
+        }
+    }
+    
+    /**
+     * 获取当前编辑颜色数据
+     */
+    getCurrentEditColorData() {
+        // 从色板组件获取当前选中的颜色
+        if (this.beadPalette && this.beadPalette.getSelectedColor()) {
+            return this.beadPalette.getSelectedColor();
+        }
+        
+        // 默认返回一个白色
+        return {
+            name: '白',
+            rgb: [255, 255, 255],
+            isTransparent: false
+        };
     }
 
     applyChainRazor(startX, startY) {
@@ -6600,6 +6900,149 @@ class PixelArtGenerator {
         if (this.noiseFilterPanel) {
             this.noiseFilterPanel.style.display = 'none';
         }
+    }
+
+    /**
+     * 初始化选区面板
+     */
+    initSelectionPanel() {
+        if (this.selectionPanel) {
+            this.selectionPanel.show();
+            return;
+        }
+        
+        if (typeof SelectionPanel === 'undefined') {
+            console.error('SelectionPanel 模块未加载');
+            return;
+        }
+        
+        this.selectionPanel = new SelectionPanel(this);
+        
+        // 将自定义编辑器的选区管理器关联到面板
+        if (this.customEditor && this.customEditor.selectionManager) {
+            this.selectionPanel.setSelectionManager(this.customEditor.selectionManager);
+            
+            // 设置选区管理器回调
+            this.customEditor.selectionManager.onChange = () => {
+                this.selectionPanel.updateInfo();
+                this.drawCustomEditCanvas();
+            };
+        }
+        
+        this.selectionPanel.show();
+    }
+    
+    /**
+     * 初始化画笔管理器
+     */
+    initBrushManager() {
+        if (this.brushPanel) {
+            this.brushPanel.show();
+            return;
+        }
+        
+        if (typeof BrushManager === 'undefined' || typeof BrushPanel === 'undefined') {
+            console.error('BrushManager 或 BrushPanel 模块未加载');
+            return;
+        }
+        
+        // 创建画笔管理器
+        this.brushManager = new BrushManager();
+        
+        // 设置画笔变更回调 - 触发画布重绘以显示预笔迹
+        this.brushManager.onBrushChange = () => {
+            // 如果当前使用的是 customBrush 工具，重绘画布
+            if (this.currentEditTool === 'customBrush' && this.customEditCanvas) {
+                // 触发一次重绘，让预笔迹显示
+                if (this.lastCustomEditMouseEvent) {
+                    this.drawCustomEditCanvas();
+                }
+            }
+        };
+        
+        // 创建画笔面板
+        this.brushPanel = new BrushPanel(this.brushManager);
+        
+        // 设置保存选区为画笔的事件监听
+        document.addEventListener('saveSelectionAsBrush', (e) => {
+            this.handleSaveSelectionAsBrush();
+        });
+        
+        // 设置清除当前画笔按钮事件
+        const clearBtn = document.getElementById('clearCurrentBrushBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (this.brushManager) {
+                    this.brushManager.clearCurrentBrush();
+                }
+            });
+        }
+        
+        // 设置画笔面板关闭按钮事件
+        const closeBtn = document.getElementById('closeBrushBtn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                if (this.brushPanel) {
+                    this.brushPanel.hide();
+                }
+                // 只关闭面板，不切换工具，让用户决定何时切回
+            });
+        }
+        
+        this.brushPanel.show();
+    }
+    
+    /**
+     * 处理保存选区为画笔
+     */
+    handleSaveSelectionAsBrush() {
+        if (!this.customEditor || !this.customEditor.selectionManager) {
+            alert('请先创建选区');
+            return;
+        }
+        
+        const selectionManager = this.customEditor.selectionManager;
+        if (!selectionManager.hasSelection()) {
+            alert('请先在画布上创建选区');
+            return;
+        }
+        
+        // 获取选区数据 - 直接使用 customEditData
+        if (!this.customEditData) {
+            alert('没有画布数据');
+            return;
+        }
+        
+        const selectionData = selectionManager.exportSelectionData(this.customEditData);
+        
+        if (!selectionData) {
+            alert('导出选区数据失败，请确认选区内容有效');
+            return;
+        }
+        
+        // 让用户输入画笔名称
+        const defaultName = `画笔 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+        const brushName = prompt('输入画笔名称：', defaultName);
+        
+        if (!brushName) return;
+        
+        // 创建画笔
+        const brush = this.brushManager.createBrushFromSelection(selectionData, brushName);
+        
+        if (brush) {
+            // 选中新创建的画笔
+            this.brushManager.selectBrush(brush.id);
+            alert(`✓ 画笔 "${brushName}" 已保存！\n\n现在可以在画布上点击或拖动使用此画笔。`);
+        } else {
+            alert('创建画笔失败');
+        }
+    }
+    
+    /**
+     * 刷新自定义编辑画布
+     */
+    refreshCustomEditCanvas() {
+        this.drawCustomEditCanvas();
     }
 
     openColorQuantizePanel() {

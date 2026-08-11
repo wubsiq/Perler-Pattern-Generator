@@ -6,8 +6,8 @@
     <title>豆师傅 - 拼豆图纸生成器</title>
     <meta name="description" content="豆师傅 - 免费在线拼豆图纸生成器，支持图片转拼豆、自定义编辑、智能颜色优化">
     <meta name="keywords" content="拼豆,拼豆图纸,拼豆生成器,像素艺术,豆师傅">
-    <link rel="preload" href="css/style.bbe488f6.min.css" as="style">
-    <link rel="stylesheet" href="css/style.bbe488f6.min.css" media="print" onload="this.media='all'">
+    <link rel="preload" href="css/style.ad7dcb40.min.css" as="style">
+    <link rel="stylesheet" href="css/style.ad7dcb40.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="css/bead-palette.css">
 </head>
 <body>
@@ -214,6 +214,219 @@
                 </div>
                 <p style="font-size: 0.75em; color: #666; margin-top: 4px; margin-bottom: 10px;" data-i18n="colorQuantizeDesc">未勾选的颜色将自动合并到最接近的保留色</p>
                 <button id="applyColorQuantizeBtn" class="btn btn-primary" style="width: 100%; padding: 6px 12px; font-size: 0.9em; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border: none;" data-i18n="executeColorQuantize">🎯 应用颜色量化</button>
+            </div>
+        </div>
+
+        <!-- 选区设置面板 -->
+        <div class="floating-panel" id="selectionPanel" style="display: none; width: 320px;">
+            <div class="floating-panel-header" id="selectionPanelHeader">
+                <span>📐 选区设置</span>
+                <button class="floating-panel-close" id="closeSelectionBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <!-- 选区类型选择 -->
+                <div style="margin-bottom: 14px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">选区类型：</label>
+                    <div class="selection-type-buttons" style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                        <button class="selection-type-btn active" data-type="rect" style="flex: 1; padding: 6px; font-size: 0.8em; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 6px; cursor: pointer; min-width: 45%;">
+                            ⬛ 方形
+                        </button>
+                        <button class="selection-type-btn" data-type="lasso" style="flex: 1; padding: 6px; font-size: 0.8em; border: 2px solid #e0e0e0; background: white; color: #333; border-radius: 6px; cursor: pointer; min-width: 45%;">
+                            ✏️ 自由
+                        </button>
+                        <button class="selection-type-btn" data-type="polygon" style="flex: 1; padding: 6px; font-size: 0.8em; border: 2px solid #e0e0e0; background: white; color: #333; border-radius: 6px; cursor: pointer; min-width: 45%;">
+                            ⬡ 多边形
+                        </button>
+                        <button class="selection-type-btn" data-type="smudge" style="flex: 1; padding: 6px; font-size: 0.8em; border: 2px solid #e0e0e0; background: white; color: #333; border-radius: 6px; cursor: pointer; min-width: 45%;">
+                            🖌️ 涂抹
+                        </button>
+                    </div>
+                    
+                    <!-- 涂抹笔刷大小设置 -->
+                    <div id="smudgeBrushSizeControl" style="display: none; margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.8em; color: #666;">笔刷大小：</span>
+                            <span id="smudgeBrushSizeValue" style="font-size: 0.8em; font-weight: 600; color: #667eea;">2</span>
+                        </div>
+                        <input type="range" id="smudgeBrushSizeSlider" min="1" max="10" value="2" style="width: 100%;">
+                    </div>
+                    
+                    <p id="selectionTypeHint" style="font-size: 0.75em; color: #666; margin: 0;">
+                        拖动鼠标框选格子（矩形区域内的所有格子被选中）
+                    </p>
+                </div>
+
+                <!-- 选区信息 -->
+                <div id="selectionInfo" style="background: #f8f9fa; border-radius: 6px; padding: 10px; margin-bottom: 14px; font-size: 0.8em;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #666;">状态：</span>
+                        <span id="selectionStatus" style="font-weight: 600; color: #999;">未创建</span>
+                    </div>
+                    <div id="selectionBounds" style="display: none; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #666;">范围：</span>
+                        <span id="selectionBoundsValue" style="font-weight: 600;"></span>
+                    </div>
+                    <div id="selectionCount" style="display: none; justify-content: space-between;">
+                        <span style="color: #666;">选中：</span>
+                        <span id="selectionCountValue" style="font-weight: 600; color: #667eea;"></span>
+                    </div>
+                </div>
+
+                <!-- 选区操作 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+                    <button id="invertSelectionBtn" class="btn btn-secondary" style="padding: 6px; font-size: 0.8em; width: 100%;">
+                        🔄 反转选区
+                    </button>
+                    <button id="clearSelectionBtn" class="btn btn-secondary" style="padding: 6px; font-size: 0.8em; width: 100%;">
+                        🗑️ 清除选区
+                    </button>
+                </div>
+
+                <!-- 选区颜色设置 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-bottom: 14px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">选区外观：</label>
+                    
+                    <!-- 选区颜色 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 0.8em; color: #666;">选区颜色</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="color" id="selectionColorPicker" value="#e74c3c" style="width: 30px; height: 24px; border: none; cursor: pointer; padding: 0;">
+                        </div>
+                    </div>
+                    
+                    <!-- 反转颜色 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 0.8em; color: #666;">反转颜色</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="color" id="inverseColorPicker" value="#f39c12" style="width: 30px; height: 24px; border: none; cursor: pointer; padding: 0;">
+                        </div>
+                    </div>
+                    
+                    <!-- 透明度 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="font-size: 0.8em; color: #666;">透明度</span>
+                        <span id="selectionOpacityValue" style="font-size: 0.8em; font-weight: 600; color: #e74c3c;">25%</span>
+                    </div>
+                    <input type="range" id="selectionOpacitySlider" min="5" max="80" value="25" style="width: 100%;">
+                    
+                    <!-- 预设颜色 -->
+                    <div style="display: flex; gap: 4px; margin-top: 10px;">
+                        <span style="font-size: 0.75em; color: #666; align-self: center;">快速：</span>
+                        <button class="color-preset-btn" data-color="#667eea" style="width: 22px; height: 22px; background: #667eea; border: 2px solid #667eea; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                        <button class="color-preset-btn" data-color="#e74c3c" style="width: 22px; height: 22px; background: #e74c3c; border: 2px solid #e74c3c; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                        <button class="color-preset-btn" data-color="#2ecc71" style="width: 22px; height: 22px; background: #2ecc71; border: 2px solid #2ecc71; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                        <button class="color-preset-btn" data-color="#f39c12" style="width: 22px; height: 22px; background: #f39c12; border: 2px solid #f39c12; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                        <button class="color-preset-btn" data-color="#9b59b6" style="width: 22px; height: 22px; background: #9b59b6; border: 2px solid #9b59b6; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                        <button class="color-preset-btn" data-color="#1abc9c" style="width: 22px; height: 22px; background: #1abc9c; border: 2px solid #1abc9c; border-radius: 50%; cursor: pointer; padding: 0;"></button>
+                    </div>
+                </div>
+
+                <!-- 导出为自定义画笔 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">保存为自定义画笔：</label>
+                    <p style="font-size: 0.75em; color: #666; margin: 0 0 8px 0;">
+                        将选区的格子形状和颜色信息保存为自定义画笔
+                    </p>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="saveAsBrushBtn" class="btn btn-primary" style="flex: 1; padding: 6px; font-size: 0.85em; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; border-radius: 6px; cursor: pointer;">
+                            💾 保存为画笔
+                        </button>
+                        <button id="exportSelectionBtn" class="btn btn-secondary" style="flex: 1; padding: 6px; font-size: 0.85em;">
+                            📋 复制到剪贴板
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 自定义画笔导入 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">画笔管理：</label>
+                    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                        <button id="pasteBrushBtn" class="btn btn-secondary" style="flex: 1; padding: 6px; font-size: 0.8em;">
+                            📋 从剪贴板粘贴
+                        </button>
+                        <button id="importBrushBtn" class="btn btn-secondary" style="flex: 1; padding: 6px; font-size: 0.8em;">
+                            📁 从文件导入
+                        </button>
+                        <input type="file" id="importBrushFile" accept=".json" style="display: none;">
+                    </div>
+                    <p style="font-size: 0.75em; color: #666; margin: 0;">
+                        支持从剪贴板直接粘贴，或从 JSON 文件导入
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 画笔管理面板 -->
+        <div class="floating-panel" id="brushPanel" style="display: none; width: 340px; left: 400px; top: 120px;">
+            <div class="floating-panel-header" id="brushPanelHeader">
+                <span>🖌️ 画笔管理</span>
+                <button class="floating-panel-close" id="closeBrushBtn">×</button>
+            </div>
+            <div class="floating-panel-body">
+                <!-- 当前画笔状态 -->
+                <div id="currentBrushInfo" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                                     color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 0.85em;"></div>
+                <button id="clearCurrentBrushBtn" style="display: none; width: 100%; padding: 6px; margin-bottom: 12px; 
+                                                          background: #f0f0f0; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8em;">
+                    ❌ 取消当前画笔
+                </button>
+
+                <!-- 保存选区为画笔 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">保存当前选区：</label>
+                    <p style="font-size: 0.75em; color: #666; margin: 0 0 8px 0;">
+                        先在画布上创建选区，然后点击保存为画笔
+                    </p>
+                    <button id="saveSelectionAsBrushBtn" class="btn btn-primary" style="width: 100%; padding: 8px; font-size: 0.85em; 
+                                                                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                                                                        border: none; color: white; border-radius: 6px; cursor: pointer;">
+                        💾 保存选区为画笔
+                    </button>
+                </div>
+
+                <!-- 导入画笔 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">导入画笔：</label>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="pasteBrushFromClipboardBtn" class="btn btn-secondary" style="flex: 1; padding: 6px; font-size: 0.8em;">
+                            📋 从剪贴板
+                        </button>
+                        <button id="importBrushFromFileBtn" class="btn btn-secondary" style="flex: 1; padding: 6px; font-size: 0.8em;">
+                            📁 从文件
+                        </button>
+                        <input type="file" id="importBrushFile" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- 绘制模式 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-bottom: 12px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; font-size: 0.85em;">绘制模式：</label>
+                    <p style="font-size: 0.75em; color: #666; margin: 0 0 8px 0;">
+                        半自动：手动选择画笔后绘制<br>
+                        全自动：自动应用画笔到选区
+                    </p>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="brush-mode-btn active" data-mode="manual" style="flex: 1; padding: 6px; font-size: 0.8em; 
+                                                                                          border: 2px solid #667eea; background: #667eea; color: white; 
+                                                                                          border-radius: 6px; cursor: pointer;">
+                            🖐️ 半自动
+                        </button>
+                        <button class="brush-mode-btn" data-mode="auto" style="flex: 1; padding: 6px; font-size: 0.8em; 
+                                                                                 border: 2px solid #e0e0e0; background: white; color: #333; 
+                                                                                 border-radius: 6px; cursor: pointer;">
+                            ⚡ 全自动
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 画笔列表 -->
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-weight: 600; font-size: 0.85em;">我的画笔：</label>
+                        <span id="brushCount" style="font-size: 0.75em; color: #666;"></span>
+                    </div>
+                    <div id="brushList" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
             </div>
         </div>
 
@@ -821,6 +1034,7 @@
                             <div class="edit-tools">
                                 <button class="edit-tool-btn active" data-tool="brush" data-i18n="toolBrush">画笔</button>
                                 <button class="edit-tool-btn" data-tool="selection" data-i18n="toolSelection">📐 选区</button>
+                                <button class="edit-tool-btn" data-tool="customBrush" data-i18n="customBrushTool">🖌️ 画笔管理</button>
                                 <button class="edit-tool-btn" data-tool="eraser" data-i18n="toolEraser">橡皮擦</button>
                                 <button class="edit-tool-btn" data-tool="razor" data-i18n="toolRazor">剃刀</button>
                                 <button class="edit-tool-btn" data-tool="chainRazor" data-i18n="toolChainRazor">连锁剃刀</button>
@@ -941,7 +1155,11 @@
     </main>
 
     <script src="js/bead-palette.js" defer></script>
-    <script src="js/bundle.6ed378e8.min.js" defer></script>
+    <script src="js/SelectionManager.js" defer></script>
+    <script src="js/SelectionPanel.js" defer></script>
+    <script src="js/BrushManager.js" defer></script>
+    <script src="js/BrushPanel.js" defer></script>
+    <script src="js/bundle.95557bc9.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">

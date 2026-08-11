@@ -1,14 +1,22 @@
-
 /**
  * CustomEditor - 负责自定义编辑功能
+ * 集成 SelectionManager 支持多种选区类型
  */
 class CustomEditor {
-    constructor() {
+    constructor(width, height) {
         this.editData = null;
         this.editHistory = [];
         this.isDrawing = false;
         this.currentEditTool = 'brush';
         this.cellSize = 20;
+        
+        // 初始化选区管理器
+        this.selectionManager = new SelectionManager(
+            width || 52,
+            height || 52
+        );
+        
+        // 兼容性保留
         this.selection = null;
         this.isSelecting = false;
         this.selectionStart = null;
@@ -23,6 +31,12 @@ class CustomEditor {
 
         this.editData = perlerColors.map(row => [...row]);
         this.editHistory = [this.editData.map(row => [...row])];
+        
+        // 更新选区管理器尺寸
+        this.selectionManager.setCanvasSize(
+            perlerColors[0]?.length || 52,
+            perlerColors.length
+        );
     }
 
     /**
@@ -135,8 +149,12 @@ class CustomEditor {
         const transparentColor = this.getTransparentColor();
         const tool = options.tool || 'brush';
         const targetColor = options.targetColor || null;
-        const colorSet = options.colorSet || [];
-        const mappingMethod = options.mappingMethod || 'euclidean';
+
+        // 使用 SelectionManager 检查选区
+        if (this.selectionManager.hasSelection() && 
+            !this.selectionManager.isInSelection(x, y)) {
+            return;
+        }
 
         switch (tool) {
             case 'brush':
@@ -189,7 +207,10 @@ class CustomEditor {
 
             if (visited.has(key)) continue;
             if (x < 0 || x >= width || y < 0 || y >= height) continue;
-            if (!this.isInSelection(x, y)) continue;
+            
+            // 使用 SelectionManager 检查选区
+            if (this.selectionManager.hasSelection() && 
+                !this.selectionManager.isInSelection(x, y)) continue;
 
             const currentColor = this.editData[y][x];
             const currentIsTransparent = currentColor.isTransparent;
@@ -225,7 +246,10 @@ class CustomEditor {
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                if (!this.isInSelection(x, y)) continue;
+                // 使用 SelectionManager 检查选区
+                if (this.selectionManager.hasSelection() && 
+                    !this.selectionManager.isInSelection(x, y)) continue;
+                    
                 const currentColor = this.editData[y][x];
                 if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
                     this.editData[y][x] = transparentColor;
@@ -253,13 +277,21 @@ class CustomEditor {
         this.editData = data;
     }
 
+    // ========== 选区相关方法（兼容性封装） ==========
+
     /**
-     * 检查坐标是否在选区内
+     * 检查坐标是否在选区内（兼容旧接口）
      * @param {number} x - X坐标
      * @param {number} y - Y坐标
      * @returns {boolean}
      */
     isInSelection(x, y) {
+        // 优先使用 SelectionManager
+        if (this.selectionManager.hasSelection()) {
+            return this.selectionManager.isInSelection(x, y);
+        }
+        
+        // 兼容旧的矩形选区
         if (!this.selection) return true;
         const { x1, y1, x2, y2 } = this.selection;
         return x >= Math.min(x1, x2) && x <= Math.max(x1, x2) &&
@@ -267,11 +299,19 @@ class CustomEditor {
     }
 
     /**
-     * 设置选区
+     * 设置选区（兼容旧接口）
      * @param {Object} selection - { x1, y1, x2, y2 }
      */
     setSelection(selection) {
         this.selection = selection;
+        // 同步到 SelectionManager
+        if (selection) {
+            this.selectionManager.setType('rect');
+            this.selectionManager.rectStart = { x: selection.x1, y: selection.y1 };
+            this.selectionManager.rectEnd = { x: selection.x2, y: selection.y2 };
+        } else {
+            this.selectionManager.clear();
+        }
     }
 
     /**
@@ -281,10 +321,11 @@ class CustomEditor {
         this.selection = null;
         this.selectionStart = null;
         this.isSelecting = false;
+        this.selectionManager.clear();
     }
 
     /**
-     * 开始选区
+     * 开始选区（兼容旧接口）
      * @param {number} x - 起始X
      * @param {number} y - 起始Y
      */
@@ -292,10 +333,13 @@ class CustomEditor {
         this.isSelecting = true;
         this.selectionStart = { x, y };
         this.selection = { x1: x, y1: y, x2: x, y2: y };
+        
+        // 同步到 SelectionManager
+        this.selectionManager.start(x, y);
     }
 
     /**
-     * 更新选区
+     * 更新选区（兼容旧接口）
      * @param {number} x - 当前X
      * @param {number} y - 当前Y
      */
@@ -307,6 +351,9 @@ class CustomEditor {
             x2: x,
             y2: y
         };
+        
+        // 同步到 SelectionManager
+        this.selectionManager.update(x, y);
     }
 
     /**
@@ -314,13 +361,32 @@ class CustomEditor {
      */
     endSelection() {
         this.isSelecting = false;
+        this.selectionManager.end();
+        
+        // 同步回旧接口
+        if (this.selectionManager.hasSelection() && 
+            this.selectionManager.type === 'rect') {
+            this.selection = {
+                x1: this.selectionManager.rectStart.x,
+                y1: this.selectionManager.rectStart.y,
+                x2: this.selectionManager.rectEnd.x,
+                y2: this.selectionManager.rectEnd.y
+            };
+        } else {
+            this.selection = null;
+        }
     }
 
     /**
-     * 获取选区范围
+     * 获取选区范围（兼容旧接口）
      * @returns {Object|null} - { x, y, width, height } 或 null
      */
     getSelectionBounds() {
+        // 优先使用 SelectionManager
+        const bounds = this.selectionManager.getBounds();
+        if (bounds) return bounds;
+        
+        // 兼容旧接口
         if (!this.selection) return null;
         const { x1, y1, x2, y2 } = this.selection;
         return {
@@ -330,6 +396,48 @@ class CustomEditor {
             height: Math.abs(y2 - y1) + 1
         };
     }
+
+    // ========== 新选区方法 ==========
+
+    /**
+     * 设置选区类型
+     * @param {string} type - 'rect' | 'lasso' | 'polygon'
+     */
+    setSelectionType(type) {
+        this.selectionManager.setType(type);
+    }
+
+    /**
+     * 获取选区管理器
+     * @returns {SelectionManager}
+     */
+    getSelectionManager() {
+        return this.selectionManager;
+    }
+
+    /**
+     * 反转选区
+     */
+    invertSelection() {
+        this.selectionManager.toggleInverse();
+    }
+
+    /**
+     * 导出选区数据
+     * @returns {Object|null}
+     */
+    exportSelectionData() {
+        return this.selectionManager.exportSelectionData(this.editData);
+    }
+
+    /**
+     * 导出选区为 JSON
+     * @returns {string|null}
+     */
+    exportSelectionJSON() {
+        return this.selectionManager.exportToJSON(this.editData);
+    }
 }
 
-
+// 导出到全局
+window.CustomEditor = CustomEditor;
