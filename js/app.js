@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.2.0';
+        this.APP_VERSION = '1.2.1';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -3419,6 +3419,13 @@ class PixelArtGenerator {
         );
     }
 
+    /**
+     * 生成4位随机参数（用于文件名防重复）
+     */
+    _generateRandomSuffix() {
+        return Math.floor(1000 + Math.random() * 9000);
+    }
+
     downloadPerlerChart() {
         const format = this.exportFormatSelect.value;
         
@@ -3458,7 +3465,8 @@ class PixelArtGenerator {
             const chartStyle = this.chartStyle.value;
             const beadShape = this.beadShape.value;
             const i18nFileName = i18n[getCurrentLang()].fileName;
-            let fileName = `${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
+            const randomSuffix = this._generateRandomSuffix();
+            let fileName = `${randomSuffix}_${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
             
             if (this.exportCounter.perler > 1) fileName += `_(${this.exportCounter.perler})`;
             if (chartStyle === 'bw') fileName += `_${i18nFileName.bw}`;
@@ -3677,7 +3685,8 @@ class PixelArtGenerator {
             const beadShape = this.beadShape.value;
             
             const i18nFileName = i18n[getCurrentLang()].fileName;
-            let fileName = `${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
+            const randomSuffix = this._generateRandomSuffix();
+            let fileName = `${randomSuffix}_${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
             
             // 添加导出编号
             if (this.exportCounter.perler > 1) {
@@ -3756,7 +3765,8 @@ class PixelArtGenerator {
         const beadShape = this.beadShape.value;
         
         const i18nFileName = i18n[getCurrentLang()].fileName;
-        let fileName = `${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
+        const randomSuffix = this._generateRandomSuffix();
+        let fileName = `${randomSuffix}_${i18nFileName.perlerChart}_${colorSetName}_${perlerWidth}x${perlerHeight}`;
         
         // 添加导出编号
         if (this.exportCounter.perler > 1) {
