@@ -142,12 +142,24 @@
                             </label>
                         </div>
                         <div class="control-group">
-                            <label>图片裁切</label>
+                            <label>图片裁剪旋转</label>
                             <div class="crop-buttons">
-                                <button id="cropBtn" class="btn crop-btn">✂️ 裁切图片</button>
-                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;">↺ 重置图片</button>
-                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;">✓ 确认裁切</button>
+                                <button id="cropBtn" class="btn crop-btn">✂️ 裁剪旋转</button>
+                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;">↺ 重置</button>
+                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;">✓ 确认</button>
                                 <button id="cancelCropBtn" class="btn crop-btn cancel" style="display: none;">✕ 取消</button>
+                            </div>
+                            <div class="rotate-controls" id="rotateControls" style="display: none; margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 0.9em;">旋转:</span>
+                                    <input type="range" id="rotateSlider" min="0" max="360" value="0" style="flex: 1;">
+                                    <span id="rotateValue" style="min-width: 35px; text-align: right;">0°</span>
+                                </div>
+                                <div style="display: flex; gap: 5px; margin-top: 8px;">
+                                    <button class="btn btn-secondary" id="rotate90Btn" style="flex: 1; font-size: 0.85em;">↻ 90°</button>
+                                    <button class="btn btn-secondary" id="rotate180Btn" style="flex: 1; font-size: 0.85em;">180°</button>
+                                    <button class="btn btn-secondary" id="rotate270Btn" style="flex: 1; font-size: 0.85em;">↺ 270°</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -665,6 +677,14 @@
                                 <button class="edit-tool-btn" data-tool="stroke">✏️ 描边</button>
                             </div>
                         </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item slider-item">
+                                <label><span>画笔大小：</span>
+                                    <span id="brushSizeValue">1</span>
+                                </label>
+                                <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
+                            </div>
+                        </div>
                         <div class="control-group">
                             <label>图像翻转：</label>
                             <div style="display: flex; gap: 10px;">
@@ -679,12 +699,6 @@
                                     <input type="color" id="customEditColor" value="#000000">
                                     <span id="currentColorValue">#000000</span>
                                 </div>
-                            </div>
-                            <div class="flex-item slider-item">
-                                <label><span>画笔大小：</span>
-                                    <span id="brushSizeValue">1</span>
-                                </label>
-                                <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
                             </div>
                         </div>
                         <div class="control-group flex-row">

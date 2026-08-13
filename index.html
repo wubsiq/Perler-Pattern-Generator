@@ -549,12 +549,24 @@
                             </label>
                         </div>
                         <div class="control-group">
-                            <label data-i18n="imageCropLabel">图片裁切</label>
+                            <label data-i18n="imageCropLabel">图片裁剪旋转</label>
                             <div class="crop-buttons">
-                                <button id="cropBtn" class="btn crop-btn" data-i18n="cropImage">✂️ 裁切图片</button>
-                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;" data-i18n="resetImage">↺ 重置图片</button>
-                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;" data-i18n="confirmCrop">✓ 确认裁切</button>
+                                <button id="cropBtn" class="btn crop-btn" data-i18n="cropImage">✂️ 裁剪旋转</button>
+                                <button id="resetCropBtn" class="btn crop-btn reset" style="display: none;" data-i18n="resetImage">↺ 重置</button>
+                                <button id="confirmCropBtn" class="btn crop-btn confirm" style="display: none;" data-i18n="confirmCrop">✓ 确认</button>
                                 <button id="cancelCropBtn" class="btn crop-btn cancel" style="display: none;" data-i18n="cancelCrop">✕ 取消</button>
+                            </div>
+                            <div class="rotate-controls" id="rotateControls" style="display: none; margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 0.9em;" data-i18n="rotateLabel">旋转:</span>
+                                    <input type="range" id="rotateSlider" min="0" max="360" value="0" style="flex: 1;">
+                                    <span id="rotateValue" style="min-width: 35px; text-align: right;">0°</span>
+                                </div>
+                                <div style="display: flex; gap: 5px; margin-top: 8px;">
+                                    <button class="btn btn-secondary" id="rotate90Btn" style="flex: 1; font-size: 0.85em;" data-i18n="rotate90">↻ 90°</button>
+                                    <button class="btn btn-secondary" id="rotate180Btn" style="flex: 1; font-size: 0.85em;" data-i18n="rotate180">180°</button>
+                                    <button class="btn btn-secondary" id="rotate270Btn" style="flex: 1; font-size: 0.85em;" data-i18n="rotate270">↺ 270°</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1048,6 +1060,14 @@
                                 <button class="edit-tool-btn" data-tool="stroke" data-i18n="strokeTool">✏️ 描边</button>
                             </div>
                         </div>
+                        <div class="control-group flex-row">
+                            <div class="flex-item slider-item">
+                                <label><span data-i18n="brushSize">画笔大小：</span>
+                                    <span id="brushSizeValue">1</span>
+                                </label>
+                                <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
+                            </div>
+                        </div>
                         <div class="control-group">
                             <label data-i18n="imageFlip">图像翻转：</label>
                             <div style="display: flex; gap: 10px;">
@@ -1058,14 +1078,6 @@
                         <div class="control-group">
                             <label><span data-i18n="currentColor">当前颜色：</span></label>
                             <div id="beadPaletteContainer" class="bead-palette-container"></div>
-                        </div>
-                        <div class="control-group flex-row">
-                            <div class="flex-item slider-item">
-                                <label><span data-i18n="brushSize">画笔大小：</span>
-                                    <span id="brushSizeValue">1</span>
-                                </label>
-                                <input type="range" id="customEditBrushSize" min="1" max="5" step="1" value="1">
-                            </div>
                         </div>
                         <div class="control-group flex-row">
                             <div class="flex-item color-item">
@@ -1159,7 +1171,7 @@
     <script src="js/SelectionPanel.js" defer></script>
     <script src="js/BrushManager.js" defer></script>
     <script src="js/BrushPanel.js" defer></script>
-    <script src="js/bundle.bc663182.min.js" defer></script>
+    <script src="js/bundle.360f5b8e.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">

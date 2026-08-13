@@ -172,7 +172,11 @@ const i18n = {
         confirmDeleteDesign: '确定要删除这张图纸吗？',
         alertDeleteFailed: '删除失败',
         // 工作区中的各种标签
-        imageCropLabel: '图片裁切',
+        imageCropLabel: '图片裁剪旋转',
+        rotateLabel: '旋转:',
+        rotate90: '↻ 90°',
+        rotate180: '180°',
+        rotate270: '↺ 270°',
         simpleMode: '简单模式',
         advancedMode: '高级模式',
         batchPixelate: '批量像素化',
@@ -219,10 +223,10 @@ const i18n = {
         largeGridLineWidth: '大格子线粗度：',
         exportHighResScale: '导出高清缩放：',
         exportPaperInfo: '📦 导出图纸信息',
-        // 图片裁切
-        cropImage: '✂️ 裁切图片',
-        resetImage: '↺ 重置图片',
-        confirmCrop: '✓ 确认裁切',
+        // 图片裁切旋转
+        cropImage: '✂️ 裁剪旋转',
+        resetImage: '↺ 重置',
+        confirmCrop: '✓ 确认',
         cancelCrop: '✕ 取消',
         // 各种标签
         offsetX: 'X轴偏移：',
@@ -494,7 +498,11 @@ const i18n = {
         confirmDeleteDesign: 'Are you sure you want to delete this design?',
         alertDeleteFailed: 'Delete failed',
         // Workspace labels
-        imageCropLabel: 'Image Crop',
+        imageCropLabel: 'Image Crop & Rotate',
+        rotateLabel: 'Rotate:',
+        rotate90: '↻ 90°',
+        rotate180: '180°',
+        rotate270: '↺ 270°',
         simpleMode: 'Simple Mode',
         advancedMode: 'Advanced Mode',
         batchPixelate: 'Batch Pixelate',
@@ -541,10 +549,10 @@ const i18n = {
         largeGridLineWidth: 'Large Grid Line Width: ',
         exportHighResScale: 'Export HD Scale: ',
         exportPaperInfo: '📦 Export Paper Info',
-        // Image crop
-        cropImage: '✂️ Crop Image',
-        resetImage: '↺ Reset Image',
-        confirmCrop: '✓ Confirm Crop',
+        // Image crop & rotate
+        cropImage: '✂️ Crop & Rotate',
+        resetImage: '↺ Reset',
+        confirmCrop: '✓ Confirm',
         cancelCrop: '✕ Cancel',
         // Various labels
         offsetX: 'X Offset: ',
