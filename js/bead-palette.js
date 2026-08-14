@@ -217,6 +217,16 @@ class BeadPalette {
         return this.allColors.find(c => c.name === this.currentColorName);
     }
 
+    getSelectedColor() {
+        if (!this.currentColorName) return null;
+        const color = this.allColors.find(c => c.name === this.currentColorName);
+        return color ? {
+            name: color.name,
+            rgb: color.rgb,
+            hex: color.hex
+        } : null;
+    }
+
     refresh() {
         this.renderGroupTabs();
         this.renderGrid();

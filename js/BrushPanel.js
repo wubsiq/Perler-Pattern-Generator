@@ -6,6 +6,8 @@ class BrushPanel {
     constructor(brushManager) {
         this.brushManager = brushManager;
         this.panel = null;
+        this.brushLibraryManager = null;
+        this.brushLibraryWindow = null;
         
         this.init();
     }
@@ -16,6 +18,11 @@ class BrushPanel {
     init() {
         this.panel = document.getElementById('brushPanel');
         if (!this.panel) return;
+        
+        // 初始化画笔库管理器
+        if (typeof BrushLibraryManager !== 'undefined') {
+            this.brushLibraryManager = new BrushLibraryManager();
+        }
         
         // 设置面板为自由窗口（可拖拽）
         this._setupFreeWindow();
@@ -44,6 +51,9 @@ class BrushPanel {
         // 初始渲染
         this.renderBrushList();
         this.updateModeDisplay();
+        
+        // 创建画笔库窗口
+        this._createBrushLibraryWindow();
     }
     
     /**
@@ -90,6 +100,15 @@ class BrushPanel {
      */
     _setupEventListeners() {
         console.log('[BrushPanel] 设置事件监听...');
+        
+        // 更多按钮 - 打开画笔库
+        const moreBtn = document.getElementById('brushLibraryMoreBtn');
+        if (moreBtn) {
+            moreBtn.addEventListener('click', () => {
+                console.log('[BrushPanel] 点击了更多按钮');
+                this._showBrushLibrary();
+            });
+        }
         
         // 从剪贴板导入（使用新的唯一 ID）
         const pasteBtn = document.getElementById('pasteBrushFromClipboardBtn');
@@ -590,18 +609,21 @@ class BrushPanel {
                 const cell = preview.cells.find(c => c.x === x && c.y === y);
                 if (cell && cell.color) {
                     // 处理不同颜色格式
-                    let bgColor = '#ddd';
+                    let bgColor = '#333'; // 默认深色（对于单色画笔）
                     if (cell.color.rgb && Array.isArray(cell.color.rgb)) {
                         bgColor = `rgb(${cell.color.rgb[0]}, ${cell.color.rgb[1]}, ${cell.color.rgb[2]})`;
                     } else if (cell.color.hex) {
                         bgColor = cell.color.hex;
                     } else if (typeof cell.color === 'string') {
                         bgColor = cell.color;
+                    } else if (cell.color.r !== undefined && cell.color.g !== undefined && cell.color.b !== undefined) {
+                        // { r, g, b } 格式
+                        bgColor = `rgb(${cell.color.r}, ${cell.color.g}, ${cell.color.b})`;
                     }
                     cells.push(`<div style="width: ${cellSize}px; height: ${cellSize}px; background: ${bgColor}; 
                                         border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);"></div>`);
                 } else {
-                    // 空格子用浅灰色背景
+                    // 空格子用透明背景
                     cells.push(`<div style="width: ${cellSize}px; height: ${cellSize}px; background: transparent;"></div>`);
                 }
             }
@@ -746,6 +768,317 @@ class BrushPanel {
             }
         }
     }
+    
+    /**
+     * 创建画笔库窗口
+     */
+    _createBrushLibraryWindow() {
+        if (this.brushLibraryWindow) return;
+        
+        this.brushLibraryWindow = document.createElement('div');
+        this.brushLibraryWindow.id = 'brushLibraryWindow';
+        this.brushLibraryWindow.className = 'brush-library-window';
+        this.brushLibraryWindow.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            z-index: 10001;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        `;
+        
+        this.brushLibraryWindow.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h3 style="margin: 0; font-size: 1.1em;">🎨 画笔库</h3>
+                <button id="closeBrushLibraryBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.2em; cursor: pointer; padding: 4px 10px; border-radius: 6px;">✕</button>
+            </div>
+            <div style="display: flex; flex: 1; overflow: hidden;">
+                <!-- 我的画笔 -->
+                <div style="flex: 1; padding: 16px; overflow-y: auto; border-right: 1px solid #eee;">
+                    <h4 style="margin: 0 0 12px; font-size: 0.95em; color: #333;">🖌️ 我的画笔</h4>
+                    <div id="myBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    <div id="myBrushesEmpty" style="text-align: center; padding: 20px; color: #999; font-size: 0.85em; display: none;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">📝</div>
+                        <p>暂无自定义画笔</p>
+                    </div>
+                </div>
+                <!-- 系统预设 -->
+                <div style="flex: 1; padding: 16px; overflow-y: auto;">
+                    <h4 style="margin: 0 0 12px; font-size: 0.95em; color: #333;">✨ 系统预设</h4>
+                    <div id="presetBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    <div id="presetBrushesEmpty" style="text-align: center; padding: 20px; color: #999; font-size: 0.85em; display: none;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">🗂️</div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(this.brushLibraryWindow);
+        
+        // 添加事件监听
+        document.getElementById('closeBrushLibraryBtn').addEventListener('click', () => {
+            this._hideBrushLibrary();
+        });
+        
+        // 点击背景关闭
+        this.brushLibraryWindow.addEventListener('click', (e) => {
+            if (e.target === this.brushLibraryWindow) {
+                this._hideBrushLibrary();
+            }
+        });
+    }
+    
+    /**
+     * 显示画笔库
+     */
+    async _showBrushLibrary() {
+        if (!this.brushLibraryWindow) this._createBrushLibraryWindow();
+        
+        this.brushLibraryWindow.style.display = 'flex';
+        
+        // 加载预设画笔
+        if (this.brushLibraryManager) {
+            const presetBrushes = await this.brushLibraryManager.loadPresetBrushes();
+            this._renderPresetBrushes(presetBrushes);
+            this._renderMyBrushes();
+        }
+    }
+    
+    /**
+     * 隐藏画笔库
+     */
+    _hideBrushLibrary() {
+        if (this.brushLibraryWindow) {
+            this.brushLibraryWindow.style.display = 'none';
+        }
+    }
+    
+    /**
+     * 渲染预设画笔列表
+     */
+    _renderPresetBrushes(brushes) {
+        const listEl = document.getElementById('presetBrushesList');
+        const emptyEl = document.getElementById('presetBrushesEmpty');
+        
+        if (!listEl) return;
+        
+        if (!brushes || brushes.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            emptyEl.querySelector('p').textContent = '暂无预设画笔';
+            return;
+        }
+        
+        emptyEl.style.display = 'none';
+        listEl.innerHTML = brushes.map(brush => this._createBrushCard(brush, 'preset')).join('');
+        
+        // 添加交互事件
+        this._setupCardInteractions(listEl, 'preset');
+        
+        // 初始化预览画布
+        this._initBrushPreviews();
+    }
+    
+    /**
+     * 渲染我的画笔列表
+     */
+    _renderMyBrushes() {
+        const listEl = document.getElementById('myBrushesList');
+        const emptyEl = document.getElementById('myBrushesEmpty');
+        
+        if (!listEl || !this.brushLibraryManager) return;
+        
+        const myBrushes = this.brushLibraryManager.myBrushes;
+        
+        if (!myBrushes || myBrushes.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            return;
+        }
+        
+        emptyEl.style.display = 'none';
+        listEl.innerHTML = myBrushes.map(brush => this._createBrushCard(brush, 'my')).join('');
+        
+        // 添加交互事件
+        this._setupCardInteractions(listEl, 'my');
+        
+        // 初始化预览画布
+        this._initBrushPreviews();
+    }
+    
+    /**
+     * 设置画笔卡片的交互事件
+     */
+    _setupCardInteractions(listEl, type) {
+        listEl.querySelectorAll('.brush-card').forEach(card => {
+            const deleteBtn = card.querySelector('.delete-brush-btn');
+            
+            // 悬停效果
+            card.addEventListener('mouseenter', () => {
+                if (!card.style.borderColor || card.style.borderColor === 'rgb(224, 224, 224)') {
+                    card.style.borderColor = '#b0b8d0';
+                    card.style.transform = 'translateY(-2px)';
+                    card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }
+                // 显示删除按钮（仅我的画笔）
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'block';
+                }
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                if (!card.classList.contains('selected')) {
+                    card.style.borderColor = '#e0e0e0';
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                }
+                // 隐藏删除按钮
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'none';
+                }
+            });
+            
+            // 删除按钮点击事件
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const brushId = deleteBtn.dataset.brushId;
+                    if (confirm('确定删除此画笔吗？')) {
+                        this.brushLibraryManager.removeFromMyBrushes(brushId);
+                        // 同时从 BrushManager 中删除
+                        this.brushManager.deleteBrush(brushId);
+                        this._renderMyBrushes();
+                        this._renderPresetBrushes(this.brushLibraryManager.presetBrushes);
+                    }
+                });
+            }
+            
+            // 点击事件 - 点击直接使用画笔
+            card.addEventListener('click', () => {
+                const brushId = card.dataset.brushId;
+                const brushList = type === 'preset' ? this.brushLibraryManager.presetBrushes : this.brushLibraryManager.myBrushes;
+                const brush = brushList.find(b => b.id === brushId);
+                if (brush) {
+                    this._selectAndUseBrush(brush, type);
+                }
+            });
+        });
+    }
+    
+    /**
+     * 选中并使用画笔
+     */
+    _selectAndUseBrush(brush, type) {
+        // 更新选中视觉状态 - 先清除同类型所有卡片的选中状态
+        const cardSelector = type === 'preset' ? '#presetBrushesList .brush-card' : '#myBrushesList .brush-card';
+        document.querySelectorAll(cardSelector).forEach(c => {
+            c.style.borderColor = '#e0e0e0';
+            c.style.background = 'white';
+            c.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+            c.style.transform = 'scale(1)';
+        });
+        
+        // 设置选中卡片的高亮效果
+        const card = document.querySelector(`${cardSelector}[data-brush-id="${brush.id}"]`);
+        if (card) {
+            card.style.borderColor = '#667eea';
+            card.style.background = 'linear-gradient(135deg, #e8edff 0%, #d4ddff 100%)';
+            card.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4), inset 0 0 0 2px #667eea';
+            card.style.transform = 'scale(1.05)';
+        }
+        
+        // 直接使用画笔
+        this._applyBrush(brush);
+        
+        // 延迟后自动关闭窗口，让用户看到选中效果
+        setTimeout(() => {
+            this._hideBrushLibrary();
+        }, 400);
+    }
+    
+    /**
+     * 应用画笔到 BrushManager
+     */
+    _applyBrush(brush) {
+        const brushData = {
+            id: brush.id,
+            name: brush.name,
+            width: brush.w || brush.width,
+            height: brush.h || brush.height,
+            shape: (brush.mask || brush.shape).map(row => typeof row === 'string' 
+                ? row.split('').map(c => c === '1')
+                : row),
+            colors: [{ r: 0, g: 0, b: 0 }]
+        };
+        
+        // 添加到 BrushManager（主画笔列表）
+        this.brushManager.addBrush(brushData);
+        this.brushManager.selectBrush(brush.id);
+        
+        // 同时添加到 BrushLibraryManager 的我的画笔（如果是预设画笔）
+        if (this.brushLibraryManager && !this.brushLibraryManager.myBrushes.find(b => b.id === brush.id)) {
+            const brushCopy = {
+                ...brush,
+                id: brush.id
+            };
+            this.brushLibraryManager.myBrushes.push(brushCopy);
+            this.brushLibraryManager.saveMyBrushes();
+        }
+        
+        this._showNotification(`✓ 已选择画笔：${brush.name}`);
+    }
+    
+    /**
+     * 创建画笔卡片
+     */
+    _createBrushCard(brush, type) {
+        const canvasId = `preview_${type}_${brush.id}`;
+        return `
+            <div class="brush-card" data-brush-id="${brush.id}" data-type="${type}"
+                 style="width: 80px; padding: 8px; border: 2px solid #e0e0e0; border-radius: 8px; 
+                        cursor: pointer; background: white; text-align: center; transition: all 0.2s;
+                        position: relative;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                    <canvas id="${canvasId}" width="50" height="50" style="display: block;"></canvas>
+                </div>
+                <div style="font-size: 0.75em; font-weight: 500; color: #333; 
+                            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${brush.name}
+                </div>
+                <div style="font-size: 0.7em; color: #999; margin-top: 2px;">
+                    ${brush.w}×${brush.h}
+                </div>
+                ${type === 'my' ? '<button class="delete-brush-btn" data-brush-id="' + brush.id + '" style="position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; background: #ff6b6b; color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 0.6em; display: none; z-index: 10;">✕</button>' : ''}
+            </div>
+        `;
+    }
+    
+    /**
+     * 初始化画笔卡片的预览画布
+     */
+    _initBrushPreviews() {
+        if (!this.brushLibraryManager) return;
+        
+        document.querySelectorAll('#myBrushesList canvas, #presetBrushesList canvas').forEach(canvas => {
+            const brushId = canvas.id.replace('preview_preset_', '').replace('preview_my_', '');
+            const allBrushes = [...this.brushLibraryManager.myBrushes, ...this.brushLibraryManager.presetBrushes];
+            const brush = allBrushes.find(b => b.id === brushId);
+            
+            if (brush) {
+                this.brushLibraryManager.renderPreview(canvas, brush, 8, '#333');
+            }
+        });
+    }
+    
 }
 
 // 导出到全局

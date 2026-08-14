@@ -224,10 +224,27 @@ class BrushManager {
         for (let y = 0; y < brush.height; y++) {
             for (let x = 0; x < brush.width; x++) {
                 if (brush.shape[y] && brush.shape[y][x]) {
+                    // 获取颜色 - 支持多种格式
+                    let cellColor = null;
+                    if (brush.colors && brush.colors.length > 0) {
+                        // 如果 colors 是二维数组
+                        if (Array.isArray(brush.colors[y])) {
+                            cellColor = brush.colors[y][x];
+                        } 
+                        // 如果 colors 是一维数组（所有格子用同一种颜色）
+                        else if (y === 0 && Array.isArray(brush.colors)) {
+                            cellColor = brush.colors[0];
+                        }
+                        // 如果 colors 是数组且每个元素是颜色对象
+                        else if (brush.colors[y] && typeof brush.colors[y] === 'object') {
+                            cellColor = brush.colors[y];
+                        }
+                    }
+                    
                     cells.push({
                         x,
                         y,
-                        color: brush.colors[y] ? brush.colors[y][x] : null
+                        color: cellColor
                     });
                 }
             }
@@ -278,6 +295,38 @@ class BrushManager {
      */
     getBrushCount() {
         return this.brushes.length;
+    }
+    
+    /**
+     * 添加画笔（用于从预设或导入添加）
+     */
+    addBrush(brushData) {
+        // 检查是否已存在相同 ID
+        const existingIndex = this.brushes.findIndex(b => b.id === brushData.id);
+        if (existingIndex !== -1) {
+            // 已存在，直接选中
+            this.currentBrush = this.brushes[existingIndex];
+            this._notifyBrushChange();
+            return this.currentBrush;
+        }
+        
+        const brush = {
+            id: brushData.id,
+            name: brushData.name,
+            shape: brushData.shape,
+            colors: brushData.colors || [{ r: 0, g: 0, b: 0 }],
+            width: brushData.width,
+            height: brushData.height,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        this.brushes.push(brush);
+        this.currentBrush = brush;
+        this._saveBrushes();
+        this._notifyBrushChange();
+        
+        return brush;
     }
     
     /**

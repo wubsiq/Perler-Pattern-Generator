@@ -422,7 +422,12 @@
                 <!-- 画笔列表 -->
                 <div style="border-top: 1px solid #e0e0e0; padding-top: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label style="font-weight: 600; font-size: 0.85em;">我的画笔：</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button id="brushLibraryMoreBtn" style="padding: 4px 10px; font-size: 0.8em; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                ➕ 更多
+                            </button>
+                            <label style="font-weight: 600; font-size: 0.85em;">我的画笔：</label>
+                        </div>
                         <span id="brushCount" style="font-size: 0.75em; color: #666;"></span>
                     </div>
                     <div id="brushList" style="max-height: 300px; overflow-y: auto;"></div>
@@ -1169,9 +1174,10 @@
     <script src="js/bead-palette.js" defer></script>
     <script src="js/SelectionManager.js" defer></script>
     <script src="js/SelectionPanel.js" defer></script>
+    <script src="js/BrushLibraryManager.js" defer></script>
     <script src="js/BrushManager.js" defer></script>
     <script src="js/BrushPanel.js" defer></script>
-    <script src="js/bundle.360f5b8e.min.js" defer></script>
+    <script src="js/bundle.ef42bc4f.min.js" defer></script>
 
     <div id="smartOptimizeModal" class="modal" style="display: none;">
         <div class="modal-content smart-optimize-modal">
