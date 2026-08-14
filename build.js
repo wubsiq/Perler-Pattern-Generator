@@ -27,8 +27,47 @@ cleanupDirs.forEach(dir => {
 });
 console.log('');
 
+// 步骤 0.5: 更新 BrushLibraryManager.js 中的默认画笔数据
+console.log('[0.5] 同步画笔数据');
+const brushLibPath = path.join(projectRoot, 'js', 'BrushLibraryManager.js');
+const presetBrushesPath = path.join(projectRoot, 'data', 'preset-brushes.json');
+
+if (fs.existsSync(brushLibPath) && fs.existsSync(presetBrushesPath)) {
+    const brushLibContent = fs.readFileSync(brushLibPath, 'utf8');
+    const presetBrushesData = JSON.parse(fs.readFileSync(presetBrushesPath, 'utf8'));
+    
+    // 检查是否有自定义画笔
+    if (presetBrushesData.brushes && presetBrushesData.brushes.length > 0) {
+        // 构建新的 DEFAULT_BRUSHES 常量
+        const newDefaultBrushes = JSON.stringify({
+            version: presetBrushesData.version || "1.0",
+            brushes: presetBrushesData.brushes
+        }, null, 2);
+        
+        // 替换原有的 DEFAULT_BRUSHES 定义
+        const updatedContent = brushLibContent.replace(
+            /const DEFAULT_BRUSHES = \{[\s\S]*?\};/,
+            `const DEFAULT_BRUSHES = ${newDefaultBrushes};`
+        );
+        
+        fs.writeFileSync(brushLibPath, updatedContent, 'utf8');
+        console.log(`  ✓ 已更新 BrushLibraryManager.js，包含 ${presetBrushesData.brushes.length} 个预设画笔`);
+    } else {
+        console.log('  - preset-brushes.json 为空，使用默认画笔');
+    }
+} else {
+    console.log('  - 跳过画笔数据同步（文件不存在）');
+}
+console.log('');
+
 const jsFiles = [
     'js/colors.js',
+    'js/bead-palette.js',
+    'js/BrushLibraryManager.js',
+    'js/BrushManager.js',
+    'js/BrushPanel.js',
+    'js/SelectionManager.js',
+    'js/SelectionPanel.js',
     'js/colorUtils.js',
     'js/i18n.js',
     'modules/Pixelator.js',

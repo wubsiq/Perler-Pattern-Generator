@@ -8,6 +8,7 @@ class BrushPanel {
         this.panel = null;
         this.brushLibraryManager = null;
         this.brushLibraryWindow = null;
+        this.currentGroupFilter = '';
         
         this.init();
     }
@@ -783,39 +784,49 @@ class BrushPanel {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 600px;
-            max-height: 500px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            width: 900px;
+            height: 660px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
             z-index: 10001;
             display: none;
             flex-direction: column;
             overflow: hidden;
+            border: 3px solid #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
         this.brushLibraryWindow.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h3 style="margin: 0; font-size: 1.1em;">🎨 画笔库</h3>
-                <button id="closeBrushLibraryBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.2em; cursor: pointer; padding: 4px 10px; border-radius: 6px;">✕</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 2px solid #000; background: #fff; color: #000; flex-shrink: 0;">
+                <h3 style="margin: 0; font-size: 1.05em; font-weight: 700;">画笔库</h3>
+                <button id="closeBrushLibraryBtn" style="background: #fff; border: 2px solid #000; color: #000; font-size: 1em; cursor: pointer; padding: 2px 10px; border-radius: 4px; transition: all 0.2s; line-height: 1; font-weight: 600;">✕</button>
             </div>
-            <div style="display: flex; flex: 1; overflow: hidden;">
-                <!-- 我的画笔 -->
-                <div style="flex: 1; padding: 16px; overflow-y: auto; border-right: 1px solid #eee;">
-                    <h4 style="margin: 0 0 12px; font-size: 0.95em; color: #333;">🖌️ 我的画笔</h4>
-                    <div id="myBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
-                    <div id="myBrushesEmpty" style="text-align: center; padding: 20px; color: #999; font-size: 0.85em; display: none;">
-                        <div style="font-size: 2em; margin-bottom: 8px;">📝</div>
-                        <p>暂无自定义画笔</p>
-                    </div>
+            <div style="display: flex; flex: 1; min-height: 0; overflow: hidden; background: #fff;">
+                <!-- 左侧：分组侧栏 -->
+                <div id="groupSidebar" style="width: 160px; flex-shrink: 0; border-right: 2px solid #000; padding: 12px 10px; overflow-y: auto; background: #fff;">
+                    <div style="font-size: 0.82em; font-weight: 700; color: #000; margin-bottom: 10px; padding-left: 6px;">分组</div>
+                    <div id="groupListSidebar" style="display: flex; flex-direction: column; gap: 3px;"></div>
                 </div>
-                <!-- 系统预设 -->
-                <div style="flex: 1; padding: 16px; overflow-y: auto;">
-                    <h4 style="margin: 0 0 12px; font-size: 0.95em; color: #333;">✨ 系统预设</h4>
-                    <div id="presetBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
-                    <div id="presetBrushesEmpty" style="text-align: center; padding: 20px; color: #999; font-size: 0.85em; display: none;">
-                        <div style="font-size: 2em; margin-bottom: 8px;">🗂️</div>
-                        <p>加载中...</p>
+                <!-- 右侧：画笔列表 -->
+                <div style="flex: 1; display: flex; min-width: 0; overflow: hidden;">
+                    <!-- 我的画笔 -->
+                    <div style="flex: 1; min-width: 0; padding: 12px 14px; overflow-y: auto; border-right: 2px solid #000; background: #fff;">
+                        <h4 style="margin: 0 0 12px; font-size: 0.92em; color: #000; font-weight: 700;">我的画笔 <span id="myBrushesCount" style="color: #666; font-weight: 400; font-size: 0.82em; margin-left: 4px;"></span></h4>
+                        <div id="myBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;"></div>
+                        <div id="myBrushesEmpty" style="text-align: center; padding: 40px 20px; color: #999; font-size: 0.85em; display: none;">
+                            <div style="font-size: 2.5em; margin-bottom: 10px;">📝</div>
+                            <p style="margin: 0; color: #666;">暂无自定义画笔</p>
+                        </div>
+                    </div>
+                    <!-- 系统预设 -->
+                    <div style="flex: 1; min-width: 0; padding: 12px 14px; overflow-y: auto; background: #fff;">
+                        <h4 style="margin: 0 0 12px; font-size: 0.92em; color: #000; font-weight: 700;">系统预设 <span id="presetBrushesCount" style="color: #666; font-weight: 400; font-size: 0.82em; margin-left: 4px;"></span></h4>
+                        <div id="presetBrushesList" style="display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;"></div>
+                        <div id="presetBrushesEmpty" style="text-align: center; padding: 40px 20px; color: #999; font-size: 0.85em; display: none;">
+                            <div style="font-size: 2.5em; margin-bottom: 10px;">🗂️</div>
+                            <p style="margin: 0; color: #666;">加载中...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -843,13 +854,125 @@ class BrushPanel {
         if (!this.brushLibraryWindow) this._createBrushLibraryWindow();
         
         this.brushLibraryWindow.style.display = 'flex';
+        this.currentGroupFilter = ''; // 重置分组筛选
         
         // 加载预设画笔
         if (this.brushLibraryManager) {
             const presetBrushes = await this.brushLibraryManager.loadPresetBrushes();
+            this._renderGroupSidebar();
             this._renderPresetBrushes(presetBrushes);
             this._renderMyBrushes();
         }
+    }
+    
+    /**
+     * 渲染分组侧栏
+     */
+    _renderGroupSidebar() {
+        const sidebar = document.getElementById('groupListSidebar');
+        if (!sidebar || !this.brushLibraryManager) return;
+        
+        const stats = this.brushLibraryManager.getGroupStats();
+        const groups = this.brushLibraryManager.getGroups();
+        
+        let html = '';
+        // "全部" 选项
+        html += `
+            <div class="group-sidebar-item" data-group="" style="padding: 8px 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; transition: all 0.2s; color: ${!this.currentGroupFilter ? '#000' : '#333'}; background: ${!this.currentGroupFilter ? '#e8e8e8' : 'transparent'}; border: ${!this.currentGroupFilter ? '2px solid #000' : '2px solid transparent'}; font-weight: ${!this.currentGroupFilter ? '700' : '400'};">
+                <span>全部</span>
+                <span style="color: #666; font-size: 0.85em;">${stats.total}</span>
+            </div>
+        `;
+        
+        // "未分组" 选项
+        const ungroupedCount = stats.groups['__ungrouped__']?.count || 0;
+        const isUngroupedActive = this.currentGroupFilter === '__ungrouped__';
+        html += `
+            <div class="group-sidebar-item" data-group="__ungrouped__" style="padding: 8px 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; transition: all 0.2s; color: ${isUngroupedActive ? '#000' : '#333'}; background: ${isUngroupedActive ? '#e8e8e8' : 'transparent'}; border: ${isUngroupedActive ? '2px solid #000' : '2px solid transparent'}; font-weight: ${isUngroupedActive ? '700' : '400'};">
+                <span>未分组</span>
+                <span style="color: #666; font-size: 0.85em;">${ungroupedCount}</span>
+            </div>
+        `;
+        
+        // 分隔线
+        if (groups.length > 0) {
+            html += '<div style="height: 1px; background: #ddd; margin: 8px 6px;"></div>';
+        }
+        
+        // 各分组
+        groups.forEach(group => {
+            const count = stats.groups[group]?.count || 0;
+            const isActive = this.currentGroupFilter === group;
+            html += `
+                <div class="group-sidebar-item" data-group="${group}" style="padding: 8px 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; transition: all 0.2s; color: ${isActive ? '#000' : '#333'}; background: ${isActive ? '#e8e8e8' : 'transparent'}; border: ${isActive ? '2px solid #000' : '2px solid transparent'}; font-weight: ${isActive ? '700' : '400'};">
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${group}</span>
+                    <span style="color: #666; font-size: 0.85em; flex-shrink: 0; margin-left: 6px;">${count}</span>
+                </div>
+            `;
+        });
+        
+        sidebar.innerHTML = html;
+        
+        // 添加点击事件
+        sidebar.querySelectorAll('.group-sidebar-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const group = item.dataset.group;
+                this.currentGroupFilter = group;
+                this._renderGroupSidebar(); // 更新选中状态
+                
+                // 按分组筛选画笔
+                if (this.brushLibraryManager) {
+                    const filteredPresets = this.brushLibraryManager.filterPresetByGroup(group);
+                    this._renderPresetBrushes(filteredPresets);
+                    const filteredMy = this.brushLibraryManager.filterMyByGroup(group);
+                    this._renderMyBrushesWithData(filteredMy);
+                }
+            });
+            
+            // 悬停效果
+            item.addEventListener('mouseenter', () => {
+                if (item.dataset.group !== this.currentGroupFilter) {
+                    item.style.background = '#f0f0f0';
+                    item.style.color = '#000';
+                }
+            });
+            item.addEventListener('mouseleave', () => {
+                if (item.dataset.group !== this.currentGroupFilter) {
+                    item.style.background = 'transparent';
+                    item.style.color = '#333';
+                }
+            });
+        });
+    }
+    
+    /**
+     * 渲染我的画笔列表（使用指定数据）
+     */
+    _renderMyBrushesWithData(brushes) {
+        const listEl = document.getElementById('myBrushesList');
+        const emptyEl = document.getElementById('myBrushesEmpty');
+        const countEl = document.getElementById('myBrushesCount');
+        
+        if (!listEl) return;
+        
+        if (countEl) {
+            countEl.textContent = `(${brushes.length})`;
+        }
+        
+        if (!brushes || brushes.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            return;
+        }
+        
+        emptyEl.style.display = 'none';
+        listEl.innerHTML = brushes.map(brush => this._createBrushCard(brush, 'my')).join('');
+        
+        // 添加交互事件
+        this._setupCardInteractions(listEl, 'my');
+        
+        // 初始化预览画布
+        this._initBrushPreviews();
     }
     
     /**
@@ -867,8 +990,13 @@ class BrushPanel {
     _renderPresetBrushes(brushes) {
         const listEl = document.getElementById('presetBrushesList');
         const emptyEl = document.getElementById('presetBrushesEmpty');
+        const countEl = document.getElementById('presetBrushesCount');
         
         if (!listEl) return;
+        
+        if (countEl) {
+            countEl.textContent = `(${brushes.length})`;
+        }
         
         if (!brushes || brushes.length === 0) {
             listEl.innerHTML = '';
@@ -893,10 +1021,15 @@ class BrushPanel {
     _renderMyBrushes() {
         const listEl = document.getElementById('myBrushesList');
         const emptyEl = document.getElementById('myBrushesEmpty');
+        const countEl = document.getElementById('myBrushesCount');
         
         if (!listEl || !this.brushLibraryManager) return;
         
         const myBrushes = this.brushLibraryManager.myBrushes;
+        
+        if (countEl) {
+            countEl.textContent = `(${myBrushes.length})`;
+        }
         
         if (!myBrushes || myBrushes.length === 0) {
             listEl.innerHTML = '';
@@ -923,10 +1056,11 @@ class BrushPanel {
             
             // 悬停效果
             card.addEventListener('mouseenter', () => {
-                if (!card.style.borderColor || card.style.borderColor === 'rgb(224, 224, 224)') {
-                    card.style.borderColor = '#b0b8d0';
+                if (!card.classList.contains('selected')) {
+                    card.style.borderColor = '#000';
                     card.style.transform = 'translateY(-2px)';
-                    card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                    card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                    card.style.background = '#fafafa';
                 }
                 // 显示删除按钮（仅我的画笔）
                 if (deleteBtn) {
@@ -936,9 +1070,10 @@ class BrushPanel {
             
             card.addEventListener('mouseleave', () => {
                 if (!card.classList.contains('selected')) {
-                    card.style.borderColor = '#e0e0e0';
+                    card.style.borderColor = '#000';
                     card.style.transform = 'translateY(0)';
-                    card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                    card.style.background = '#fff';
                 }
                 // 隐藏删除按钮
                 if (deleteBtn) {
@@ -980,18 +1115,20 @@ class BrushPanel {
         // 更新选中视觉状态 - 先清除同类型所有卡片的选中状态
         const cardSelector = type === 'preset' ? '#presetBrushesList .brush-card' : '#myBrushesList .brush-card';
         document.querySelectorAll(cardSelector).forEach(c => {
-            c.style.borderColor = '#e0e0e0';
-            c.style.background = 'white';
-            c.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+            c.classList.remove('selected');
+            c.style.borderColor = '#000';
+            c.style.background = '#fff';
+            c.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             c.style.transform = 'scale(1)';
         });
         
         // 设置选中卡片的高亮效果
         const card = document.querySelector(`${cardSelector}[data-brush-id="${brush.id}"]`);
         if (card) {
-            card.style.borderColor = '#667eea';
-            card.style.background = 'linear-gradient(135deg, #e8edff 0%, #d4ddff 100%)';
-            card.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4), inset 0 0 0 2px #667eea';
+            card.classList.add('selected');
+            card.style.borderColor = '#000';
+            card.style.background = '#e8e8e8';
+            card.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25), inset 0 0 0 2px #000';
             card.style.transform = 'scale(1.05)';
         }
         
@@ -1001,7 +1138,7 @@ class BrushPanel {
         // 延迟后自动关闭窗口，让用户看到选中效果
         setTimeout(() => {
             this._hideBrushLibrary();
-        }, 400);
+        }, 500);
     }
     
     /**
@@ -1041,23 +1178,27 @@ class BrushPanel {
      */
     _createBrushCard(brush, type) {
         const canvasId = `preview_${type}_${brush.id}`;
+        const brushW = brush.w || brush.width || 1;
+        const brushH = brush.h || brush.height || 1;
+        const maxPreviewSize = 50;
+        
         return `
             <div class="brush-card" data-brush-id="${brush.id}" data-type="${type}"
-                 style="width: 80px; padding: 8px; border: 2px solid #e0e0e0; border-radius: 8px; 
-                        cursor: pointer; background: white; text-align: center; transition: all 0.2s;
+                 style="width: 84px; padding: 8px 6px; border: 2px solid #000; border-radius: 6px; 
+                        cursor: pointer; background: #fff; text-align: center; transition: all 0.2s;
                         position: relative;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <div style="width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
-                    <canvas id="${canvasId}" width="50" height="50" style="display: block;"></canvas>
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; overflow: hidden; background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px;">
+                    <canvas id="${canvasId}" style="display: block; max-width: ${maxPreviewSize}px; max-height: ${maxPreviewSize}px;"></canvas>
                 </div>
-                <div style="font-size: 0.75em; font-weight: 500; color: #333; 
-                            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div style="font-size: 0.75em; font-weight: 600; color: #000; 
+                            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3;">
                     ${brush.name}
                 </div>
-                <div style="font-size: 0.7em; color: #999; margin-top: 2px;">
-                    ${brush.w}×${brush.h}
+                <div style="font-size: 0.68em; color: #666; margin-top: 3px;">
+                    ${brushW}×${brushH}
                 </div>
-                ${type === 'my' ? '<button class="delete-brush-btn" data-brush-id="' + brush.id + '" style="position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; background: #ff6b6b; color: white; border: none; border-radius: 50%; cursor: pointer; font-size: 0.6em; display: none; z-index: 10;">✕</button>' : ''}
+                ${type === 'my' ? '<button class="delete-brush-btn" data-brush-id="' + brush.id + '" style="position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; background: #fff; color: #ff4444; border: 1.5px solid #ff4444; border-radius: 50%; cursor: pointer; font-size: 0.6em; display: none; z-index: 10; padding: 0; line-height: 1; font-weight: 700;">✕</button>' : ''}
             </div>
         `;
     }
@@ -1074,7 +1215,29 @@ class BrushPanel {
             const brush = allBrushes.find(b => b.id === brushId);
             
             if (brush) {
-                this.brushLibraryManager.renderPreview(canvas, brush, 8, '#333');
+                const brushW = brush.w || brush.width || 1;
+                const brushH = brush.h || brush.height || 1;
+                const maxSize = 50;
+                
+                // 计算自适应的 cellSize，确保画笔不超出 50x50 的预览框
+                const cellSize = Math.max(1, Math.floor(maxSize / Math.max(brushW, brushH)));
+                
+                // 计算实际渲染尺寸
+                const actualW = brushW * cellSize;
+                const actualH = brushH * cellSize;
+                
+                // 设置 canvas 的实际尺寸
+                canvas.width = actualW;
+                canvas.height = actualH;
+                canvas.style.width = actualW + 'px';
+                canvas.style.height = actualH + 'px';
+                
+                // 白色背景风格的预览渲染，画笔形状用深灰色显示
+                this.brushLibraryManager.renderPreview(canvas, brush, cellSize, '#333', {
+                    bgColor: '#f8f8f8',
+                    gridColor: '#ddd',
+                    showGrid: cellSize >= 4
+                });
             }
         });
     }
