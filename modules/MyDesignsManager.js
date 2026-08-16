@@ -264,13 +264,32 @@ class MyDesignsManager {
         return design.compressedData;
     }
 
+    // 获取 INFOPAPER_V1 格式的打包数据（与图纸管理导入兼容）
+    async getPackedData(id) {
+        const designs = this.getAllDesigns();
+        const design = designs.find(d => d.id === id);
+        if (!design) {
+            throw new Error('未找到该图纸');
+        }
+        
+        // 如果已经是 INFOPAPER_V1 格式，直接返回
+        if (typeof design.compressedData === 'string' && design.compressedData.startsWith('INFOPAPER_V1:')) {
+            return design.compressedData;
+        }
+        
+        // 否则解压后重新打包
+        const infoPaper = await this.compressor.decompress(design.compressedData);
+        return await this.compressor.pack(infoPaper);
+    }
+
     async copyCompressedDataToClipboard(id) {
-        let compressedData = this.getCompressedData(id);
+        // 获取 INFOPAPER_V1 格式的数据
+        let packedData = await this.getPackedData(id);
         
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(compressedData);
-                console.log(`[MyDesignsManager] 压缩数据已复制到剪贴板: ${id}`);
+                await navigator.clipboard.writeText(packedData);
+                console.log(`[MyDesignsManager] 图纸数据已复制到剪贴板(INFOPAPER_V1格式): ${id}`);
                 return true;
             }
         } catch (err) {
@@ -278,20 +297,20 @@ class MyDesignsManager {
         }
 
         const textarea = document.createElement('textarea');
-        textarea.value = compressedData;
+        textarea.value = packedData;
         textarea.style.position = 'fixed';
         textarea.style.left = '-9999px';
         textarea.style.top = '-9999px';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
         textarea.select();
-        textarea.setSelectionRange(0, compressedData.length);
+        textarea.setSelectionRange(0, packedData.length);
         
         try {
             const success = document.execCommand('copy');
             document.body.removeChild(textarea);
             if (success) {
-                console.log(`[MyDesignsManager] 压缩数据已复制到剪贴板(降级方案): ${id}`);
+                console.log(`[MyDesignsManager] 图纸数据已复制到剪贴板(降级方案): ${id}`);
                 return true;
             } else {
                 throw new Error('复制失败');
