@@ -298,6 +298,121 @@ class BrushManager {
     }
     
     /**
+     * 旋转画笔（90度）
+     * @param {Object} brush - 画笔对象
+     * @param {string} direction - 'left' 逆时针90度 | 'right' 顺时针90度
+     * @returns {Object} 旋转后的画笔
+     */
+    rotateBrush(brush, direction) {
+        if (!brush) return null;
+        
+        const { width, height, shape, colors } = brush;
+        const newWidth = height;
+        const newHeight = width;
+        
+        // 初始化新数组
+        const newShape = [];
+        const newColors = [];
+        for (let y = 0; y < newHeight; y++) {
+            newShape[y] = [];
+            newColors[y] = [];
+            for (let x = 0; x < newWidth; x++) {
+                let srcX, srcY;
+                if (direction === 'left') {
+                    // 逆时针90度: srcX = width - 1 - y, srcY = x
+                    srcX = width - 1 - y;
+                    srcY = x;
+                } else {
+                    // 顺时针90度: srcX = y, srcY = height - 1 - x
+                    srcX = y;
+                    srcY = height - 1 - x;
+                }
+                
+                if (srcY >= 0 && srcY < height && srcX >= 0 && srcX < width) {
+                    newShape[y][x] = shape[srcY] ? !!shape[srcY][srcX] : false;
+                    newColors[y][x] = colors && colors[srcY] ? colors[srcY][srcX] : null;
+                } else {
+                    newShape[y][x] = false;
+                    newColors[y][x] = null;
+                }
+            }
+        }
+        
+        brush.width = newWidth;
+        brush.height = newHeight;
+        brush.shape = newShape;
+        brush.colors = newColors;
+        brush.updatedAt = new Date().toISOString();
+        
+        this._saveBrushes();
+        this._notifyBrushChange();
+        
+        return brush;
+    }
+    
+    /**
+     * 水平翻转画笔（左右镜像）
+     */
+    flipBrushHorizontal(brush) {
+        if (!brush) return null;
+        
+        const { width, height, shape, colors } = brush;
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < Math.floor(width / 2); x++) {
+                const mirrorX = width - 1 - x;
+                // 交换 shape
+                const tempShape = shape[y][x];
+                shape[y][x] = !!shape[y][mirrorX];
+                shape[y][mirrorX] = !!tempShape;
+                
+                // 交换 colors
+                if (colors && colors[y]) {
+                    const tempColor = colors[y][x];
+                    colors[y][x] = colors[y][mirrorX];
+                    colors[y][mirrorX] = tempColor;
+                }
+            }
+        }
+        
+        brush.updatedAt = new Date().toISOString();
+        this._saveBrushes();
+        this._notifyBrushChange();
+        
+        return brush;
+    }
+    
+    /**
+     * 垂直翻转画笔（上下镜像）
+     */
+    flipBrushVertical(brush) {
+        if (!brush) return null;
+        
+        const { height, shape, colors } = brush;
+        
+        for (let y = 0; y < Math.floor(height / 2); y++) {
+            const mirrorY = height - 1 - y;
+            // 交换整行 shape
+            const tempShape = shape[y];
+            shape[y] = shape[mirrorY];
+            shape[mirrorY] = tempShape;
+            
+            // 交换整行 colors
+            if (colors) {
+                const tempColors = colors[y];
+                colors[y] = colors[mirrorY];
+                colors[mirrorY] = tempColors;
+            }
+        }
+        
+        brush.updatedAt = new Date().toISOString();
+        this._saveBrushes();
+        this._notifyBrushChange();
+        
+        return brush;
+    }
+    
+    /**
      * 添加画笔（用于从预设或导入添加）
      */
     addBrush(brushData) {

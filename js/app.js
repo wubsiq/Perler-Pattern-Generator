@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.2.6';
+        this.APP_VERSION = '1.2.7';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -4194,6 +4194,8 @@ class PixelArtGenerator {
         // 更新 CustomEditor 数据和选区管理器尺寸
         if (this.customEditor) {
             this.customEditor.initData(this.customEditData);
+            // 让 CustomEditor 直接引用同一份数据，确保 isInSelection 的透明检查能读到最新状态
+            this.customEditor.editData = this.customEditData;
             this.customEditor.selectionManager.setCanvasSize(this.perlerWidth, this.perlerHeight);
         }
         

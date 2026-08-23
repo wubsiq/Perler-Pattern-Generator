@@ -69,6 +69,16 @@ class SelectionPanel {
             this.hide();
         });
         
+        // 透明色块选择开关
+        const skipTransparentCheck = document.getElementById('skipTransparentCheck');
+        if (skipTransparentCheck) {
+            skipTransparentCheck.addEventListener('change', (e) => {
+                if (this.selectionManager) {
+                    this.selectionManager.skipTransparent = !e.target.checked;
+                }
+            });
+        }
+        
         // 头部拖拽
         const header = document.getElementById('selectionPanelHeader');
         this.makeDraggable(this.panel, header);
@@ -142,6 +152,7 @@ class SelectionPanel {
         this.selectionManager = manager;
         this.updateInfo();
         this.syncColorSettings();
+        this.syncSkipTransparentCheck();
     }
     
     /**
@@ -169,12 +180,24 @@ class SelectionPanel {
     }
     
     /**
+     * 同步透明色块选择开关状态
+     */
+    syncSkipTransparentCheck() {
+        const check = document.getElementById('skipTransparentCheck');
+        if (check && this.selectionManager) {
+            // 勾选=选择透明色块，不勾选=跳过透明色块
+            check.checked = !this.selectionManager.skipTransparent;
+        }
+    }
+    
+    /**
      * 显示面板
      */
     show() {
         if (this.panel) {
             this.panel.style.display = 'block';
             this.updateInfo();
+            this.syncSkipTransparentCheck();
         }
     }
     

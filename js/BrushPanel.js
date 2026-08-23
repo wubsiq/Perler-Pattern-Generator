@@ -198,6 +198,38 @@ class BrushPanel {
                 }
             });
         }
+        
+        // 画笔变换按钮事件委托（旋转/翻转）
+        const brushInfo = document.getElementById('currentBrushInfo');
+        if (brushInfo) {
+            brushInfo.addEventListener('click', (e) => {
+                const btn = e.target.closest('.brush-transform-btn');
+                if (!btn) return;
+                
+                const transform = btn.dataset.transform;
+                const current = this.brushManager.getCurrentBrush();
+                if (!current) return;
+                
+                switch (transform) {
+                    case 'rotateLeft':
+                        this.brushManager.rotateBrush(current, 'left');
+                        this._showNotification('画笔已向左旋转90度');
+                        break;
+                    case 'rotateRight':
+                        this.brushManager.rotateBrush(current, 'right');
+                        this._showNotification('画笔已向右旋转90度');
+                        break;
+                    case 'flipH':
+                        this.brushManager.flipBrushHorizontal(current);
+                        this._showNotification('画笔已左右翻转');
+                        break;
+                    case 'flipV':
+                        this.brushManager.flipBrushVertical(current);
+                        this._showNotification('画笔已上下翻转');
+                        break;
+                }
+            });
+        }
     }
     
     /**
@@ -667,8 +699,14 @@ class BrushPanel {
                 <div style="font-size: 0.8em; margin-bottom: 4px;">
                     <strong>当前画笔：</strong>${current.name}
                 </div>
-                <div style="font-size: 0.75em; color: #666;">
+                <div style="font-size: 0.75em; color: rgba(255,255,255,0.7); margin-bottom: 8px;">
                     ${current.width}×${current.height} · 点击或拖动使用
+                </div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button class="brush-transform-btn" data-transform="rotateLeft" style="padding: 3px 6px; font-size: 0.7em; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;" title="向左旋转90度">↺ 左转</button>
+                    <button class="brush-transform-btn" data-transform="rotateRight" style="padding: 3px 6px; font-size: 0.7em; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;" title="向右旋转90度">↻ 右转</button>
+                    <button class="brush-transform-btn" data-transform="flipH" style="padding: 3px 6px; font-size: 0.7em; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;" title="左右翻转">↔ 左右翻转</button>
+                    <button class="brush-transform-btn" data-transform="flipV" style="padding: 3px 6px; font-size: 0.7em; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;" title="上下翻转">↕ 上下翻转</button>
                 </div>
             `;
             if (clearBtn) {

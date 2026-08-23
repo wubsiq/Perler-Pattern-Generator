@@ -152,7 +152,7 @@ class CustomEditor {
 
         // 使用 SelectionManager 检查选区
         if (this.selectionManager.hasSelection() && 
-            !this.selectionManager.isInSelection(x, y)) {
+            !this.isInSelection(x, y)) {
             return;
         }
 
@@ -210,7 +210,7 @@ class CustomEditor {
             
             // 使用 SelectionManager 检查选区
             if (this.selectionManager.hasSelection() && 
-                !this.selectionManager.isInSelection(x, y)) continue;
+                !this.isInSelection(x, y)) continue;
 
             const currentColor = this.editData[y][x];
             const currentIsTransparent = currentColor.isTransparent;
@@ -248,7 +248,7 @@ class CustomEditor {
             for (let x = 0; x < width; x++) {
                 // 使用 SelectionManager 检查选区
                 if (this.selectionManager.hasSelection() && 
-                    !this.selectionManager.isInSelection(x, y)) continue;
+                    !this.isInSelection(x, y)) continue;
                     
                 const currentColor = this.editData[y][x];
                 if (!currentColor.isTransparent && currentColor.name === targetColor.name) {
@@ -286,6 +286,15 @@ class CustomEditor {
      * @returns {boolean}
      */
     isInSelection(x, y) {
+        // 如果启用了跳过透明色块，且当前格子是透明的，则视为不在选区内
+        if (this.selectionManager.skipTransparent && this.editData) {
+            const row = this.editData[y];
+            if (row) {
+                const cell = row[x];
+                if (!cell || cell.isTransparent) return false;
+            }
+        }
+        
         // 优先使用 SelectionManager
         if (this.selectionManager.hasSelection()) {
             return this.selectionManager.isInSelection(x, y);

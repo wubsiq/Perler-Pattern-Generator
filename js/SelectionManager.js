@@ -30,6 +30,9 @@ class SelectionManager {
         // 反转选区
         this.inverse = false;
         
+        // 是否跳过透明色块（默认不跳过，透明色块可以被选中）
+        this.skipTransparent = false;
+        
         // 选区颜色配置（默认红色）
         this.selectionColor = '#e74c3c';    // 默认选区颜色 - 红色
         this.inverseColor = '#f39c12';      // 反转选区颜色 - 橙色
@@ -694,8 +697,15 @@ class SelectionManager {
                 
                 if (inSelection && cy >= 0 && cy < editData.length && 
                     cx >= 0 && cx < (editData[cy]?.length || 0)) {
-                    shape[dy][dx] = true;
-                    colors[dy][dx] = { ...editData[cy][cx] };
+                    const cell = editData[cy][cx];
+                    // 如果启用了跳过透明色块，则透明格子不纳入画笔数据
+                    if (this.skipTransparent && (!cell || cell.isTransparent)) {
+                        shape[dy][dx] = false;
+                        colors[dy][dx] = null;
+                    } else {
+                        shape[dy][dx] = true;
+                        colors[dy][dx] = { ...cell };
+                    }
                 } else {
                     shape[dy][dx] = false;
                     colors[dy][dx] = null;
