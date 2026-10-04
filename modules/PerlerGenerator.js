@@ -621,3 +621,11 @@ class PerlerGenerator {
 }
 
 
+
+
+/* =============================================================
+ * 模块导出（供全局引用/调试）
+ * ============================================================= */
+if (typeof window !== 'undefined') {
+    window.PerlerGenerator = PerlerGenerator;
+}

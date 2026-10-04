@@ -41,13 +41,11 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.2.11';
+        this.APP_VERSION = '1.2.15';
         
         // 初始化模块
         this.pixelator = new Pixelator();
         this.perlerGenerator = new PerlerGenerator();
-        this.downloadManager = new DownloadManager();
-        this.colorManager = new ColorManager();
         this.infoPaperManager = new InfoPaperManager();
         this.focusModeRenderer = new FocusModeRenderer();
         this.customEditor = new CustomEditor();

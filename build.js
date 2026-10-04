@@ -71,16 +71,27 @@ const jsFiles = [
     'js/colorUtils.js',
     'js/i18n.js',
     'modules/Pixelator.js',
-    'modules/ColorManager.js',
     'modules/PerlerGenerator.js',
-    'modules/DownloadManager.js',
     'modules/InfoPaperConverter.js',
     'modules/InfoPaperCompressor.js',
     'modules/InfoPaperManager.js',
     'modules/FocusModeRenderer.js',
     'modules/MyDesignsManager.js',
     'modules/CustomEditor.js',
-    'js/app.js'
+    'js/app.js',
+    'mixins/SmartOptimizeMixin.js',
+    'mixins/SmartOptimizeCoreMixin.js',
+    'mixins/SnapshotMixin.js',
+    'mixins/ShowcaseMixin.js',
+    'mixins/ImageCropMixin.js',
+    'mixins/CursorBoundsMixin.js',
+    'mixins/CarveMixin.js',
+    'mixins/PixelArtMixin.js',
+    'mixins/PerlerRenderMixin.js',
+    'mixins/FileIOMixin.js',
+    'mixins/WorkspaceMixin.js',
+    'mixins/QuantizeDragMixin.js',
+    'mixins/CustomEditMixin.js'
 ];
 
 console.log('[1/2] 构建 JS bundle');
