@@ -12,12 +12,35 @@ const PixelArtMixin = {
         this.showPerlerPlaceholder();
     },
 
+    /**
+     * 读画布像素，污染时降级而不是崩掉。
+     *
+     * 背景：画布一旦被 tainted（file:// 协议下用 blob: URL 加载本地图片
+     * 就会发生），getImageData 直接抛 SecurityError。
+     * 而这一层是全站承重墙 —— 像素化、颜色统计、画笔、剃刀、雕刻
+     * 都靠 originalImageData，一崩就是整个编辑器不能用。
+     *
+     * 上游 loadImage 已改用 FileReader 读 dataURL（正常情况下不会污染）。
+     * 这里再加一道兜底：万一还有别的路径把画布污染了，
+     * 至少让用户能看见图、能导出，只是不能编辑。
+     */
+    _safeGetImageData(ctx, w, h) {
+        try {
+            return ctx.getImageData(0, 0, w, h);
+        } catch (e) {
+            console.warn('[豆师傅] 画布被污染，无法读取像素：', e.message);
+            console.warn('[豆师傅] 预览可用，但像素化/编辑功能会不可用。');
+            console.warn('[豆师傅] 若在用 file:// 协议打开，请改用本地服务器或部署后的网址。');
+            return null;
+        }
+    },
+
     drawOriginalImage() {
         // 设置画布的实际像素尺寸为原始尺寸
         this.originalCanvas.width = this.originalWidth;
         this.originalCanvas.height = this.originalHeight;
         this.originalCtx.drawImage(this.originalImage, 0, 0);
-        this.originalImageData = this.originalCtx.getImageData(0, 0, this.originalWidth, this.originalHeight);
+        this.originalImageData = this._safeGetImageData(this.originalCtx, this.originalWidth, this.originalHeight);
         this.originalSize.textContent = `${getI18nText('originalSize')}: ${this.originalWidth} × ${this.originalHeight} px`;
 
         // 计算画布的显示尺寸，限制最大尺寸，保持宽高比
@@ -106,7 +129,8 @@ const PixelArtMixin = {
 
         tempCtx.drawImage(this.originalImage, 0, 0, targetWidth, targetHeight);
 
-        const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
+        const imageData = this._safeGetImageData(tempCtx, targetWidth, targetHeight);
+        if (!imageData) return;   // 画布被污染，无法像素化（见 _safeGetImageData 注释）
         const pixelSize = parseInt(this.pixelSizeSlider.value);
         const method = this.pixelMethod.value;
         const offsetX = parseInt(this.pixelGridOffsetX.value);

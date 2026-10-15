@@ -41,7 +41,7 @@ class PixelArtGenerator {
         };
         
         // 版本号
-        this.APP_VERSION = '1.2.15';
+        this.APP_VERSION = '1.2.17';
         
         // 初始化模块
         this.pixelator = new Pixelator();
@@ -712,6 +712,10 @@ class PixelArtGenerator {
         });
         this.renderPerlerBtn = document.getElementById('renderPerlerBtn');
         this.renderPerlerBtn.addEventListener('click', () => this.updatePerlerChart());
+
+        // 熨烫成品效果预览按钮
+        this.ironPreviewBtn = document.getElementById('ironPreviewBtn');
+        this.ironPreviewBtn.addEventListener('click', () => this.openIronPreview());
         
         this.simpleModeBtn = document.getElementById('simpleModeBtn');
         this.advancedModeBtn = document.getElementById('advancedModeBtn');

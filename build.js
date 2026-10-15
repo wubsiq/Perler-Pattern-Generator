@@ -61,6 +61,11 @@ if (fs.existsSync(brushLibPath) && fs.existsSync(presetBrushesPath)) {
 console.log('');
 
 const jsFiles = [
+    // 澡巾织纹 tile（内联 dataURL）。
+    // 必须排在 IronPreviewMixin 之前 —— 后者在运行时读 window.IRON_ZAOJIN_TILES。
+    // 放这里而不是引外部 PNG，是因为 file:// 协议下加载外部图片会污染画布，
+    // 而熨烫预览的像素级浮雕必须 getImageData 读像素 → SecurityError。
+    'data/iron-textures/tiles.js',
     'js/colors.js',
     'js/bead-palette.js',
     'js/BrushLibraryManager.js',
@@ -91,7 +96,8 @@ const jsFiles = [
     'mixins/FileIOMixin.js',
     'mixins/WorkspaceMixin.js',
     'mixins/QuantizeDragMixin.js',
-    'mixins/CustomEditMixin.js'
+    'mixins/CustomEditMixin.js',
+    'mixins/IronPreviewMixin.js'
 ];
 
 console.log('[1/2] 构建 JS bundle');

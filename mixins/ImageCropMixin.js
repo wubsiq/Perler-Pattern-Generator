@@ -17,35 +17,61 @@ const ImageCropMixin = {
             return;
         }
 
-        const img = new Image();
-        const objectURL = URL.createObjectURL(file);
+        // ============================================================
+        //  【为什么必须用 FileReader 而不是 URL.createObjectURL】
+        // ============================================================
+        //  用 blob: URL 时，双击 index.html 以 file:// 协议打开会报：
+        //      SecurityError: Failed to execute 'getImageData' on
+        //      'CanvasRenderingContext2D': The canvas has been tainted
+        //      by cross-origin data.
+        //
+        //  原因：file:// 页面的 origin 是"不透明来源"(opaque origin)，
+        //  而 blob: URL 继承创建者的 origin → 两者不匹配 →
+        //  画布被判定为 tainted，后续所有 getImageData / toDataURL 全被拒。
+        //
+        //  这条链路上有十几处 getImageData（像素化、颜色统计、画笔、剃刀…），
+        //  所以一旦污染，整个编辑器都不能用了。
+        //
+        //  FileReader 读出来的 dataURL 是纯字符串，不带来源信息 →
+        //  任何协议下都同源，画布不会被污染。
+        //
+        //  代价：多一次 base64 编码（20MB 图约多占 1.3 倍内存、几十毫秒），
+        //  换来 file:// 双击也能完整跑通 —— 对这个项目是明确划算的。
+        const reader = new FileReader();
 
-        img.onload = () => {
-            console.log('图片加载完成，尺寸:', img.width, 'x', img.height);
-            this.originalImage = img;
-            this.originalWidth = img.width;
-            this.originalHeight = img.height;
-            // 保存完整的原始图片用于重置裁切
-            this.fullOriginalImage = img;
-            this.fullOriginalWidth = img.width;
-            this.fullOriginalHeight = img.height;
-            this.isCropped = false;
-            // 重置裁切按钮状态
-            this.updateCropButtonState();
-            this.showWorkspace();
-            this.drawOriginalImage();
-            this.resetInputs();
-            this.updatePixelatedImage();
-            URL.revokeObjectURL(objectURL);
+        reader.onload = () => {
+            const dataURL = reader.result;
+            const img = new Image();
+            img.onload = () => {
+                console.log('图片加载完成，尺寸:', img.width, 'x', img.height);
+                this.originalImage = img;
+                this.originalWidth = img.width;
+                this.originalHeight = img.height;
+                // 保存完整的原始图片用于重置裁切
+                this.fullOriginalImage = img;
+                this.fullOriginalWidth = img.width;
+                this.fullOriginalHeight = img.height;
+                this.isCropped = false;
+                // 重置裁切按钮状态
+                this.updateCropButtonState();
+                this.showWorkspace();
+                this.drawOriginalImage();
+                this.resetInputs();
+                this.updatePixelatedImage();
+            };
+            img.onerror = (error) => {
+                console.error('图片加载失败:', error);
+                alert(getI18nText('alertImageLoadFailed'));
+            };
+            img.src = dataURL;
         };
 
-        img.onerror = (error) => {
-            console.error('图片加载失败:', error);
-            URL.revokeObjectURL(objectURL);
+        reader.onerror = () => {
+            console.error('图片读取失败:', reader.error);
             alert(getI18nText('alertImageLoadFailed'));
         };
 
-        img.src = objectURL;
+        reader.readAsDataURL(file);
     },
 
     updateCropButtonState() {
