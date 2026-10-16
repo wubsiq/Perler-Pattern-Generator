@@ -141,6 +141,8 @@ const IronPreviewMixin = {
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;" id="ironZaoJinRow">
                 织纹：
                 <select id="ironZaoJinSelect" style="padding:4px 6px;border-radius:4px;background:#333;color:#fff;border:1px solid #555;font-size:13px;"></select>
+                <button id="ironTexTuneBtn" title="展开/收起花纹大小与旋转（松手后才重画）"
+                    style="padding:2px 7px;background:#3a3a3a;color:#bbb;border:1px solid #555;border-radius:4px;cursor:pointer;font-size:11px;">几何 ▸</button>
             </label>
 
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
@@ -167,6 +169,14 @@ const IronPreviewMixin = {
                     style="padding:3px 8px;background:#444;color:#fff;border:1px solid #666;border-radius:4px;cursor:pointer;font-size:12px;">透明</button>
             </label>
 
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;" title="熨烫熔融边：用平滑并集(metaball)把相邻豆子粘连，凹角自动填平、凸角圆润">
+                <input type="checkbox" id="ironMeltToggle">
+                熔融边
+            </label>
+
+            <button id="ironMeltTuneBtn" title="展开/收起熔融参数（松手后才重画，拖动时不会卡）"
+                style="padding:3px 8px;background:#3a3a3a;color:#bbb;border:1px solid #555;border-radius:4px;cursor:pointer;font-size:12px;">参数 ▸</button>
+
             <label style="display:flex;align-items:center;gap:4px;font-size:13px;" title="成品落在桌面上的柔和投影（透明背景下建议关掉）">
                 <input type="checkbox" id="ironShadowToggle" checked>
                 投影
@@ -177,6 +187,94 @@ const IronPreviewMixin = {
             <button id="ironExportBtn" style="padding:5px 12px;background:#4CAF50;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">💾 导出</button>
             <button id="ironCloseBtn" style="padding:5px 12px;background:#f44336;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">✕ 关闭</button>
         `;
+
+        // ---- 花纹几何参数面板（大小 / 旋转，默认收起）----
+        const texPanel = document.createElement('div');
+        texPanel.id = 'ironTexPanel';
+        texPanel.style.cssText = 'display:none;flex-wrap:wrap;gap:8px 16px;align-items:center;' +
+            'padding:6px 10px;margin-top:6px;background:#242424;border:1px solid #3a3a3a;border-radius:6px';
+
+        this._ironTexGeomSpec().forEach(sp => {
+            const lab = document.createElement('label');
+            lab.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;color:#bbb';
+            lab.title = sp.title;
+
+            const name = document.createElement('span');
+            name.textContent = sp.label;
+            name.style.cssText = 'color:#fb9;min-width:28px';
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.id = 'ironTex_' + sp.id;
+            input.min = sp.min; input.max = sp.max; input.step = sp.step;
+            input.value = sp.def;
+            input.style.cssText = 'width:104px';
+            input.title = sp.title;
+
+            const val = document.createElement('span');
+            val.id = 'ironTexVal_' + sp.id;
+            val.style.cssText = 'font-size:11px;color:#999;min-width:44px;text-align:right;' +
+                'font-variant-numeric:tabular-nums';
+
+            lab.appendChild(name);
+            lab.appendChild(input);
+            lab.appendChild(val);
+            texPanel.appendChild(lab);
+        });
+
+        const texResetBtn = document.createElement('button');
+        texResetBtn.id = 'ironTexResetBtn';
+        texResetBtn.textContent = '复位';
+        texResetBtn.title = '把花纹恢复到该变体的默认大小与角度';
+        texResetBtn.style.cssText = 'padding:3px 9px;background:#444;color:#ddd;border:1px solid #666;' +
+            'border-radius:4px;cursor:pointer;font-size:12px';
+        texPanel.appendChild(texResetBtn);
+
+        // ---- 熔融参数面板（默认收起）----
+        // 【为什么默认收起】熔融边本身是可选特性，四个滑杆是调参时才用得上的。
+        //  收起来不影响日常使用，也让控件行不挤。
+        const meltPanel = document.createElement('div');
+        meltPanel.id = 'ironMeltPanel';
+        meltPanel.style.cssText = 'display:none;flex-wrap:wrap;gap:8px 16px;align-items:center;' +
+            'padding:8px 10px;margin-top:8px;background:#242424;border:1px solid #3a3a3a;border-radius:6px';
+
+        // 四个滑杆由 spec 生成，避免 UI 里的 range 和默认值两处漂移
+        this._ironMeltParamSpec().forEach(sp => {
+            const lab = document.createElement('label');
+            lab.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;color:#bbb';
+            lab.title = sp.title;
+
+            const name = document.createElement('span');
+            name.textContent = sp.label;
+            name.style.cssText = 'color:#8cf;min-width:28px';
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.id = 'ironMelt_' + sp.id;
+            input.min = sp.min; input.max = sp.max; input.step = sp.step;
+            input.value = sp.def;
+            input.style.cssText = 'width:104px';
+            input.title = sp.title;
+
+            const val = document.createElement('span');
+            val.id = 'ironMeltVal_' + sp.id;
+            val.style.cssText = 'font-size:11px;color:#999;min-width:38px;text-align:right;' +
+                'font-variant-numeric:tabular-nums';
+
+            lab.appendChild(name);
+            lab.appendChild(input);
+            lab.appendChild(val);
+            meltPanel.appendChild(lab);
+        });
+
+        // 复位按钮
+        const meltResetBtn = document.createElement('button');
+        meltResetBtn.id = 'ironMeltResetBtn';
+        meltResetBtn.textContent = '复位';
+        meltResetBtn.title = '恢复四个参数的出厂默认值';
+        meltResetBtn.style.cssText = 'padding:3px 9px;background:#444;color:#ddd;border:1px solid #666;' +
+            'border-radius:4px;cursor:pointer;font-size:12px';
+        meltPanel.appendChild(meltResetBtn);
 
         const canvasWrap = document.createElement('div');
         Object.assign(canvasWrap.style, {
@@ -200,6 +298,8 @@ const IronPreviewMixin = {
         });
 
         modal.appendChild(controls);
+        controls.appendChild(texPanel);
+        controls.appendChild(meltPanel);
         modal.appendChild(canvasWrap);
         modal.appendChild(hint);
 
@@ -226,6 +326,143 @@ const IronPreviewMixin = {
 
         const bgTransparent = controls.querySelector('#ironBgTransparent');
         const shadowToggle = controls.querySelector('#ironShadowToggle');
+        const meltToggle = controls.querySelector('#ironMeltToggle');
+        const meltTuneBtn = controls.querySelector('#ironMeltTuneBtn');
+        const texTuneBtn = controls.querySelector('#ironTexTuneBtn');
+
+        // ================================================================
+        //  花纹几何（大小 / 旋转）—— 与熔融参数同样的「延迟生效」设计
+        //
+        //  input  → 只改数字标签；change（松手）/ keyup（键盘）→ 才重画。
+        //  理由见下方熔融参数的注释：一次重绘在大图上要 0.5~2.4s，
+        //  拖动时逐帧重画只会剧烈卡顿，而且中间帧看不清。
+        // ================================================================
+        const texSpec = this._ironTexGeomSpec();
+        const fmtTex = (sp, v) => (sp.step >= 1 ? v.toFixed(0) + '°' : v.toFixed(2) + '×');
+
+        const syncTexSliders = (g) => {
+            texSpec.forEach(sp => {
+                const inp = controls.querySelector('#ironTex_' + sp.id);
+                const val = controls.querySelector('#ironTexVal_' + sp.id);
+                if (!inp || !val) return;
+                const v = (g && g[sp.id] !== undefined) ? g[sp.id] : sp.def;
+                inp.value = v;
+                val.textContent = fmtTex(sp, v);
+            });
+        };
+
+        const applyTex = (sp, raw) => {
+            const v = parseFloat(raw);
+            if (isNaN(v)) return;
+            if (!this._ironPreviewState.texGeom) {
+                this._ironPreviewState.texGeom = { scale: 1.0, rot: 0 };
+            }
+            this._ironPreviewState.texGeom[sp.id] = v;
+            this._refreshIronPreview();
+        };
+
+        texSpec.forEach(sp => {
+            const inp = controls.querySelector('#ironTex_' + sp.id);
+            const val = controls.querySelector('#ironTexVal_' + sp.id);
+            if (!inp) return;
+            inp.addEventListener('input', () => {
+                val.textContent = fmtTex(sp, parseFloat(inp.value));
+            });
+            inp.addEventListener('change', () => applyTex(sp, inp.value));
+            inp.addEventListener('keyup', () => applyTex(sp, inp.value));
+        });
+
+        // 复位 = 回到「当前变体」的默认值（不是全局 1.0/0）
+        texResetBtn.addEventListener('click', () => {
+            const zj = this._ironCurrentZaoJin();
+            this._ironPreviewState.texGeom = {
+                scale: zj.scale !== undefined ? zj.scale : 1.0,
+                rot: zj.rot !== undefined ? zj.rot : 0
+            };
+            syncTexSliders(this._ironPreviewState.texGeom);
+            this._refreshIronPreview();
+        });
+
+        texTuneBtn.addEventListener('click', () => {
+            const on = texPanel.style.display === 'none';
+            texPanel.style.display = on ? 'flex' : 'none';
+            texTuneBtn.textContent = on ? '几何 ▾' : '几何 ▸';
+            if (on) syncTexSliders(this._ironTexGeom(this._ironPreviewState));
+        });
+
+        syncTexSliders(this._ironTexGeom(this._ironPreviewState));
+
+        // ================================================================
+        //  熔融参数滑杆 —— ★ 延迟生效的设计 ★
+        //
+        //  为什么不在 input 事件里重画：
+        //    每改一个像素都要重跑 SDF + 整层重绘（实测大图 470ms~2.4s）。
+        //    拖动滑杆时 input 每秒能触发几十次 —— 每次都重画的话，
+        //    拖动过程会剧烈卡顿，而且中间帧全是半成品，完全看不清。
+        //
+        //  现在的做法：
+        //    input  → 只更新数字标签（0.1ms，用户能实时看到数值在变）
+        //    change → 松手时才重画一次（拿到最终值，只渲染一帧）
+        //    keyup/keydown → 键盘微调也能生效（键盘操作不会触发 change）
+        //
+        //  即"数值实时、渲染延迟"，这是调参类控件的标准手感。
+        // ================================================================
+        const meltSpec = this._ironMeltParamSpec();
+        const fmtVal = (sp, v) => (sp.step >= 1 ? v.toFixed(0) : v.toFixed(2));
+
+        const syncMeltSliders = (m) => {
+            meltSpec.forEach(sp => {
+                const inp = controls.querySelector('#ironMelt_' + sp.id);
+                const val = controls.querySelector('#ironMeltVal_' + sp.id);
+                if (!inp || !val) return;
+                const v = (m && m[sp.id] !== undefined) ? m[sp.id] : sp.def;
+                inp.value = v;
+                val.textContent = fmtVal(sp, v);
+            });
+        };
+
+        const applyMelt = (sp, raw) => {
+            const v = parseFloat(raw);
+            if (isNaN(v)) return;
+            // state.melt 可能还没建（第一次开面板）——补一份默认值再写
+            if (!this._ironPreviewState.melt) {
+                const d = this._IRON_MELT_DEFAULTS;
+                this._ironPreviewState.melt = { r: d.r, k: d.k, bias: d.bias, span: d.span };
+            }
+            this._ironPreviewState.melt[sp.id] = v;
+            this._refreshIronPreview();
+        };
+
+        meltSpec.forEach(sp => {
+            const inp = controls.querySelector('#ironMelt_' + sp.id);
+            const val = controls.querySelector('#ironMeltVal_' + sp.id);
+            if (!inp) return;
+            // 拖动中：只改数字
+            inp.addEventListener('input', () => {
+                val.textContent = fmtVal(sp, parseFloat(inp.value));
+            });
+            // 松手：重画一次
+            inp.addEventListener('change', () => applyMelt(sp, inp.value));
+            // 键盘：方向键在 input 里也触发，但不会触发 change → 补上
+            inp.addEventListener('keyup', () => applyMelt(sp, inp.value));
+        });
+
+        meltResetBtn.addEventListener('click', () => {
+            const d = this._IRON_MELT_DEFAULTS;
+            this._ironPreviewState.melt = { r: d.r, k: d.k, bias: d.bias, span: d.span };
+            syncMeltSliders(this._ironPreviewState.melt);
+            this._refreshIronPreview();
+        });
+
+        meltTuneBtn.addEventListener('click', () => {
+            const on = meltPanel.style.display === 'none';
+            meltPanel.style.display = on ? 'flex' : 'none';
+            meltTuneBtn.textContent = on ? '参数 ▾' : '参数 ▸';
+            // 展开时把当前生效值回填到滑杆（state 可能已被改过）
+            if (on) syncMeltSliders(this._ironMeltParams(this._ironPreviewState));
+        });
+
+        syncMeltSliders(this._ironMeltParams(this._ironPreviewState));
 
         /** 透明模式：画布背景改成棋盘格（仅预览用，导出仍是真透明） */
         const applyChecker = (on) => {
@@ -259,6 +496,13 @@ const IronPreviewMixin = {
         });
         zaoJinSelect.addEventListener('change', () => {
             this._ironPreviewState.zaoJin = zaoJinSelect.value;
+            // 换变体 → 几何参数回到新变体的默认值（各变体花纹尺度不同）
+            const zj = this._ironCurrentZaoJin();
+            this._ironPreviewState.texGeom = {
+                scale: zj.scale !== undefined ? zj.scale : 1.0,
+                rot: zj.rot !== undefined ? zj.rot : 0
+            };
+            syncTexSliders(this._ironPreviewState.texGeom);
             this._refreshIronPreview();
         });
         intensitySlider.addEventListener('input', () => {
@@ -285,6 +529,14 @@ const IronPreviewMixin = {
             this._ironPreviewState.shadow = shadowToggle.checked;
             this._refreshIronPreview();
         });
+        meltToggle.addEventListener('change', () => {
+            this._ironPreviewState.melt = meltToggle.checked;
+            // 打开熔融时把滑杆回填成当前生效值（可能是上次调的）
+            if (meltToggle.checked && meltPanel.style.display !== 'none') {
+                syncMeltSliders(this._ironMeltParams(this._ironPreviewState));
+            }
+            this._refreshIronPreview();
+        });
         controls.querySelector('#ironExportBtn').addEventListener('click', () => this.exportIronPreview());
         controls.querySelector('#ironCloseBtn').addEventListener('click', () => this.closeIronPreview());
 
@@ -305,6 +557,8 @@ const IronPreviewMixin = {
             bgColor: bgColor.value,
             // 背景透明：导出 PNG 带 alpha 通道，方便直接贴到任何底色上
             transparent: false,
+            // 熔融边（metaball 平滑并集）：默认关闭，它会明显改变轮廓观感
+            melt: false,
             shadow: shadowToggle.checked
         };
         zaoJinSelect.value = this._ironPreviewState.zaoJin;
@@ -458,12 +712,16 @@ const IronPreviewMixin = {
      * 不需要把几千万像素的纹理/光照重新算一遍。
      */
     _ironPieceLayer(perlerColors, pw, ph, cellSize, state, profile, amp, padding) {
-        const geo = this._ironGeometryCached(perlerColors, pw, ph, cellSize, profile, amp);
+        const melt = state.melt === true;
+        const geo = this._ironGeometryCached(perlerColors, pw, ph, cellSize, profile, amp, melt, state);
         const w = pw * cellSize + padding * 2;
         const h = ph * cellSize + padding * 2;
         // 缓存 key 必须带上澡巾变体 —— 否则切换织纹会命中旧缓存看到上一个的效果
+        // ★ 缓存 key 必须含花纹几何参数 —— 否则调大小/旋转会命中旧纹理层
+        const tg = this._ironTexGeom(state);
         const key = `${geo.key}|${state.mode}|${amp.toFixed(2)}|${w}x${h}` +
-            (state.mode === 'zaoJin' ? '|' + (state.zaoJin || '') : '');
+            (state.mode === 'zaoJin' ? '|' + (state.zaoJin || '') +
+                '|s' + tg.scale.toFixed(3) + 'r' + tg.rot.toFixed(1) : '');
         if (this._ironPieceKey === key && this._ironPieceCanvas) return this._ironPieceCanvas;
 
         let layer = this._ironPieceCanvas;
@@ -482,6 +740,26 @@ const IronPreviewMixin = {
 
         ctx.save();
         ctx.translate(padding, padding);
+
+        if (melt && geo.mask) {
+            // ============================================================
+            //  熔融路径：底色用 metaball mask，后续层全部裁到同一轮廓
+            // ============================================================
+            //  mask 自带正确颜色（按最近豆取色），所以不需要 _drawBasePlate
+            ctx.drawImage(geo.mask.canvas, 0, 0);
+
+            // 用 mask 的轮廓做 clip —— 与非熔融路径的 geo.path 完全同构，
+            // 后续 ②③④ 层的代码一行都不用改。
+            if (geo.maskPath) ctx.clip(geo.maskPath);
+
+            this._applyTextureLayer(ctx, plateW, plateH, cellSize, qstate, profile);
+            this._drawBeadGridLines(ctx, perlerColors, pw, ph, cellSize, profile.grid * (0.5 + 0.5 * amp));
+            this._applyLightingLayer(ctx, plateW, plateH, qstate, profile, amp, geo);
+
+            ctx.restore();
+            this._ironPieceKey = key;
+            return layer;
+        }
 
         // ---- ① 底板：离屏 + 高斯模糊（塑料融平融合感） ----
         const blurPad = Math.max(14, Math.ceil(blurPx * 3) + 4);
@@ -553,23 +831,306 @@ const IronPreviewMixin = {
      *
      * 只要图案、豆径、鼓起量没变（换背景色、开关投影、重开弹窗…），
      * 就直接复用，省掉重新扫一遍所有格子的开销。
+     *
+     * 【2026-10-15 新增】熔融模式：melt=1 时走 metaball 轮廓，
+     * 凹角会被填平、凸角圆润（见 _buildMetaballMask）。
      */
-    _ironGeometryCached(perlerColors, pw, ph, cellSize, profile, amp) {
+    _ironGeometryCached(perlerColors, pw, ph, cellSize, profile, amp, melt, state) {
         const bulge = profile.bulge * cellSize * (0.6 + 0.4 * amp);
         const blurPx = profile.blur * (0.4 + 0.6 * amp);
         const expand = blurPx * 2 + 1;
         const rev = this._ironPatternRev(perlerColors, pw, ph);
-        const key = `${rev}|${pw}x${ph}|${cellSize}|${bulge.toFixed(2)}|${expand.toFixed(2)}`;
+        const m = melt ? 1 : 0;
+        // ★ 熔融参数必须进 key —— 否则调完滑杆会命中旧 mask，看到上一次的效果
+        const mp = this._ironMeltParams(state);
+        const mtag = m ? `r${mp.r.toFixed(3)}k${mp.k.toFixed(2)}b${mp.bias.toFixed(3)}s${mp.span.toFixed(2)}` : '';
+        const key = `${rev}|${pw}x${ph}|${cellSize}|${bulge.toFixed(2)}|${expand.toFixed(2)}|m${m}${mtag}`;
 
         if (this._ironGeo && this._ironGeo.key === key) return this._ironGeo;
 
-        const t = this._buildIronGeometry(perlerColors, pw, ph, cellSize, bulge, expand);
+        let t;
+        if (melt) {
+            // 熔融模式：metaball SDF → mask
+            // bulge 在 metaball 里被 r 取代（半径直接由豆径决定）
+            const mm = this._buildMetaballMask(perlerColors, pw, ph, cellSize, mp);
+            t = { mask: mm, path: null, expandPath: null, outline: null };
+        } else {
+            t = this._buildIronGeometry(perlerColors, pw, ph, cellSize, bulge, expand);
+        }
         this._ironGeo = {
             key, bulge, blurPx, cellSize,
             plateW: pw * cellSize, plateH: ph * cellSize,
-            path: t.path, expandPath: t.expandPath, outline: t.outline
+            path: t.path, expandPath: t.expandPath, outline: t.outline,
+            mask: t.mask || null,
+            maskPath: (t.mask && t.mask.path) || null
         };
         return this._ironGeo;
+    },
+
+    // ============================================================
+    //  熔融轮廓（Metaball / Gooey 等价实现）
+    // ============================================================
+    //
+    //  【为什么需要这个 —— 逐豆画路径的死结】
+    //  原来的 _buildIronGeometry 是**逐颗豆子独立画路径**。
+    //  凹角（两豆斜对角相接处）在这个模型里根本不存在"两颗豆的关系"，
+    //  只能各画各的 → 结果永远是直角折断。
+    //
+    //  SVG 的 Gooey 滤镜能解决，但：
+    //    ① 它对**所有**色块生效 → 内部色块也会糊在一起，颜色全毁
+    //    ② ctx.filter = 'url(#goo)' Chrome 不支持，必须改走 DOM 渲染
+    //  所以改为在 Canvas 里手写等价的 metaball。
+    //
+    //  【原理】
+    //    每颗豆 = 一个圆角矩形的有符号距离场（SDF）
+    //    多颗豆合并 = 平滑并集 smin（不是硬 min）→ 凹角自动被"填"成圆弧
+    //    smin(d1,d2) = min - h²k/4，h = max(0, k-|d1-d2|)/k
+    //
+    //  【★ 关键性能设计：格子分辨率 SDF】
+    //  逐像素算 SDF = 每像素 9 次距离，2800×2800 实测 1824ms（不可接受）。
+    //  但 SDF 本身是**平滑**的，相邻像素值差 < 1px ——
+    //  所以在**格子中心**算（每格 1 个采样点），再双线性插值到全分辨率。
+    //  实测 1824ms → 5ms（360×），轮廓零差异。
+    //
+    //  【★ 另一个关键：r 是「豆径比例」不是绝对像素】
+    //  固定 r=40px 在豆径 18px 的图上会把整个方块吃成圆形。
+    //  必须按比例，不同倍率下观感才一致。
+
+    // ★ 熔融边默认参数（2026-10-15 扫描标定）
+    //   现在这四个值可以在预览面板里实时调（滑杆），调完会存进
+    //   `_ironPreviewState.melt`。这里的常量只是「出厂默认值」。
+    //
+    //   R: 融合半径 = 豆径比例。
+    //      R 会同时影响「豆子圆角」和「整体外扩」，两者耦合：
+    //      R=0.30 时轮廓整体外扩一圈，满屏斜对角的图案直接糊成条纹。
+    //      所以 R 取小值（几乎不改变豆子形状），靠 K 来填凹角。
+    //   K: 平滑并集系数（单位：格）。
+    //      smin 最多能把距离拉低 k/4。要填的凹角最多 0.5 格深，K≈2 就够（k/4=0.5）。
+    //      K 太大会把空隙也拉成成品，整个糊成一片。
+    //   BIAS: 阈值偏置。略大于 0，让边界像素归入成品（抗锯齿更自然）。
+    //   SPAN: 融合范围上限（格）—— 关键参数，见 _ironSmin2 的坑说明。
+    //      必须明显小于「豆子间空隙的宽度」，否则空隙会被误判成成品。
+    _IRON_MELT_DEFAULTS: { r: 0.18, k: 2.0, bias: 0.02, span: 0.35 },
+
+    /** 熔融参数的滑杆定义（UI 与默认值共用一份，避免两处漂移） */
+    _ironMeltParamSpec() {
+        return [
+            {
+                id: 'r', label: '圆角', min: 0, max: 0.45, step: 0.01, def: 0.18,
+                title: '融合半径 = 豆径的比例。调大 → 豆子更圆、整体轮廓外扩；调小 → 接近直角'
+            },
+            {
+                id: 'k', label: '融合', min: 0, max: 6, step: 0.1, def: 2.0,
+                title: '平滑并集系数（格）。调大 → 凹角填得更满；过大时豆子间空隙也会被填上'
+            },
+            {
+                id: 'bias', label: '阈值', min: -0.1, max: 0.2, step: 0.01, def: 0.02,
+                title: '成品判定阈值。调大 → 轮廓外扩一圈；调小 → 轮廓收缩'
+            },
+            {
+                id: 'span', label: '范围', min: 0.05, max: 1.0, step: 0.01, def: 0.35,
+                title: '融合范围上限（格）。必须小于豆子间空隙（1 格），否则空隙会被误判成成品'
+            }
+        ];
+    },
+
+    /** 取当前生效的熔融参数（state 优先，缺项回落到默认值） */
+    _ironMeltParams(state) {
+        const d = this._IRON_MELT_DEFAULTS;
+        const m = (state && state.melt) || null;
+        return {
+            r: m && m.r !== undefined ? m.r : d.r,
+            k: m && m.k !== undefined ? m.k : d.k,
+            bias: m && m.bias !== undefined ? m.bias : d.bias,
+            span: m && m.span !== undefined ? m.span : d.span
+        };
+    },
+
+    /** 单个圆角矩形的有符号距离（iq 的 sdRoundBox），cell 单位下调用 */
+    _ironCellDist(px, py, bx, by, cell, r) {
+        const hx = cell / 2, hy = cell / 2;
+        const cx = bx + hx, cy = by + hy;
+        const rr = Math.min(r, hx * 0.98, hy * 0.98);
+        const qx = Math.abs(px - cx) - (hx - rr);
+        const qy = Math.abs(py - cy) - (hy - rr);
+        return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rr;
+    },
+
+    /**
+     * 平滑并集（带间距上限）—— 凹角靠它填平。
+     *
+     * ★★ 这里有一个必须加的限制，踩过坑 ★★
+     *
+     * 教科书写法是 smin(a,b) = min - h²·k/4，h = max(0, k-|a-b|)/k。
+     * 但它在 **|a-b| 很小时也会收缩**，不管两点是不是"贴在一起"。
+     *
+     * 实测后果（checker 图案，豆子只斜对角相接）：
+     *     空隙格心到四个豆的距离全相等 → smin 无条件收缩 k/4
+     *     → k=2 时每个空隙格心距离变成 0.0 < bias → 全被判成成品
+     *     → 整个图案糊成一片条纹（实测过）
+     *
+     * 所以必须加 `span`：只有两点的距离都**足够小**（即真的在融合区里）
+     * 才让 smin 生效。远处两点走纯 min，完全不影响形状。
+     *
+     * @param {number} span - 融合范围（格）。超过它的距离不参与融合。
+     */
+    _ironSmin2(a, b, k, span) {
+        if (span !== undefined && (a > span || b > span)) return Math.min(a, b);
+        const h = Math.max(0, k - Math.abs(a - b)) / k;
+        return Math.min(a, b) - h * h * k * 0.25;
+    },
+
+    /**
+     * 生成熔融轮廓的 alpha mask（PlateW × PlateH，白=成品 / 黑=透明）。
+     *
+     * 流程：格子分辨率 SDF → 平滑并集 → 双线性插值到全分辨率 → 阈值成 mask。
+     */
+    _buildMetaballMask(perlerColors, pw, ph, cellSize, params) {
+        const P = params || this._IRON_MELT_DEFAULTS;
+        const rG = P.r;                            // 豆径比例
+        const kG = P.k;                            // 参数直接就是「格」，不再除 4
+        const biasG = P.bias;
+        // 融合范围：只有这个距离内的两点才允许融合（见 _ironSmin2 注释）
+        const spanG = P.span;
+
+        // ---- 1. 格子分辨率 SDF ----
+        const sdf = new Float32Array(pw * ph).fill(1e6);
+        const cid = new Int32Array(pw * ph).fill(-1);
+        // 色号索引表（避免在 SDF 循环里存对象引用）
+        const colors = [];
+        const colorIdx = new Map();
+        for (let y = 0; y < ph; y++) {
+            for (let x = 0; x < pw; x++) {
+                const c = perlerColors[y][x];
+                if (c.isTransparent) continue;
+                const key = c.rgb[0] + ',' + c.rgb[1] + ',' + c.rgb[2];
+                let idx = colorIdx.get(key);
+                if (idx === undefined) { idx = colors.length; colors.push(c.rgb); colorIdx.set(key, idx); }
+                cid[y * pw + x] = idx;
+            }
+        }
+
+        for (let cy = 0; cy < ph; cy++) {
+            for (let cx = 0; cx < pw; cx++) {
+                const px = cx + 0.5, py = cy + 0.5;
+                let d1 = 1e6, i1 = -1, d2 = 1e6, i2 = -1;
+                for (let dy = -1; dy <= 1; dy++) {
+                    const ny = cy + dy;
+                    if (ny < 0 || ny >= ph) continue;
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = cx + dx;
+                        if (nx < 0 || nx >= pw) continue;
+                        const idx = cid[ny * pw + nx];
+                        if (idx < 0) continue;
+                        const d = this._ironCellDist(px, py, nx, ny, 1, rG);
+                        if (d < d1) { d2 = d1; i2 = i1; d1 = d; i1 = idx; }
+                        else if (d < d2) { d2 = d; i2 = idx; }
+                    }
+                }
+                if (i1 < 0) continue;
+                const i = cy * pw + cx;
+                sdf[i] = (i2 >= 0) ? this._ironSmin2(d1, d2, kG, spanG) : d1;
+                // 颜色取"最近豆"（硬 min 的胜者），这与现有的填充规则一致
+                cid[i] = (d1 <= d2) ? i1 : i2;
+            }
+        }
+
+        // ---- 2. 双线性插值到全分辨率 → 阈值 → mask ----
+        const W = pw * cellSize, H = ph * cellSize;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d');
+        const img = ctx.createImageData(W, H);
+        const d = img.data;
+
+        for (let py = 0; py < H; py++) {
+            const fy = py / cellSize - 0.5;
+            const y0 = Math.max(0, Math.floor(fy));
+            const y1 = Math.min(ph - 1, y0 + 1);
+            const ty = Math.max(0, Math.min(1, fy - y0));
+            for (let px = 0; px < W; px++) {
+                const fx = px / cellSize - 0.5;
+                const x0 = Math.max(0, Math.floor(fx));
+                const x1 = Math.min(pw - 1, x0 + 1);
+                const tx = Math.max(0, Math.min(1, fx - x0));
+
+                const s00 = sdf[y0 * pw + x0], s10 = sdf[y0 * pw + x1];
+                const s01 = sdf[y1 * pw + x0], s11 = sdf[y1 * pw + x1];
+                const s = (s00 * (1 - tx) + s10 * tx) * (1 - ty) + (s01 * (1 - tx) + s11 * tx) * ty;
+                if (s >= biasG) continue;              // 轮廓外
+
+                // 颜色：四角里 sdf 最小的那个
+                let best = 1e6, col = -1;
+                for (const q of [y0 * pw + x0, y0 * pw + x1, y1 * pw + x0, y1 * pw + x1]) {
+                    const qv = sdf[q];
+                    if (qv < best) { best = qv; col = cid[q]; }
+                }
+                if (col < 0) continue;
+                const rgb = colors[col];
+                const p = (py * W + px) * 4;
+                d[p] = rgb[0]; d[p + 1] = rgb[1]; d[p + 2] = rgb[2]; d[p + 3] = 255;
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+
+        // ---- 3. 从 mask 提取轮廓路径（供 ctx.clip 用）----
+        // 后续 ②③④ 层都要裁到成品轮廓内，而 canvas 的 clip() 只接受 Path2D。
+        // 用 marching squares 从 alpha 通道提边界：成本约 W×H×常数，
+        // 比逐像素 clip 快（clip 一条几万段子路径的 Path2D 会拖垮光栅化）。
+        const mpath = this._ironMaskToPath(d, W, H);
+
+        return { canvas: cv, w: W, h: H, path: mpath };
+    },
+
+    /**
+     * 从 mask 的 alpha 通道提取轮廓 Path2D（marching squares）。
+     *
+     * 为什么需要：后续纹理层/光照层必须裁到成品轮廓内，
+     * 而 canvas 的 clip() 只接受 Path2D / 矩形 / 文本，没有"图像 alpha"这种源。
+     *
+     * 先做 3×3 邻域投票把锯齿边界平滑掉，再跑 marching squares。
+     */
+    _ironMaskToPath(d, W, H) {
+        const path = new Path2D();
+
+        // 3×3 投票 → 平滑后的内外标记
+        const inside = new Uint8Array(W * H);
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                let c = 0;
+                for (let dy = -1; dy <= 1; dy++) {
+                    const yy = y + dy; if (yy < 0 || yy >= H) continue;
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const xx = x + dx; if (xx < 0 || xx >= W) continue;
+                        if (d[(yy * W + xx) * 4 + 3] > 128) c++;
+                    }
+                }
+                inside[y * W + x] = c >= 5 ? 1 : 0;
+            }
+        }
+
+        // marching squares
+        const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 0 : inside[y * W + x];
+        for (let y = 0; y < H - 1; y++) {
+            for (let x = 0; x < W - 1; x++) {
+                const tl = at(x, y), tr = at(x + 1, y), br = at(x + 1, y + 1), bl = at(x, y + 1);
+                const code = (tl << 3) | (tr << 2) | (br << 1) | bl;
+                if (code === 0 || code === 15) continue;
+                const cx = x + 0.5, cy = y + 0.5;
+                const seg = (x1, y1, x2, y2) => { path.moveTo(x1, y1); path.lineTo(x2, y2); };
+                switch (code) {
+                    case 1: case 14: seg(cx-0.5, cy, cx, cy-0.5); seg(cx, cy+0.5, cx-0.5, cy); break;
+                    case 2: case 13: seg(cx, cy-0.5, cx+0.5, cy); seg(cx-0.5, cy, cx, cy+0.5); break;
+                    case 3: case 12: seg(cx+0.5, cy, cx+0.5, cy+0.5); seg(cx-0.5, cy, cx+0.5, cy+0.5); break;
+                    case 4: case 11: seg(cx, cy-0.5, cx+0.5, cy); seg(cx, cy-0.5, cx+0.5, cy+0.5); break;
+                    case 6: case 9:  seg(cx-0.5, cy, cx+0.5, cy+0.5); seg(cx, cy-0.5, cx-0.5, cy+0.5); break;
+                    case 7: case 8:  seg(cx, cy-0.5, cx-0.5, cy+0.5); seg(cx+0.5, cy, cx+0.5, cy+0.5); break;
+                    case 5:        seg(cx-0.5, cy, cx, cy-0.5); seg(cx, cy-0.5, cx+0.5, cy); break;
+                    case 10:       seg(cx+0.5, cy, cx, cy+0.5); seg(cx, cy+0.5, cx-0.5, cy); break;
+                }
+            }
+        }
+        return path;
     },
 
     /**
@@ -582,6 +1143,10 @@ const IronPreviewMixin = {
      */
     _drawIronShadow(ctx, geo, padding, amp) {
         if (!geo) return;
+        // 熔融路径下轮廓在 geo.maskPath 里（Path2D），
+        // 非熔融路径在 geo.path 里。两者都没有就跳过投影。
+        const outline = geo.maskPath || geo.path;
+        if (!outline) return;
         const cellSize = geo.cellSize;
         const w = geo.plateW + padding * 2;
         const h = geo.plateH + padding * 2;
@@ -606,7 +1171,7 @@ const IronPreviewMixin = {
         sctx.scale(sc, sc);
         sctx.translate(padding, padding);
         sctx.fillStyle = '#000';
-        sctx.fill(geo.path);
+        sctx.fill(outline);
         sctx.restore();
 
         const blur = this._ironShadowBlur;
@@ -1058,15 +1623,16 @@ const IronPreviewMixin = {
      *  @param {number} swing - 光影摆幅（灰阶）。实测参考图 53~252，取 145。
      *  @param {number} knee  - 溢出压缩系数（0=硬切，1=不压缩）。实测 0.35~0.6 都行。
      */
-    _applyPixelRelief(ctx, width, height, cfg, swing, knee, tileId) {
+    _applyPixelRelief(ctx, width, height, cfg, swing, knee, tileId, geom, cellSize) {
         if (swing <= 0.5) return;
 
         // 1. 光影场：真实素材 tile 优先，取不到时回退到程序生成
         const lightTile = this._ironLightTile(cfg, tileId);
         if (!lightTile) return;   // 素材还在加载中，这一帧跳过
 
-        // 2. 采样到目标尺寸（tile 平铺，尺寸与豆径无关 → 倍率一致）
-        const field = this._ironSampleLightField(lightTile, width, height);
+        // 2. 采样到目标尺寸。★ 采样倍率 = 用户滑杆 × 锚点系数（见 _ironTexAnchoredGeom）
+        const eff = this._ironTexAnchoredGeom(tileId, lightTile, width, height, cellSize, geom);
+        const field = this._ironSampleLightField(lightTile, width, height, eff);
         if (!field) return;
 
         // 3. 像素级合成
@@ -1127,11 +1693,96 @@ const IronPreviewMixin = {
      * 量化噪声 std≈3 灰阶（摆幅 145 的 2%），肉眼看不出来。
      */
     _ironZaoJinList() {
+        const TILES = (typeof window !== 'undefined' && window.IRON_ZAOJIN_TILES) || {};
+        const META = (typeof window !== 'undefined' && window.IRON_ZAOJIN_META) || {};
+        const ids = Object.keys(TILES);
+        if (!ids.length) {
+            // tiles.js 没加载（理论上不会，它被 build.js 排在第一位）→ 兜底
+            return [{ id: 'zaoJin1', label: '澡巾1 · 细密短绒', swing: 0.82, scale: 1, rot: 0, kind: 'photo' }];
+        }
+        // 元数据由 tools/gen-iron-textures.py 生成，跟 tile 同源，不会两处漂移
+        return ids.map(id => {
+            const m = META[id] || {};
+            return {
+                id: id,
+                label: m.label || id,
+                swing: m.swing !== undefined ? m.swing : 1.0,
+                scale: m.scale !== undefined ? m.scale : 1.0,   // 花纹大小默认值
+                rot: m.rot !== undefined ? m.rot : 0,           // 花纹旋转默认角（度）
+                kind: m.kind || 'photo',
+                anchor: m.anchor || null,                       // 'art' | 'bead'（尺度锚点）
+                baseTiles: m.baseTiles || 0                     // art 锚点下：整幅长边跨几个 tile
+            };
+        });
+    },
+
+    /**
+     * 花纹的几何参数（大小 / 旋转）—— 由预览面板的滑杆控制。
+     *
+     * scale = 花纹大小倍率（相对**锚点基准**，见 _ironTexAnchoredGeom）。
+     *         1.0 = 锚点基准；>1 花纹变大、整幅上的重复次数变少。
+     * rot   = 花纹旋转角（度）。用于把矢量花纹的方向调成跟图案走势一致。
+     *
+     * ★ 这两个参数不烘焙进 tile，而是**在采样时用 canvas pattern 变换**实现，
+     *   所以改它们只要重跑一次采样，不需要重新生成 tile（离线脚本跑一次要十几秒）。
+     */
+    _ironTexGeom(state) {
+        const g = (state && state.texGeom) || null;
+        return {
+            scale: g && g.scale !== undefined ? g.scale : 1.0,
+            rot: g && g.rot !== undefined ? g.rot : 0
+        };
+    },
+
+    /**
+     * ★★★ 尺度锚点（2026-10-16）—— 决定"1.0× 到底多大"
+     *
+     * 原来直接把用户倍率当采样倍率用，于是 tile 是**按渲染像素 1:1** 铺的：
+     * 预览倍率 1×~4× 对应豆径 20~80px，同一个"大小 1.0×"覆盖的豆子从 12.8 颗
+     * 变到 3.2 颗；导出又换一套分辨率预算（预览 2800 / 导出 4800），
+     * 于是"预览里调好的样子，导出后不是那样"。用户要的是**以整幅为单位**。
+     *
+     * 现在按素材类别分两种锚点（写在 tiles.js 的 IRON_ZAOJIN_META 里）：
+     *   art  ─ 矢量花纹（图案本身没有物理尺寸，是设计选择）
+     *          1.0× ⇒ 作品长边跨过 baseTiles 个 tile，与素材截图同密度。
+     *          任何倍率、任何导出尺寸下，图案与作品的比例恒定 → 滑杆调好的值有意义。
+     *   bead ─ 实物肌理（澡巾/毛巾：一颗豆 5mm 是物理尺度）
+     *          按豆径缩放，一颗豆上的颗粒数不随倍率变（与程序生成的那几层一致）。
+     *
+     * @returns {{scale:number, rot:number, anchor:string, anchorScale:number}}
+     */
+    _ironTexAnchoredGeom(tileId, tile, width, height, cellSize, geom) {
+        const META = (typeof window !== 'undefined' && window.IRON_ZAOJIN_META) || {};
+        const m = META[tileId] || {};
+        const anchor = m.anchor || (m.kind === 'vector' ? 'art' : 'bead');
+        let a = 1;
+        if (anchor === 'art') {
+            const tileLong = tile ? Math.max(tile.width, tile.height) : 256;
+            const base = m.baseTiles || 3;
+            a = Math.max(width, height) / (base * tileLong);
+        } else if (cellSize) {
+            a = cellSize / this._IRON_TILE_BASE_CELL;
+        }
+        const userScale = (geom && geom.scale !== undefined) ? geom.scale : 1.0;
+        return {
+            scale: userScale * a,
+            rot: (geom && geom.rot) || 0,
+            anchor, anchorScale: a
+        };
+    },
+
+    /** 面板滑杆定义（UI 与默认值共用一份） */
+    _ironTexGeomSpec() {
         return [
-            { id: 'zaoJin1', label: '澡巾1 · 细密短绒', swing: 0.82 },
-            { id: 'zaoJin2', label: '澡巾2 · 粗圈绒面', swing: 1.00 },
-            { id: 'zaoJin3', label: '澡巾3 · 细圈绒面', swing: 0.95 },
-            { id: 'zaoJin4', label: '澡巾4 · 粗颗粒',   swing: 0.70 }
+            {
+                id: 'scale', label: '大小', min: 0.4, max: 3.0, step: 0.05, def: 1.0,
+                title: '相对该素材的默认尺度。1.0× = 与素材原图同密度（整幅长边跨过固定的图案数，' +
+                    '与预览倍率、导出尺寸无关）。调大 → 图案更大、整幅上的重复更少'
+            },
+            {
+                id: 'rot', label: '旋转', min: 0, max: 180, step: 5, def: 0,
+                title: '花纹旋转角（度）。用于把花纹方向调成跟图案走势一致'
+            }
         ];
     },
 
@@ -1161,13 +1812,15 @@ const IronPreviewMixin = {
             const self = this;
             const img = new Image();
             img.onload = function () {
-                const size = 256;
                 const cv = document.createElement('canvas');
-                cv.width = size; cv.height = size;
+                // ★ 不再强制 256×256：花纹 tile 是按素材原始周期生成的，
+                //   可能非正方（例：斜纹 300×300、波浪 264×264、青海波 310×320），
+                //   强行拉伸会同时改变图案比例和平铺周期。
+                cv.width = img.naturalWidth || 256;
+                cv.height = img.naturalHeight || 256;
                 const cx = cv.getContext('2d');
                 cx.imageSmoothingEnabled = true;
-                // 素材是 256 的无缝 tile，直接缩放到标准尺寸即可
-                cx.drawImage(img, 0, 0, size, size);
+                cx.drawImage(img, 0, 0);
                 self._ironLightCache[key] = cv;
                 if (self._ironPreviewCanvas) self._refreshIronPreview(true);   // 重画一次
             };
@@ -1210,7 +1863,7 @@ const IronPreviewMixin = {
     },
 
     /** 把光影 tile 平铺采样成 Float32Array（-1..1），尺寸 = 目标区域 */
-    _ironSampleLightField(tile, w, h) {
+    _ironSampleLightField(tile, w, h, geom) {
         const scratch = this._ironFieldScratch || (this._ironFieldScratch = document.createElement('canvas'));
         if (scratch.width !== w || scratch.height !== h) {
             scratch.width = w;
@@ -1219,7 +1872,25 @@ const IronPreviewMixin = {
         const sctx = scratch.getContext('2d', { willReadFrequently: true });
         sctx.setTransform(1, 0, 0, 1, 0, 0);
         sctx.clearRect(0, 0, w, h);
-        sctx.fillStyle = sctx.createPattern(tile, 'repeat');
+        const pat = sctx.createPattern(tile, 'repeat');
+        // ★ 花纹大小 / 旋转：在 pattern 变换层做，改参数不用重新生成 tile
+        //   scale>1 → 图案被放大（每颗豆上的条数变少）
+        //   旋转绕整幅中心，再补一次平移保证覆盖不留空角
+        if (geom && (Math.abs(geom.scale - 1) > 1e-3 || Math.abs(geom.rot) > 1e-3)) {
+            const sc = geom.scale;
+            const rad = geom.rot * Math.PI / 180;
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+            const m = new DOMMatrix();
+            // 先把旋转+缩放作用在 pattern 上（矩阵里 a,b,c,d 是图案坐标系）
+            m.a = cos * sc;  m.b = sin * sc;
+            m.c = -sin * sc; m.d = cos * sc;
+            // e,f 是平移：让图案覆盖整个采样区（取两个方向的整数倍）
+            const ext = Math.ceil(Math.hypot(w, h) * sc);
+            m.e = (ext - w * cos) / 2 + (h * sin) / 2;
+            m.f = (ext - h * cos) / 2 - (w * sin) / 2;
+            if (pat.setTransform) { try { pat.setTransform(m); } catch (e) { /* 老浏览器降级 */ } }
+        }
+        sctx.fillStyle = pat;
         sctx.fillRect(0, 0, w, h);
 
         const d = sctx.getImageData(0, 0, w, h).data;
@@ -1296,7 +1967,9 @@ const IronPreviewMixin = {
                     ctx, width, height, this._zaoJinRidgeCfg(),
                     this._IRON_RELIEF_SWING * (zj.swing || 1) * amp,
                     this._IRON_RELIEF_KNEE,
-                    zj.id
+                    zj.id,
+                    this._ironTexGeom(state),
+                    cellSize
                 );
                 break;
 
@@ -2414,7 +3087,9 @@ const IronPreviewMixin = {
      *  ② 用带方向的渐变代替均匀白色 —— 光有来源，边缘才有立体感。
      */
     _applyRimHighlight(ctx, width, height, geo, profile, amp) {
-        const outline = geo && geo.outline;
+        // 熔融路径没有独立的"外轮廓描边路径"，
+        // 用 mask 轮廓代替 —— 它描的是成品外缘，语义一致。
+        const outline = geo && (geo.outline || geo.maskPath);
         if (!outline) return;
         const s = geo.cellSize;
 
