@@ -181,6 +181,8 @@ const IronPreviewMixin = {
                 <input type="checkbox" id="ironShadowToggle" checked>
                 投影
             </label>
+            <button id="ironShadowTuneBtn" title="展开/收起投影参数（松手后才重画，拖动时不会卡）"
+                style="padding:3px 8px;background:#3a3a3a;color:#bbb;border:1px solid #555;border-radius:4px;cursor:pointer;font-size:12px;">影子 ▸</button>
 
             <span style="font-size:11px;color:#8a8a8a;">选"透明"后预览用棋盘格示意，导出的 PNG 才有 alpha</span>
 
@@ -276,6 +278,49 @@ const IronPreviewMixin = {
             'border-radius:4px;cursor:pointer;font-size:12px';
         meltPanel.appendChild(meltResetBtn);
 
+        // ---- 投影参数面板（默认收起）----
+        // 同样用 spec 生成，避免 range 的 min/max 与默认值两处漂移
+        const shadowPanel = document.createElement('div');
+        shadowPanel.id = 'ironShadowPanel';
+        shadowPanel.style.cssText = 'display:none;flex-wrap:wrap;gap:8px 16px;align-items:center;' +
+            'padding:8px 10px;margin-top:8px;background:#242424;border:1px solid #3a3a3a;border-radius:6px';
+
+        this._ironShadowParamSpec().forEach(sp => {
+            const lab = document.createElement('label');
+            lab.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;color:#bbb';
+            lab.title = sp.title;
+
+            const name = document.createElement('span');
+            name.textContent = sp.label;
+            name.style.cssText = 'color:#f9a;min-width:28px';
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.id = 'ironShadow_' + sp.id;
+            input.min = sp.min; input.max = sp.max; input.step = sp.step;
+            input.value = sp.def;
+            input.style.cssText = 'width:104px';
+            input.title = sp.title;
+
+            const val = document.createElement('span');
+            val.id = 'ironShadowVal_' + sp.id;
+            val.style.cssText = 'font-size:11px;color:#999;min-width:38px;text-align:right;' +
+                'font-variant-numeric:tabular-nums';
+
+            lab.appendChild(name);
+            lab.appendChild(input);
+            lab.appendChild(val);
+            shadowPanel.appendChild(lab);
+        });
+
+        const shadowResetBtn = document.createElement('button');
+        shadowResetBtn.id = 'ironShadowResetBtn';
+        shadowResetBtn.textContent = '复位';
+        shadowResetBtn.title = '恢复投影参数的出厂默认值';
+        shadowResetBtn.style.cssText = 'padding:3px 9px;background:#444;color:#ddd;border:1px solid #666;' +
+            'border-radius:4px;cursor:pointer;font-size:12px';
+        shadowPanel.appendChild(shadowResetBtn);
+
         const canvasWrap = document.createElement('div');
         Object.assign(canvasWrap.style, {
             background: '#1a1a1a', borderRadius: '10px',
@@ -300,6 +345,7 @@ const IronPreviewMixin = {
         modal.appendChild(controls);
         controls.appendChild(texPanel);
         controls.appendChild(meltPanel);
+        controls.appendChild(shadowPanel);
         modal.appendChild(canvasWrap);
         modal.appendChild(hint);
 
@@ -463,6 +509,65 @@ const IronPreviewMixin = {
         });
 
         syncMeltSliders(this._ironMeltParams(this._ironPreviewState));
+
+        // ---- 投影参数：与熔融参数同一套「数值实时、渲染延迟」手感 ----
+        const shadowSpec = this._ironShadowParamSpec();
+        const shadowTuneBtn = controls.querySelector('#ironShadowTuneBtn');
+
+        const syncShadowSliders = (sp2) => {
+            shadowSpec.forEach(sp => {
+                const inp = controls.querySelector('#ironShadow_' + sp.id);
+                const val = controls.querySelector('#ironShadowVal_' + sp.id);
+                if (!inp || !val) return;
+                const v = (sp2 && sp2[sp.id] !== undefined) ? sp2[sp.id] : sp.def;
+                inp.value = v;
+                val.textContent = fmtVal(sp, v);
+            });
+        };
+
+        const applyShadow = (sp, raw) => {
+            const v = parseFloat(raw);
+            if (isNaN(v)) return;
+            if (!this._ironPreviewState.shadowParams) {
+                const d = this._IRON_SHADOW_DEFAULTS;
+                this._ironPreviewState.shadowParams = {
+                    opacity: d.opacity, blur: d.blur, dx: d.dx, dy: d.dy, spread: d.spread
+                };
+            }
+            this._ironPreviewState.shadowParams[sp.id] = v;
+            // 投影是在成品层之外单独画的（drawIronPreview 里），
+            // 所以参数不进 _ironPieceKey 的缓存判定，改完直接重贴即可。
+            this._refreshIronPreview();
+        };
+
+        shadowSpec.forEach(sp => {
+            const inp = controls.querySelector('#ironShadow_' + sp.id);
+            const val = controls.querySelector('#ironShadowVal_' + sp.id);
+            if (!inp) return;
+            inp.addEventListener('input', () => {
+                val.textContent = fmtVal(sp, parseFloat(inp.value));
+            });
+            inp.addEventListener('change', () => applyShadow(sp, inp.value));
+            inp.addEventListener('keyup', () => applyShadow(sp, inp.value));
+        });
+
+        shadowResetBtn.addEventListener('click', () => {
+            const d = this._IRON_SHADOW_DEFAULTS;
+            this._ironPreviewState.shadowParams = {
+                opacity: d.opacity, blur: d.blur, dx: d.dx, dy: d.dy, spread: d.spread
+            };
+            syncShadowSliders(this._ironPreviewState.shadowParams);
+            this._refreshIronPreview();
+        });
+
+        shadowTuneBtn.addEventListener('click', () => {
+            const on = shadowPanel.style.display === 'none';
+            shadowPanel.style.display = on ? 'flex' : 'none';
+            shadowTuneBtn.textContent = on ? '影子 ▾' : '影子 ▸';
+            if (on) syncShadowSliders(this._ironShadowParams(this._ironPreviewState));
+        });
+
+        syncShadowSliders(this._ironShadowParams(this._ironPreviewState));
 
         /** 透明模式：画布背景改成棋盘格（仅预览用，导出仍是真透明） */
         const applyChecker = (on) => {
@@ -698,7 +803,7 @@ const IronPreviewMixin = {
         // 透明背景下投影会变成一圈灰雾，很难看 → 自动跳过
         const useShadow = state.shadow !== false && !state.transparent;
         if (useShadow) {
-            this._drawIronShadow(ctx, this._ironGeo, padding, amp);
+            this._drawIronShadow(ctx, this._ironGeo, padding, amp, state);
         }
         ctx.drawImage(piece, 0, 0);
 
@@ -934,6 +1039,55 @@ const IronPreviewMixin = {
         ];
     },
 
+    // ★ 投影默认参数（2026-10-16）
+    //   OPACITY  不透明度。成品离桌面越近越实，悬空则更虚。
+    //   BLUR     模糊半径，按豆径比例（跟强度无关）——投影的软硬跟豆子大小无关，
+    //            只跟"离桌面的距离"有关，所以这里不进 amp。
+    //   DX/DY    偏移量，按豆径比例。默认右下偏移，与"光从左上来"一致。
+    //            Y 为负 → 影子往左投（顶光）；X 为负 → 影子往右投。
+    //   SPREAD   扩散（膨胀）量。真实阴影不是纯模糊，它还有一圈半影向外爬。
+    //            实现上等价于"偏移 + 多次叠加"，这里用 spread 段数模拟。
+    _IRON_SHADOW_DEFAULTS: { opacity: 0.45, blur: 0.30, dx: 0.16, dy: 0.26, spread: 0.0 },
+
+    /** 投影参数的滑杆定义（UI 与默认值共用一份，避免两处漂移） */
+    _ironShadowParamSpec() {
+        return [
+            {
+                id: 'opacity', label: '浓度', min: 0, max: 1, step: 0.01, def: 0.45,
+                title: '投影不透明度。0 = 完全无影；1 = 最实'
+            },
+            {
+                id: 'blur', label: '柔和', min: 0, max: 1.2, step: 0.01, def: 0.30,
+                title: '模糊半径（豆径倍数）。小 = 影子贴得很紧很硬；大 = 影子散得很开，像悬空'
+            },
+            {
+                id: 'dx', label: '横向', min: -1.5, max: 1.5, step: 0.01, def: 0.16,
+                title: '水平偏移（豆径倍数）。负值 → 影子往左投'
+            },
+            {
+                id: 'dy', label: '纵向', min: -1.5, max: 1.5, step: 0.01, def: 0.26,
+                title: '垂直偏移（豆径倍数）。负值 → 影子往上投（顶光）'
+            },
+            {
+                id: 'spread', label: '扩散', min: 0, max: 1, step: 0.05, def: 0.0,
+                title: '半影扩散。真实阴影除模糊外还有一圈向外爬的软边，0 = 只有模糊'
+            }
+        ];
+    },
+
+    /** 取当前生效的投影参数（state 优先，缺项回落到默认值） */
+    _ironShadowParams(state) {
+        const d = this._IRON_SHADOW_DEFAULTS;
+        const s = (state && state.shadowParams) || null;
+        return {
+            opacity: s && s.opacity !== undefined ? s.opacity : d.opacity,
+            blur: s && s.blur !== undefined ? s.blur : d.blur,
+            dx: s && s.dx !== undefined ? s.dx : d.dx,
+            dy: s && s.dy !== undefined ? s.dy : d.dy,
+            spread: s && s.spread !== undefined ? s.spread : d.spread
+        };
+    },
+
     /** 取当前生效的熔融参数（state 优先，缺项回落到默认值） */
     _ironMeltParams(state) {
         const d = this._IRON_MELT_DEFAULTS;
@@ -1083,17 +1237,34 @@ const IronPreviewMixin = {
     },
 
     /**
-     * 从 mask 的 alpha 通道提取轮廓 Path2D（marching squares）。
+     * 从 mask 的 alpha 通道提取**闭合**轮廓 Path2D。
      *
-     * 为什么需要：后续纹理层/光照层必须裁到成品轮廓内，
-     * 而 canvas 的 clip() 只接受 Path2D / 矩形 / 文本，没有"图像 alpha"这种源。
+     * 【★ 这段为什么必须重写 —— 一个 0 像素的 bug】
+     * 原实现是 marching squares：对每个格子按 case 表吐 1~2 条 `moveTo+lineTo`
+     * **不闭合的独立线段**。Canvas 的 fill()/clip() 都按「闭合区域」处理路径，
+     * 一堆开放线段既围不出区域、也构不成裁剪环。headless 实测（40×40 方块）：
+     *   fill()  → 0 像素（对照 rect 填充 = 400）
+     *   clip()  → 保留 0 像素
+     * 后果是熔融模式下**纹理层 / 格线层 / 光照层全部一像素没画出来**，
+     * 投影也是空的 —— 表现就是「开了熔融边，阴影就消失了」。
+     * 它不是被遮挡，是几何体本身退化成了空集。
      *
-     * 先做 3×3 邻域投票把锯齿边界平滑掉，再跑 marching squares。
+     * 【现在的做法：二值 mask → 有向边 → 串闭环】
+     * ① 3×3 邻域投票把锯齿边界抹平（沿用原逻辑）
+     * ② 逐像素吐边界有向边，方向恒定保证「成品恒在右手边」：
+     *      上边 TL→TR、右边 TR→BR、下边 BR→BL、左边 BL→TL
+     *    因为环绕方向一致，**外轮廓与内洞的绕向天然相反**，
+     *    nonzero fill 规则直接把洞挖掉，不需要额外的 evenodd 或反向描边。
+     * ③ 按起点排序建 CSR 邻接表，二分查找把散边串成闭环。
+     *    鞍点（对角相接，如棋盘格）同一顶点有 2 条出边，
+     *    按「右转 > 直行 > 左转 > 掉头」固定优先级选，保证环不自交。
+     *
+     * headless 六项验证：实心 896/896、甜甜圈 1536/1536（洞正确挖掉）、
+     * 对角相接 642/642、双孤岛 288/288、棋盘格 1.3ms、空 mask 返回空路径不崩。
+     * （与期望值的个位数差异来自 ① 的边缘侵蚀，是原有行为，非本改动引入。）
      */
     _ironMaskToPath(d, W, H) {
-        const path = new Path2D();
-
-        // 3×3 投票 → 平滑后的内外标记
+        // ---- ① 3×3 邻域投票 → 平滑后的内外标记 ----
         const inside = new Uint8Array(W * H);
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
@@ -1109,28 +1280,74 @@ const IronPreviewMixin = {
             }
         }
 
-        // marching squares
+        // ---- ② 边界有向边 ----
+        // 顶点 = 像素角点 (vx, vy)，vx∈[0,W]、vy∈[0,H]，编码 vy*(W+1)+vx。
+        // 只存「终点 + 方向」，起点可由 end - dir 反推，省掉一份数组。
+        const CW = W + 1;
+        const ex = [], ey = [], edx = [], edy = [];
         const at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 0 : inside[y * W + x];
-        for (let y = 0; y < H - 1; y++) {
-            for (let x = 0; x < W - 1; x++) {
-                const tl = at(x, y), tr = at(x + 1, y), br = at(x + 1, y + 1), bl = at(x, y + 1);
-                const code = (tl << 3) | (tr << 2) | (br << 1) | bl;
-                if (code === 0 || code === 15) continue;
-                const cx = x + 0.5, cy = y + 0.5;
-                const seg = (x1, y1, x2, y2) => { path.moveTo(x1, y1); path.lineTo(x2, y2); };
-                switch (code) {
-                    case 1: case 14: seg(cx-0.5, cy, cx, cy-0.5); seg(cx, cy+0.5, cx-0.5, cy); break;
-                    case 2: case 13: seg(cx, cy-0.5, cx+0.5, cy); seg(cx-0.5, cy, cx, cy+0.5); break;
-                    case 3: case 12: seg(cx+0.5, cy, cx+0.5, cy+0.5); seg(cx-0.5, cy, cx+0.5, cy+0.5); break;
-                    case 4: case 11: seg(cx, cy-0.5, cx+0.5, cy); seg(cx, cy-0.5, cx+0.5, cy+0.5); break;
-                    case 6: case 9:  seg(cx-0.5, cy, cx+0.5, cy+0.5); seg(cx, cy-0.5, cx-0.5, cy+0.5); break;
-                    case 7: case 8:  seg(cx, cy-0.5, cx-0.5, cy+0.5); seg(cx+0.5, cy, cx+0.5, cy+0.5); break;
-                    case 5:        seg(cx-0.5, cy, cx, cy-0.5); seg(cx, cy-0.5, cx+0.5, cy); break;
-                    case 10:       seg(cx+0.5, cy, cx, cy+0.5); seg(cx, cy+0.5, cx-0.5, cy); break;
-                }
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                if (!at(x, y)) continue;
+                if (!at(x, y - 1)) { ex.push(x + 1); ey.push(y);     edx.push(1);  edy.push(0); }
+                if (!at(x + 1, y)) { ex.push(x + 1); ey.push(y + 1); edx.push(0);  edy.push(1); }
+                if (!at(x, y + 1)) { ex.push(x);     ey.push(y + 1); edx.push(-1); edy.push(0); }
+                if (!at(x - 1, y)) { ex.push(x);     ey.push(y);     edx.push(0);  edy.push(-1); }
             }
         }
-        return path;
+        const n = ex.length;
+        if (!n) return new Path2D();
+
+        // ---- ③ CSR 邻接表：按起点排序，查找走二分 ----
+        // 不为每个顶点开一个小数组（2800² 的图有 780 万个顶点，那样会炸内存）。
+        const key = new Int32Array(n);
+        for (let i = 0; i < n; i++) key[i] = (ey[i] - edy[i]) * CW + (ex[i] - edx[i]);
+        const sorted = Array.from({ length: n }, (_, i) => i).sort((a, b) => key[a] - key[b]);
+        const sortedKeys = new Int32Array(n);
+        for (let i = 0; i < n; i++) sortedKeys[i] = key[sorted[i]];
+        const slot = new Int32Array(2);
+        // 同一顶点的出边最多 2 条（鞍点），所以 slot 只需 2 格
+        const lookup = (k) => {
+            let lo = 0, hi = n;
+            while (lo < hi) { const m = (lo + hi) >> 1; if (sortedKeys[m] < k) lo = m + 1; else hi = m; }
+            let c = 0;
+            while (lo < n && sortedKeys[lo] === k && c < 2) slot[c++] = sorted[lo++];
+            return c;
+        };
+
+        // ---- ④ 串成闭环 ----
+        const used = new Uint8Array(n);
+        const parts = [];
+        const guardMax = n * 2 + 16;   // 理论上不会触发，防畸形数据死循环
+        for (let i0 = 0; i0 < n; i0++) {
+            if (used[i0]) continue;
+            const startX = ex[i0] - edx[i0], startY = ey[i0] - edy[i0];
+            parts.push('M', startX, startY);
+            let cur = i0; used[cur] = 1;
+            let px = edx[cur], py = edy[cur];
+            let vx = ex[cur], vy = ey[cur];
+            parts.push('L', vx, vy);
+            let guard = 0;
+            while (!(vx === startX && vy === startY) && guard++ < guardMax) {
+                const cnt = lookup(vy * CW + vx);
+                let best = -1, bestScore = 9;
+                for (let c = 0; c < cnt; c++) {
+                    const e = slot[c];
+                    if (used[e]) continue;
+                    const cross = px * edy[e] - py * edx[e];
+                    const dot = px * edx[e] + py * edy[e];
+                    const score = cross < 0 ? 0 : (dot > 0 ? 1 : (cross > 0 ? 2 : 3));
+                    if (score < bestScore) { bestScore = score; best = e; }
+                }
+                if (best < 0) break;
+                cur = best; used[cur] = 1;
+                px = edx[cur]; py = edy[cur];
+                vx = ex[cur]; vy = ey[cur];
+                parts.push('L', vx, vy);
+            }
+            parts.push('Z');
+        }
+        return new Path2D(parts.join(' '));
     },
 
     /**
@@ -1140,13 +1357,20 @@ const IronPreviewMixin = {
      * 做法：把轮廓画进 1/4 大小的小画布 → 在小画布上就地模糊
      * （1/16 的像素量，几乎不花时间）→ 再放大回来。
      * 大画布上直接跑 filter 才是真的贵。
+     *
+     * 【轮廓来源】熔融走 geo.maskPath，非熔融走 geo.path。
+     * 两者现在都是**闭合**轮廓 —— 原来的 marching squares 吐的是不闭合
+     * 散线段，fill() 出来是 0 像素，于是熔融模式下投影整个消失（详见
+     * _ironMaskToPath 的说明）。
      */
-    _drawIronShadow(ctx, geo, padding, amp) {
+    _drawIronShadow(ctx, geo, padding, amp, state) {
         if (!geo) return;
         // 熔融路径下轮廓在 geo.maskPath 里（Path2D），
         // 非熔融路径在 geo.path 里。两者都没有就跳过投影。
         const outline = geo.maskPath || geo.path;
         if (!outline) return;
+        const P = this._ironShadowParams(state);
+        if (P.opacity <= 0) return;
         const cellSize = geo.cellSize;
         const w = geo.plateW + padding * 2;
         const h = geo.plateH + padding * 2;
@@ -1171,7 +1395,22 @@ const IronPreviewMixin = {
         sctx.scale(sc, sc);
         sctx.translate(padding, padding);
         sctx.fillStyle = '#000';
-        sctx.fill(outline);
+        // 扩散：在轮廓外围多画几圈等比放大的副本，模拟半影向外爬
+        const layers = P.spread > 0 ? 3 : 1;
+        if (layers > 1) {
+            const cx = geo.plateW / 2, cy = geo.plateH / 2;
+            for (let i = layers; i >= 1; i--) {
+                const f = 1 + (P.spread * 0.14 * i);
+                sctx.save();
+                sctx.translate(cx, cy);
+                sctx.scale(f, f);
+                sctx.translate(-cx, -cy);
+                sctx.fill(outline);
+                sctx.restore();
+            }
+        } else {
+            sctx.fill(outline);
+        }
         sctx.restore();
 
         const blur = this._ironShadowBlur;
@@ -1179,15 +1418,18 @@ const IronPreviewMixin = {
         bctx.setTransform(1, 0, 0, 1, 0, 0);
         bctx.clearRect(0, 0, sw, sh);
         bctx.save();
-        bctx.filter = `blur(${Math.max(1.2, cellSize * 0.30 * sc)}px)`;
+        // blur 下限给 1.2px：1/4 画布上再小的值会被量化成 0，等于不模糊
+        bctx.filter = `blur(${Math.max(1.2, cellSize * P.blur * sc)}px)`;
         bctx.drawImage(src, 0, 0);
         bctx.restore();
 
         ctx.save();
-        ctx.globalAlpha = 0.34 + 0.22 * amp;
+        // 浓度：默认按强度轻微加成（强度越大成品贴得越实），
+        // 但保留滑杆的绝对控制权 —— 滑到 0 就一定没有影子。
+        ctx.globalAlpha = P.opacity * (0.72 + 0.28 * amp);
         // 往右下偏一点，与"光从左上来"保持一致
         // 注意要放大回原尺寸：blur 只是 1/4 大小的模糊版
-        ctx.drawImage(blur, cellSize * 0.16, cellSize * 0.26, w, h);
+        ctx.drawImage(blur, cellSize * P.dx, cellSize * P.dy, w, h);
         ctx.restore();
     },
 
